@@ -1,0 +1,2 @@
+# thurstone
+thurstone models
