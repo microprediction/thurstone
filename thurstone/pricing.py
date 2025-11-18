@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence
 import numpy as np
 from .lattice import UniformLattice
 from .density import Density, _cdf_from_pdf, _pdf_from_cdf
+from .order_stats import winner_of_many as os_winner_of_many, expected_payoff_with_multiplicity
 
 # ---- Tie handling strategies ----
 
@@ -79,11 +80,12 @@ class Race:
         return winner_of_many(self.densities)
 
     def state_prices(self) -> np.ndarray:
-        """Risk-neutral winning probabilities for each contestant."""
-        all_min = self.winner_density().cdf()
+        """Risk-neutral winning probabilities for each contestant (multiplicity-aware)."""
+        densityAll, multAll = os_winner_of_many(self.densities)
+        cdfAll = densityAll.cdf()
         prices = []
         for d in self.densities:
-            ep = expected_payoff_vs_rest(d, all_min, self.tie_model)
+            ep = expected_payoff_with_multiplicity(d, densityAll, multAll, cdf=None, cdfAll=cdfAll)
             prices.append(float(np.sum(ep)))
         p = np.array(prices, dtype=float)
         S = p.sum()
