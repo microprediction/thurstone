@@ -3,7 +3,18 @@
 
 An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). 
 
+## Uses 
+(Beyond horseracing)
+
+See the [notebook](https://github.com/microprediction/winning/blob/main/Ability_Transforms_Updated.ipynb) for examples of the use of this ability transform. 
+
+See the [paper](https://github.com/microprediction/winning/blob/main/docs/Horse_Race_Problem__SIAM_.pdf) for why this is useful in lots of places, according to a wise man. For instance, the algorithm may also find use anywhere winning probabilities or frequencies are apparent, such as with e-commerce product placement, in web search, or, as is shown in the paper: addressing a fundamental problem of trade. 
+
+
 ## Highlights
+
+This is the successor to the `winning` package. Essentially a clean up and mild generalization. New and inherited functionality includes:
+
 - Uniform lattice with explicit `L` and `unit` (`UniformLattice`).
 - Normalized `Density` with safe integer/fractional shifts, centering, convolution, and dilation. Negative mass is rejected; zero‑mass vectors are allowed as an explicit off‑lattice sentinel in extreme shifts.
 - Clean `Race` and `StatePricer` API for risk‑neutral **state prices** (winning probabilities), now multiplicity‑aware.
