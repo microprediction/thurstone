@@ -71,11 +71,3 @@ BibTeX:
   URL = {https://doi.org/10.1137/19M1276261}
 }
 ```
-
-## Project conventions
-- No mocking or stubbing: use real implementations; let code fail fast if deps are missing.
-- No fallbacks or silent handling: no hidden catch blocks or auto‑retries; surface errors explicitly.
-- DRY: extract shared logic/config into a single, reusable source of truth.
-
-## Status
-This is a minimal working prototype intended for clarity and extension. Tie multiplicity modeling and additional diagnostics can be added as strategies without changing the core API.
