@@ -62,7 +62,7 @@ prices = cal.state_prices_from_ability(ability)   # forward map (prices sum to 1
   - Run: `python examples/calibrate_with_scales_150.py`
 
 ## Cite
-This project implements ideas aligned with the winning algorithm for inferring relative ability from winning probabilities and the SIAM paper:
+See 
 
 - Cotton, Peter. “Inferring Relative Ability from Winning Probability in Multientrant Contests,” SIAM Journal on Financial Mathematics, 12(1), 295–317 (2021). DOI: `https://doi.org/10.1137/19M1276261`
 - Original reference implementation and additional context: `https://github.com/microprediction/winning`
