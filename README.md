@@ -1,7 +1,7 @@
 
 # thurstone
 
-An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices). It is inspired by lattice approaches but aims to be clearer and more modular.
+An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). 
 
 ## Highlights
 - Uniform lattice with explicit `L` and `unit` (`UniformLattice`).
