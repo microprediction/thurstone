@@ -82,3 +82,7 @@ BibTeX:
   URL = {https://doi.org/10.1137/19M1276261}
 }
 ```
+
+## Contribute
+
+The most obvious improvement would be a rust implementation. 
