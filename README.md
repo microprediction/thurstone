@@ -6,9 +6,10 @@ An object‑oriented toolkit for **lattice‑based performance models** and the 
 ## Highlights
 - Uniform lattice with explicit `L` and `unit` (`UniformLattice`).
 - Normalized `Density` with safe integer/fractional shifts, centering, convolution, and dilation. Negative mass is rejected; zero‑mass vectors are allowed as an explicit off‑lattice sentinel in extreme shifts.
-- Clean `Race` and `StatePricer` API for risk‑neutral **state prices** (winning probabilities).
+- Clean `Race` and `StatePricer` API for risk‑neutral **state prices** (winning probabilities), now multiplicity‑aware.
 - `AbilityCalibrator` solves the **inverse problem** with per‑runner monotone interpolation (sorted price→offset tables) and returns abilities in physical units.
 - `ClusterSplitter` handles offsets that hang off the lattice (both directions) with symmetric clustering and coarse‑to‑fine recursion, including walkover behavior and an equal‑share rule only when all offsets hang on one side and are tightly bunched (spread < support width).
+- `order_stats` module: multiplicity‑aware `winner_of_many` and `expected_payoff_with_multiplicity` (draws split by 1/(1 + multiplicity)).
 - Tie handling via pluggable `TieModel` (default: 0.5 split).
 
 ## Quickstart
@@ -33,12 +34,43 @@ prices = cal.state_prices_from_ability(ability)   # forward map (prices sum to 1
 - `ClusterSplitter` splits at the largest gap near the center, evaluates **both sides**, and combines refined within‑group prices using coarse group shares from a dilated lattice. It exhibits:
   - Walkover: sufficiently better (left) runners take ~1, sufficiently worse (right) get ~0.
   - Equal‑share only when all runners hang on the same side and are indistinguishable at resolution (spread < support width).
+- Forward pricing and inverse calibration use multiplicity‑aware payoffs: `win + draw/(1 + multiplicity_rest)`. This improves accuracy in dense/tie regimes.
 
 ## Testing
 - Optional test extras: `pip install -e ".[test]"`
 - Run tests: `pytest -q`
 - Property tests (Hypothesis) are auto‑skipped if Hypothesis is not installed.
 - A performance benchmark (pytest‑benchmark) is included and auto‑skips if the plugin is missing.
+- Multiplicity tests ensure clone ties scale multiplicity correctly and that multiplicity‑aware payoffs differ from naive half‑point splits.
+
+## Examples
+- Plot offset densities for 150 runners:
+  - Requires matplotlib: `pip install matplotlib`
+  - Run: `python examples/plot_offset_densities_150.py`
+- 2D calibration with per‑runner scales (150 runners, scales 15→20):
+  - Run: `python examples/calibrate_with_scales_150.py`
+
+## Cite
+This project implements ideas aligned with the winning algorithm for inferring relative ability from winning probabilities and the SIAM paper:
+
+- Cotton, Peter. “Inferring Relative Ability from Winning Probability in Multientrant Contests,” SIAM Journal on Financial Mathematics, 12(1), 295–317 (2021). DOI: `https://doi.org/10.1137/19M1276261`
+- Original reference implementation and additional context: `https://github.com/microprediction/winning`
+
+BibTeX:
+
+```bibtex
+@article{doi:10.1137/19M1276261,
+  author = {Cotton, Peter},
+  title = {Inferring Relative Ability from Winning Probability in Multientrant Contests},
+  journal = {SIAM Journal on Financial Mathematics},
+  volume = {12},
+  number = {1},
+  pages = {295-317},
+  year = {2021},
+  doi = {10.1137/19M1276261},
+  URL = {https://doi.org/10.1137/19M1276261}
+}
+```
 
 ## Project conventions
 - No mocking or stubbing: use real implementations; let code fail fast if deps are missing.
