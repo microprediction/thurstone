@@ -5,6 +5,8 @@ from typing import List, Sequence, Tuple
 import numpy as np
 from .density import Density
 from .lattice import UniformLattice
+from .pricing import Race
+from .order_stats import winner_of_many
 
 def _int_centered(offsets: Sequence[float]) -> List[float]:
     finite = [o for o in offsets if np.isfinite(o)]
@@ -61,12 +63,6 @@ class ClusterSplitter:
         upper_bound = L - W
         hang_left = [i for i,o in enumerate(centered) if o < lower_bound]
         hang_right = [i for i,o in enumerate(centered) if o > upper_bound]
-        # If all contestants hang on the same side and are tightly bunched relative to support,
-        # treat them as indistinguishable at this resolution (equal share).
-        if len(hang_left) == n or len(hang_right) == n:
-            spread = float(max(centered) - min(centered)) if n > 0 else 0.0
-            if spread < W:
-                return [1.0/n for _ in range(n)]
         if (not hang_left) and (not hang_right):
             from .inference import densities_from_offsets, state_prices_from_densities
             dens = densities_from_offsets(base, centered)
@@ -92,17 +88,41 @@ class ClusterSplitter:
                 right_idx = [int(np.argmax(centered))]
                 left_idx = [i for i in range(n) if i not in right_idx]
 
-        # coarse group shares
-        dilated = base.dilate(unit_ratio=self.unit_ratio)
-        dil_offsets = [o / self.unit_ratio for o in centered]
+        # group representatives via first-order statistics (race between subgroup winners)
         from .inference import densities_from_offsets, state_prices_from_densities
-        coarse_prices = state_prices_from_densities(densities_from_offsets(dilated, dil_offsets))
-        left_share  = float(sum(coarse_prices[i] for i in left_idx))
-        right_share = 1.0 - left_share
+        dens_left  = densities_from_offsets(base, [centered[i] for i in left_idx])
+        dens_right = densities_from_offsets(base, [centered[i] for i in right_idx])
+        if len(dens_left) == 0 or len(dens_right) == 0:
+            # Fallback safety; should be avoided by index balancing above
+            dens = densities_from_offsets(base, centered)
+            return state_prices_from_densities(dens)
+        rep_left,  _ = winner_of_many(dens_left)
+        rep_right, _ = winner_of_many(dens_right)
+        group_prices = Race([rep_left, rep_right]).state_prices()
+        left_share  = float(group_prices[0])
+        right_share = float(group_prices[1])
 
-        # refine inside groups
-        left_prices_rel  = self.__class__(self.unit_ratio, self.max_depth - 1).extended_state_prices(base, [centered[i] for i in left_idx])
-        right_prices_rel = self.__class__(self.unit_ratio, self.max_depth - 1).extended_state_prices(base, [centered[i] for i in right_idx])
+        # refine inside groups using "weak-as-single" logic:
+        # treat the weaker group as a single contestant for the cross-group race (already done via reps),
+        # then allocate within the weak group by a race inside that subgroup; for the strong group,
+        # use direct detailed prices (no additional recursion) to preserve resolution.
+        if left_share <= right_share:
+            # left group is weaker
+            left_prices_rel  = self.__class__(self.unit_ratio, self.max_depth - 1).extended_state_prices(base, [centered[i] for i in left_idx])
+            from .inference import state_prices_from_densities
+            right_prices_rel = state_prices_from_densities(dens_right)
+            # normalize detailed prices
+            S_r = float(sum(right_prices_rel))
+            if S_r > 0:
+                right_prices_rel = [pr/S_r for pr in right_prices_rel]
+        else:
+            # right group is weaker
+            right_prices_rel = self.__class__(self.unit_ratio, self.max_depth - 1).extended_state_prices(base, [centered[i] for i in right_idx])
+            from .inference import state_prices_from_densities
+            left_prices_rel  = state_prices_from_densities(dens_left)
+            S_l = float(sum(left_prices_rel))
+            if S_l > 0:
+                left_prices_rel = [pl/S_l for pl in left_prices_rel]
 
         out = [0.0 for _ in range(n)]
         for j, idx in enumerate(left_idx):

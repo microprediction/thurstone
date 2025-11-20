@@ -59,39 +59,34 @@ class AbilityCalibrator:
         n = len(prices_arr)
         # 2D path if scales provided and length matches; else 1D fallback
         if self.scales is None or len(self.scales) != n:
+            # ---- 1D global-curve inversion against current field (winning-style) ----
             if initial_offsets is None:
                 initial_offsets = [0.0 for _ in prices_arr]
             unit = self.base.lattice.unit
-            # Work internally in lattice steps
             offsets = np.array(initial_offsets, dtype=float) / unit
-
+            grid = list(self.offset_grid)
+            # Ensure ascending xp for np.interp later (we sort by price anyway)
             for _ in range(self.n_iter):
-                new_offsets = offsets.copy()
-                grid = list(self.offset_grid)
-                # Update each runner independently via monotone interpolation,
-                # conditioning on current offsets of others.
-                for i in range(n):
-                    # Tabulate the implicit curve p_i(g) with others fixed
-                    implied_prices_i = []
-                    cur = offsets.copy()
-                    for g in grid:
-                        cur[i] = g
-                        pvec = implicit_state_prices(self.base, cur)
-                        implied_prices_i.append(pvec[i])
-                    implied_prices_i = np.array(implied_prices_i, dtype=float)
-                    # Enforce monotone xp by sorting and uniquing keys
-                    pairs = sorted(zip(implied_prices_i, grid), key=lambda t: t[0])
-                    xp = np.array([t[0] for t in pairs], dtype=float)  # prices
-                    fp = np.array([t[1] for t in pairs], dtype=float)  # offsets
-                    xp_unique, idx = np.unique(xp, return_index=True)
-                    fp_unique = fp[idx]
-                    target = float(prices_arr[i])
-                    target = float(np.clip(target, xp_unique.min(), xp_unique.max()))
-                    gi = float(np.interp(target, xp_unique, fp_unique))
-                    new_offsets[i] = gi
-                offsets = new_offsets
-
-            # Convert lattice-step offsets back to ability units
+                # Build densities from current offsets, compute field w/ multiplicity
+                current_densities = densities_from_offsets(self.base, offsets)
+                densityAll, multAll = winner_of_many(current_densities)
+                # Build a single implicit curve p(g) for a representative runner vs field
+                implied_prices = []
+                for g in grid:
+                    d_g = self.base.shift_fractional(float(g))
+                    payoff_vec = expected_payoff_with_multiplicity(d_g, densityAll, multAll, cdf=None, cdfAll=densityAll.cdf())
+                    implied_prices.append(float(np.sum(payoff_vec)))
+                implied_prices = np.array(implied_prices, dtype=float)
+                # Sort by price to enforce monotonic xp, unique keys
+                pairs = sorted(zip(implied_prices, grid), key=lambda t: t[0])
+                xp = np.array([t[0] for t in pairs], dtype=float)
+                fp = np.array([t[1] for t in pairs], dtype=float)
+                xp_unique, idx = np.unique(xp, return_index=True)
+                fp_unique = fp[idx]
+                # Invert all prices at once against the single curve
+                p_clamped = np.clip(prices_arr, xp_unique.min(), xp_unique.max())
+                offsets = np.interp(p_clamped, xp_unique, fp_unique)
+            # Return abilities in physical units
             return list(np.array(offsets, dtype=float) * unit)
 
         # ---- 2D calibration in (loc, scale) per runner ----
@@ -118,25 +113,41 @@ class AbilityCalibrator:
             current_densities = [self.density_for(float(locs[j]), float(scales[j])) for j in range(n)]
             densityAll, multAll = winner_of_many(current_densities)
             cdfAll = densityAll.cdf()
+            # Precompute a single interpolation table per scale value encountered
+            scale_cache: dict[float, tuple[np.ndarray, np.ndarray]] = {}
+            # Build the union of all scale samples needed this iteration
+            all_s_values = []
+            per_runner_sg = []
+            for i in range(n):
+                sg = scale_grid_for(float(scales[i]))
+                per_runner_sg.append(sg)
+                all_s_values.extend(list(sg))
+            unique_s_values = sorted(set(float(s) for s in all_s_values))
+            # Build curve for each unique scale once: xp(price), fp(loc)
+            for s in unique_s_values:
+                p_curve = []
+                for loc_candidate in loc_grid:
+                    d_i_candidate = self.density_for(float(loc_candidate), float(s))
+                    payoff_vec = expected_payoff_with_multiplicity(d_i_candidate, densityAll, multAll, cdf=None, cdfAll=cdfAll)
+                    p_curve.append(float(np.sum(payoff_vec)))
+                p_curve = np.array(p_curve, dtype=float)
+                pairs = sorted(zip(p_curve, loc_grid), key=lambda t: t[0])
+                xp = np.array([pp for pp, _ in pairs], dtype=float)
+                fp = np.array([ll for _, ll in pairs], dtype=float)
+                # Unique price keys
+                xp_unique, idx = np.unique(xp, return_index=True)
+                fp_unique = fp[idx]
+                scale_cache[s] = (xp_unique, fp_unique)
+            # Now invert per runner using cached per-scale curves, then interpolate across scale
             for i in range(n):
                 si = float(scales[i])
                 pi_target = float(prices_arr[i])
-                sg = scale_grid_for(si)
+                sg = per_runner_sg[i]
                 loc_estimates = []
                 for s in sg:
-                    # Build p_i(loc | scale=s) curve with others fixed
-                    p_curve = []
-                    for loc_candidate in loc_grid:
-                        d_i_candidate = self.density_for(float(loc_candidate), float(s))
-                        payoff_vec = expected_payoff_with_multiplicity(d_i_candidate, densityAll, multAll, cdf=None, cdfAll=cdfAll)
-                        p_i = float(np.sum(payoff_vec))
-                        p_curve.append(p_i)
-                    p_curve = np.array(p_curve, dtype=float)
-                    pairs = sorted(zip(p_curve, loc_grid), key=lambda t: t[0])
-                    xp = np.array([pp for pp, _ in pairs], dtype=float)
-                    fp = np.array([ll for _, ll in pairs], dtype=float)
-                    p_clamped = float(np.clip(pi_target, xp.min(), xp.max()))
-                    loc_s = float(np.interp(p_clamped, xp, fp))
+                    xp_unique, fp_unique = scale_cache[float(s)]
+                    p_clamped = float(np.clip(pi_target, xp_unique.min(), xp_unique.max()))
+                    loc_s = float(np.interp(p_clamped, xp_unique, fp_unique))
                     loc_estimates.append(loc_s)
                 loc_estimates = np.array(loc_estimates, dtype=float)
                 if len(sg) == 1:

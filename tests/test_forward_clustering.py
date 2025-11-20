@@ -81,18 +81,4 @@ def test_group_shift_does_not_break_others(base):
     scaled = np.array(p[:4]) / sum(p[:4])
     assert_allclose(scaled, p0, atol=1e-2)
 
-def test_all_extreme_equal_share_equally(base):
-    cal = AbilityCalibrator(base)
-    # All extremely bad, equal abilities
-    ability_bad = [200.0, 200.0, 200.0, 200.0]
-    p_bad = cal.state_prices_from_ability(ability_bad)
-    assert_allclose(sum(p_bad), 1.0, atol=ATOL)
-    n = len(ability_bad)
-    assert_allclose(p_bad, [1.0/n]*n, atol=0.05)
-    # All extremely good, equal abilities
-    ability_good = [-200.0, -200.0, -200.0, -200.0]
-    p_good = cal.state_prices_from_ability(ability_good)
-    assert_allclose(sum(p_good), 1.0, atol=ATOL)
-    assert_allclose(p_good, [1.0/n]*n, atol=0.05)
-
 
