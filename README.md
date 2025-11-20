@@ -1,9 +1,20 @@
 
-# thurstone
+# thurstone 
 
-An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). 
+An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). This package seeks to revitalize Thurstone Class V models which have tended to play a poor cousin to Logit and other alternatives due to lack of tractability. It implements a relatively recent fast algorithm. 
+
+## Uses 
+(Beyond horseracing)
+
+See the [notebook](https://github.com/microprediction/winning/blob/main/Ability_Transforms_Updated.ipynb) for examples of the use of this ability transform. 
+
+See the [paper](https://github.com/microprediction/winning/blob/main/docs/Horse_Race_Problem__SIAM_.pdf) for why this is useful in lots of places, according to a wise man. For instance, the algorithm may also find use anywhere winning probabilities or frequencies are apparent, such as with e-commerce product placement, in web search, or, as is shown in the paper: addressing a fundamental problem of trade. 
+
 
 ## Highlights
+
+This is the successor to the `winning` package. Essentially a clean up and mild generalization. New and inherited functionality includes:
+
 - Uniform lattice with explicit `L` and `unit` (`UniformLattice`).
 - Normalized `Density` with safe integer/fractional shifts, centering, convolution, and dilation. Negative mass is rejected; zero‑mass vectors are allowed as an explicit off‑lattice sentinel in extreme shifts.
 - Clean `Race` and `StatePricer` API for risk‑neutral **state prices** (winning probabilities), now multiplicity‑aware.
@@ -51,7 +62,7 @@ prices = cal.state_prices_from_ability(ability)   # forward map (prices sum to 1
   - Run: `python examples/calibrate_with_scales_150.py`
 
 ## Cite
-This project implements ideas aligned with the winning algorithm for inferring relative ability from winning probabilities and the SIAM paper:
+See 
 
 - Cotton, Peter. “Inferring Relative Ability from Winning Probability in Multientrant Contests,” SIAM Journal on Financial Mathematics, 12(1), 295–317 (2021). DOI: `https://doi.org/10.1137/19M1276261`
 - Original reference implementation and additional context: `https://github.com/microprediction/winning`
@@ -71,3 +82,7 @@ BibTeX:
   URL = {https://doi.org/10.1137/19M1276261}
 }
 ```
+
+## Contribute
+
+The most obvious improvement would be a rust implementation. 
