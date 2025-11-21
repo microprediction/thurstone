@@ -1,7 +1,7 @@
 
 # thurstone 
 
-An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). This package seeks to revitalize Thurstone Class V models which have tended to play a poor cousin to Logit and other alternatives due to lack of tractability. It implements a relatively recent fast algorithm. 
+An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). This package seeks to revitalize Thurstone Class V models which have tended to play a poor cousin to Plackett-Luce and other alternatives due to lack of tractability. It implements a relatively recent fast algorithm. 
 
 ## Uses 
 (Beyond horseracing)
