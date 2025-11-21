@@ -15,6 +15,7 @@ def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float
     dprices = np.gradient(prices, locs)
     mu_c = float(np.clip(mu, locs.min(), locs.max()))
     p = float(np.interp(mu_c, locs, prices))
+    p = float(np.clip(p, 1e-12, 1.0 - 1e-12))
     dp = float(np.interp(mu_c, locs, dprices))
     return p, dp
 
@@ -30,6 +31,7 @@ def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) 
         dprices = np.gradient(prices, locs)
         mu_c = float(np.clip(mu, locs.min(), locs.max()))
         p = float(np.interp(mu_c, locs, prices))
+        p = float(np.clip(p, 1e-12, 1.0 - 1e-12))
         dp = float(np.interp(mu_c, locs, dprices))
         return p, dp
     idx = int(np.searchsorted(s_arr, scale))
@@ -51,6 +53,7 @@ def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) 
     p2 = float(np.interp(mu2, locs2, prices2))
     dp2 = float(np.interp(mu2, locs2, dprices2))
     p = (1.0 - w) * p1 + w * p2
+    p = float(np.clip(p, 1e-12, 1.0 - 1e-12))
     dp = (1.0 - w) * dp1 + w * dp2
     return p, dp
 
@@ -70,6 +73,8 @@ class GlobalAbilityCalibrator:
     theta: Dict[str, float] = field(default_factory=dict)
     biases: List[float] = field(default_factory=list)
     l2: float = 1e-8
+    step_bias: float = 0.3
+    step_theta: float = 0.3
 
     def __post_init__(self):
         if not self.theta:
@@ -107,7 +112,7 @@ class GlobalAbilityCalibrator:
                 denom = float(np.dot(slopes, slopes) + self.l2)
                 if denom > 0:
                     delta = - float(np.dot(slopes, e)) / denom
-                    self.biases[r] += delta
+                    self.biases[r] += self.step_bias * delta
             for hid in self.horse_ids:
                 num = 0.0
                 den = self.l2
@@ -125,7 +130,7 @@ class GlobalAbilityCalibrator:
                     num += dp * e
                     den += dp * dp
                 if den > 0:
-                    self.theta[hid] -= float(num / den)
+                    self.theta[hid] -= self.step_theta * float(num / den)
 
     def predict_race(self, r_idx: int) -> np.ndarray:
         p_hat, _ = self._predict_and_slopes_for_race(r_idx)
@@ -164,7 +169,7 @@ class GlobalAbilityCalibrator:
                     num += dp * e
                     den += dp * dp
                 if den > 0:
-                    self.theta[hid] -= float(num / den)
+                    self.theta[hid] -= self.step_theta * float(num / den)
 
     def fit_with_rebuild_theta_only(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
         for _ in range(num_outer_iters):
