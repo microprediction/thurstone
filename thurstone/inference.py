@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Sequence, Optional, Tuple
+from typing import List, Sequence, Optional, Tuple, Dict
 import numpy as np
 from .density import Density
 from .lattice import UniformLattice
@@ -41,6 +41,13 @@ class AbilityCalibrator:
     loc_span: float = 5.0            # +/- location range (physical units) for 2D path
     loc_step: float = 0.25           # step for location grid (physical units)
     skew_a: float = 0.0              # skew-normal 'a' used in density_for
+    # Cached lookup curves for reuse (global calibration, multi-race)
+    # 1D: single-field curve (loc -> price) and inverse (price -> offset)
+    lookup_curve_1d_prices: Optional[Dict[str, np.ndarray]] = field(default=None, repr=False)
+    lookup_curve_1d_inverse: Optional[Dict[str, np.ndarray]] = field(default=None, repr=False)
+    # 2D: per-scale curves; keys are scale (float)
+    lookup_curves_2d_prices: Dict[float, Tuple[np.ndarray, np.ndarray]] = field(default_factory=dict, repr=False)
+    lookup_curves_2d_inverse: Dict[float, Tuple[np.ndarray, np.ndarray]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
         if self.offset_grid is None:
@@ -53,6 +60,77 @@ class AbilityCalibrator:
     def density_for(self, loc: float, scale: float) -> Density:
         lat = self.base.lattice
         return Density.skew_normal(lat, loc=loc, scale=scale, a=self.skew_a)
+
+    # ---- Curve rebuilders (no inversion) for global fitting ----
+    def rebuild_curves_from_field_1d(self, locs: Sequence[float]) -> None:
+        """Rebuild 1D lookup curves (loc -> price, and price -> offset) given current field locs."""
+        unit = self.base.lattice.unit
+        # Convert physical locs to lattice steps for density shifting
+        offsets = np.asarray(locs, dtype=float) / unit
+        grid = list(self.offset_grid)
+        # Field distribution with multiplicity
+        current_densities = densities_from_offsets(self.base, offsets)
+        densityAll, multAll = winner_of_many(current_densities)
+        cdfAll = densityAll.cdf()
+        # Build global implicit curve p(g)
+        implied_prices = []
+        for g in grid:
+            d_g = self.base.shift_fractional(float(g))
+            payoff_vec = expected_payoff_with_multiplicity(d_g, densityAll, multAll, cdf=None, cdfAll=cdfAll)
+            implied_prices.append(float(np.sum(payoff_vec)))
+        implied_prices = np.array(implied_prices, dtype=float)
+        # Cache price curve in physical units (ascending by loc)
+        locs_phys = unit * np.array(grid, dtype=float)
+        order_loc = np.argsort(locs_phys)
+        self.lookup_curve_1d_prices = {
+            "locs": locs_phys[order_loc],
+            "prices": implied_prices[order_loc],
+        }
+        # Cache inverse curve (price -> offset steps), monotone in price
+        pairs = sorted(zip(implied_prices, grid), key=lambda t: t[0])
+        xp = np.array([t[0] for t in pairs], dtype=float)
+        fp = np.array([t[1] for t in pairs], dtype=float)
+        xp_unique, idx = np.unique(xp, return_index=True)
+        fp_unique = fp[idx]
+        self.lookup_curve_1d_inverse = {
+            "prices": xp_unique,
+            "offsets": fp_unique,
+        }
+
+    def rebuild_curves_from_field_2d(self, locs: Sequence[float], scales: Sequence[float]) -> None:
+        """Rebuild 2D lookup curves (per-scale loc -> price and price -> loc) given current field (locs, scales)."""
+        locs_arr = np.asarray(locs, dtype=float)
+        scales_arr = np.asarray(scales, dtype=float)
+        n = len(locs_arr)
+        # Build current field densities
+        current_densities = [self.density_for(float(locs_arr[j]), float(scales_arr[j])) for j in range(n)]
+        densityAll, multAll = winner_of_many(current_densities)
+        cdfAll = densityAll.cdf()
+        # Location grid (physical units)
+        loc_grid = np.arange(-self.loc_span, self.loc_span + self.loc_step, self.loc_step, dtype=float)
+        # Use unique scales present
+        unique_s_values = sorted(set(float(s) for s in scales_arr.tolist()))
+        self.lookup_curves_2d_prices.clear()
+        self.lookup_curves_2d_inverse.clear()
+        for s in unique_s_values:
+            p_curve = []
+            for loc_candidate in loc_grid:
+                d_i_candidate = self.density_for(float(loc_candidate), float(s))
+                payoff_vec = expected_payoff_with_multiplicity(d_i_candidate, densityAll, multAll, cdf=None, cdfAll=cdfAll)
+                p_curve.append(float(np.sum(payoff_vec)))
+            p_curve = np.array(p_curve, dtype=float)
+            # Cache price curve per scale (loc -> price), sorted by loc
+            order_loc = np.argsort(loc_grid)
+            locs_sorted = loc_grid[order_loc]
+            prices_sorted = p_curve[order_loc]
+            self.lookup_curves_2d_prices[float(s)] = (locs_sorted, prices_sorted)
+            # Cache inverse (price -> loc)
+            pairs = sorted(zip(p_curve, loc_grid), key=lambda t: t[0])
+            xp = np.array([pp for pp, _ in pairs], dtype=float)
+            fp = np.array([ll for _, ll in pairs], dtype=float)
+            xp_unique, idx = np.unique(xp, return_index=True)
+            fp_unique = fp[idx]
+            self.lookup_curves_2d_inverse[float(s)] = (xp_unique, fp_unique)
 
     def solve_from_prices(self, prices: Sequence[float], *, initial_offsets: Optional[Sequence[float]]=None) -> List[float]:
         prices_arr = np.asarray(prices, dtype=float)
@@ -77,12 +155,25 @@ class AbilityCalibrator:
                     payoff_vec = expected_payoff_with_multiplicity(d_g, densityAll, multAll, cdf=None, cdfAll=densityAll.cdf())
                     implied_prices.append(float(np.sum(payoff_vec)))
                 implied_prices = np.array(implied_prices, dtype=float)
+                # Cache price curve in physical units (loc -> price), sorted by loc ascending
+                unit = self.base.lattice.unit
+                locs_phys = unit * np.array(grid, dtype=float)
+                order_loc = np.argsort(locs_phys)
+                self.lookup_curve_1d_prices = {
+                    "locs": locs_phys[order_loc],
+                    "prices": implied_prices[order_loc],
+                }
                 # Sort by price to enforce monotonic xp, unique keys
                 pairs = sorted(zip(implied_prices, grid), key=lambda t: t[0])
                 xp = np.array([t[0] for t in pairs], dtype=float)
                 fp = np.array([t[1] for t in pairs], dtype=float)
                 xp_unique, idx = np.unique(xp, return_index=True)
                 fp_unique = fp[idx]
+                # Cache inverse curve (price -> offset in steps)
+                self.lookup_curve_1d_inverse = {
+                    "prices": xp_unique,
+                    "offsets": fp_unique,
+                }
                 # Invert all prices at once against the single curve
                 p_clamped = np.clip(prices_arr, xp_unique.min(), xp_unique.max())
                 offsets = np.interp(p_clamped, xp_unique, fp_unique)
@@ -131,6 +222,10 @@ class AbilityCalibrator:
                     payoff_vec = expected_payoff_with_multiplicity(d_i_candidate, densityAll, multAll, cdf=None, cdfAll=cdfAll)
                     p_curve.append(float(np.sum(payoff_vec)))
                 p_curve = np.array(p_curve, dtype=float)
+                # Cache price curve in physical units (loc -> price), sorted by loc
+                locs_phys = np.array(loc_grid, dtype=float)
+                order_loc = np.argsort(locs_phys)
+                self.lookup_curves_2d_prices[float(s)] = (locs_phys[order_loc], p_curve[order_loc])
                 pairs = sorted(zip(p_curve, loc_grid), key=lambda t: t[0])
                 xp = np.array([pp for pp, _ in pairs], dtype=float)
                 fp = np.array([ll for _, ll in pairs], dtype=float)
@@ -138,6 +233,8 @@ class AbilityCalibrator:
                 xp_unique, idx = np.unique(xp, return_index=True)
                 fp_unique = fp[idx]
                 scale_cache[s] = (xp_unique, fp_unique)
+                # Cache inverse (price -> loc) at this scale
+                self.lookup_curves_2d_inverse[float(s)] = (xp_unique, fp_unique)
             # Now invert per runner using cached per-scale curves, then interpolate across scale
             for i in range(n):
                 si = float(scales[i])
