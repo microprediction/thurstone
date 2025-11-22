@@ -17,6 +17,11 @@ from thurstone.inference import AbilityCalibrator
 from thurstone.global_fit import GlobalAbilityCalibrator
 
 
+NUM_HORSES = 1000
+NUM_RACES = 500
+RACE_SIZE = 20
+
+
 def softmax_noise(p: np.ndarray, rng, sigma: float = 0.25, eps: float = 1e-12) -> np.ndarray:
     """Add zero-mean Gaussian noise in log space and re-normalize by softmax."""
     logits = np.log(np.clip(p, eps, 1.0))
@@ -32,14 +37,14 @@ def main():
     base = Density.skew_normal(lattice, loc=0.0, scale=1.0, a=0.0)
 
     # Global ground truth
-    num_horses = 1000
+    num_horses = NUM_HORSES
     horse_ids = [f"H{i}" for i in range(num_horses)]
     true_theta = np.linspace(-3.0, 3.0, num_horses)
     rng.shuffle(true_theta)
 
     # Races
-    num_races = 200
-    race_size = 20
+    num_races = NUM_RACES
+    race_size = RACE_SIZE
     race_bias = rng.uniform(-0.2, 0.2, size=num_races)
 
     # Create per-race calibrators and noisy prices
