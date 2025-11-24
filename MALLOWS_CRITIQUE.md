@@ -6,25 +6,25 @@ Below is the “brutal” version of that case.
 
 ## 1) No latent performance scale
 
-The canonical Mallows family puts probability on permutations via a central ranking \(\mu_0\), a dispersion parameter \(\phi\in(0,1)\), and a permutation distance \(d\):
+The canonical Mallows family puts probability on permutations via a central ranking μ₀, a dispersion parameter φ ∈ (0,1), and a permutation distance d:
 
-\[
-P_{\phi,\mu_0,d}(\mu)\ \propto\ \phi^{\,d(\mu_0,\mu)}.
-\]
+```
+P_{φ, μ₀, d}(μ) ∝ φ^{ d(μ₀, μ) }.
+```
 
-There are no contestant‑specific ability parameters \(w_i\) and no notion of “how much better” one contestant is than another. For a pair, the “better” item (earlier in \(\mu_0\)) is chosen with a fixed probability determined by \(\phi\), independent of the magnitude of any performance gap. A photo‑finish and a blowout mismatch are forced to have the same win probability for the “better” side. That’s not a model of performance; it’s an ordinal regularizer.
+There are no contestant‑specific ability parameters (e.g., wᵢ) and no notion of “how much better” one contestant is than another. For a pair, the “better” item (earlier in μ₀) is chosen with a fixed probability determined solely by φ, independent of the magnitude of any performance gap. A photo‑finish and a blowout mismatch are forced to have the same win probability for the “better” side. That’s not a model of performance; it’s an ordinal regularizer.
 
 ## 2) No credible generative story for contests
 
-Contest models worthy of the name are random‑utility or race‑time models: each competitor draws a performance \(X_i=\mu_i+\varepsilon_i\); the winner is \(\arg\max_i X_i\) (or \(\arg\min\) for times). Mallows is nothing like that. It generates permutations by penalizing distance from a central order, or via the **Repeated Insertion Model (RIM)**: start with an empty list and insert each item at a random position with probabilities tied to distance from \(\mu_0\). RIM provides a clean permutation generator and includes Mallows as a special case, but it is not a model of produced performances or margins of victory. See the Psychometrika paper on RIM for details ([Doignon–Pekeč–Regenwetter, 2004](https://www.cambridge.org/core/journals/psychometrika/article/abs/repeated-insertion-model-for-rankings-missing-link-between-two-subset-choice-models/1E8685C7E25FC47BF4DA392801BAFC9D), DOI: https://doi.org/10.1007/BF02295838).
+Contest models worthy of the name are random‑utility or race‑time models: each competitor draws a performance `Xᵢ = μᵢ + εᵢ`; the winner is `argmaxᵢ Xᵢ` (or `argmin` for times). Mallows is nothing like that. It generates permutations by penalizing distance from a central order, or via the **Repeated Insertion Model (RIM)**: start with an empty list and insert each item at a random position with probabilities tied to distance from μ₀. RIM provides a clean permutation generator and includes Mallows as a special case, but it is not a model of produced performances or margins of victory. See the Psychometrika paper on RIM for details ([Doignon–Pekeč–Regenwetter, 2004](https://www.cambridge.org/core/journals/psychometrika/article/abs/repeated-insertion-model-for-rankings-missing-link-between-two-subset-choice-models/1E8685C7E25FC47BF4DA392801BAFC9D), DOI: https://doi.org/10.1007/BF02295838).
 
 ## 3) Not coherent under changing fields (scratches/entries)
 
-In real contests, entrants come and go. If you remove an interior contestant from a Mallows distribution, the induced distribution on the survivors is generally **not** Mallows with the same \(\phi\) and a trivially truncated \(\mu_0\). Certain prefix truncations preserve form, but arbitrary scratches do not. That means there is no stable, global parameterization that remains coherent as the field composition changes — exactly the regime contests live in.
+In real contests, entrants come and go. If you remove an interior contestant from a Mallows distribution, the induced distribution on the survivors is generally **not** Mallows with the same φ and a trivially truncated μ₀. Certain prefix truncations preserve form, but arbitrary scratches do not. That means there is no stable, global parameterization that remains coherent as the field composition changes — exactly the regime contests live in.
 
 ## 4) Pathologies as the number of entrants grows
 
-When the number of alternatives \(n\) grows at fixed \(\phi\), Mallows exhibits scaling behaviors that **do not** match real data. A recent systematic study shows that rankings concentrate around the central order in ways that confound experimental interpretation and diverge from observed phenomena. The authors explicitly warn experimentalists about using Mallows as \(n\) varies ([Boehmer–Faliszewski–Kraiczy, 2024](https://arxiv.org/abs/2401.14562), DOI: https://doi.org/10.48550/arXiv.2401.14562). In contests, field size constantly changes; a dispersion parameter whose meaning drifts with \(n\) is not measuring a stable “uncertainty in performance.”
+When the number of alternatives n grows at fixed φ, Mallows exhibits scaling behaviors that **do not** match real data. A recent systematic study shows that rankings concentrate around the central order in ways that confound experimental interpretation and diverge from observed phenomena. The authors explicitly warn experimentalists about using Mallows as n varies ([Boehmer–Faliszewski–Kraiczy, 2024](https://arxiv.org/abs/2401.14562), DOI: https://doi.org/10.48550/arXiv.2401.14562). In contests, field size constantly changes; a dispersion parameter whose meaning drifts with n is not measuring a stable “uncertainty in performance.”
 
 ## 5) It isn’t even computationally nice (except in special cases)
 
