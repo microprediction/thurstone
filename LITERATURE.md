@@ -36,20 +36,24 @@
 - Elo (1978) and Glicko (1999) rating systems
   - Practical rating systems derived from paired-comparison ideas. While not lattice-based, they inform how to update abilities online from outcomes.
 
-## How these relate to this repository
+## Generative AI, Consistency, and Preference Optimization
 
-- This repository implements a lattice-based forward-and-inverse framework for multi-entrant contests inspired by Cotton (2021). The forward model constructs the distribution of the minimum (winner) across entrants and accounts for multiplicity (dead-heat sharing). The inverse model uses monotone interpolation of an implicit ability→price map to recover abilities from prices.
-- Thurstone–Mosteller, Bradley–Terry, and Luce models provide complementary probabilistic foundations for pairwise or multi-way choice. They inform simplified surrogates (e.g., relative LS stitching or Luce-style group allocation) used for diagnostics, initialization, and fast global calibration.
-- Harville, Plackett–Luce, and Davidson connect to multi-entrant or ranking-oriented probability assignments, which are useful for cross-checks and extensions beyond “winner-only” pricing (e.g., place/show or full-order likelihoods).
+- Found in the Middle: Permutation Self‑Consistency Improves Listwise Ranking in Large Language Models — Raphael Tang et al. (2023)
+  - Reports strong positional/permutation biases in LLM listwise ranking and proposes “permutation self‑consistency” by marginalizing over input permutations to restore permutation‑invariant outputs. Connects to multi‑entrant models where probabilities should be invariant to listing order (e.g., Harville/Plackett–Luce).  
+  - arXiv: https://arxiv.org/abs/2310.07712
 
+- Robust Knowledge Extraction from Large Language Models using Social Choice Theory — Nico Potyka et al. (2023)
+  - Uses social choice aggregation (e.g., Borda, Condorcet‑style ideas) over multiple LLM samples to reduce stochastic inconsistency in ranked outputs, echoing classical preference aggregation. Highlights how social‑choice‑inspired aggregation can stabilize noisy rankings before probabilistic calibration.  
+  - arXiv: https://arxiv.org/abs/2312.14877
 
-https://arxiv.org/abs/2310.07712
+- LiPO: Listwise Preference Optimization through Learning‑to‑Rank — Tianqi Liu et al. (2024)
+  - Frames preference alignment as listwise learning‑to‑rank (beyond pairwise DPO), often using Plackett–Luce‑like objectives. Reinforces the value of full‑list objectives when optimizing policies against ranked candidates—analogue to multi‑entrant probability fields.  
+  - arXiv: https://arxiv.org/abs/2402.01878
 
-https://arxiv.org/html/2312.14877v2
+- Measuring the Inconsistency of Large Language Models in Preferential Ranking — Xiutian Zhao, Ke Wang, Wei Peng (2024)
+  - Empirically evaluates LLMs against axioms such as transitivity and Luce’s IIA, finding frequent violations. Indicates raw LLM‑derived preferences may not satisfy latent‑utility assumptions (Thurstone) without post‑processing or calibration—relevant when mapping model scores to lattice‑based abilities.  
+  - arXiv: https://arxiv.org/abs/2410.08851
 
-https://arxiv.org/html/2410.08851v1
-
-https://arxiv.org/html/2402.01878v3
 
 
 
