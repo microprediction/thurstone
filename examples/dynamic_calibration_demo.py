@@ -316,9 +316,13 @@ def main() -> None:
     dyn.fit_abilities(sigma_function=sigma_est, obs_var=OBS_VAR)
     r_smooth = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Smooth]  correlation (centered): {r_smooth:.4f}")
-    # 4) Infer bookmaker error factor band from smoothed abilities
-    q10, med, q90 = estimate_book_factor_band(dyn, races, base)
-    print(f"[BookErr] factor band (10/50/90%): [{q10:.2f}, {med:.2f}, {q90:.2f}]  (target ≈ [0.8, 1.3])")
+    # 4) Infer bookmaker error factor band:
+    #    - from book-only abilities (pure market comparison)
+    #    - from smoothed abilities (after using σ̂ and results)
+    q10b, medb, q90b = estimate_book_factor_band(dyn_book, races, base)
+    print(f"[BookErr/book]   factor band (10/50/90%): [{q10b:.2f}, {medb:.2f}, {q90b:.2f}]  (target ≈ [0.8, 1.3])")
+    q10s, meds, q90s = estimate_book_factor_band(dyn, races, base)
+    print(f"[BookErr/smooth] factor band (10/50/90%): [{q10s:.2f}, {meds:.2f}, {q90s:.2f}]")
 
     # Optional visualization
     try:
