@@ -72,12 +72,18 @@ def get_the_rest(density: Density, densityAll: Density | None, multiplicityAll: 
     k = int(np.argmax(f1))
     mult = mult_left.copy()
     mult[k:] = mult_right[k:]
+    # multiplicity is a count-like quantity; enforce non-negativity
+    mult = np.maximum(mult, 0.0)
     return cdfRest, mult
 
 def expected_payoff_with_multiplicity(density: Density, densityAll: Density, multiplicityAll: np.ndarray, cdf: np.ndarray | None = None, cdfAll: np.ndarray | None = None) -> np.ndarray:
     cRest, mRest = get_the_rest(density, densityAll, multiplicityAll, cdf=cdf, cdfAll=cdfAll)
     pdf = density.p if cdf is None else _pdf_from_cdf(cdf)
     win, draw, _ = _conditional_win_draw_loss(pdf, _pdf_from_cdf(cRest), density.cdf(), cRest)
+    # multiplicity must be finite and >= 0; clamp small negative numerical noise
+    mRest = np.maximum(mRest, 0.0)
+    if not np.all(np.isfinite(mRest)):
+        raise ValueError("Multiplicity contains non-finite values.")
     return win + draw / (1.0 + mRest)
 
 
