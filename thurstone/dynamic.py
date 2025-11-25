@@ -44,11 +44,20 @@ class DynamicThurstoneCalibrator:
       3) Optionally smooth each trajectory with a random‑walk prior whose
          increment std is σ(Δt).
       4) Optionally estimate σ(Δt) from observed ability increments.
+
+    If bookmaker_sigma > 0, all price→ability inversions are performed using a
+    predictive base density obtained by convolving the base density with a
+    zero‑mean Gaussian over ability offsets (in ability units). This models a
+    bookmaker adding their own uncertainty before pricing.
     """
 
     base_density: Density
     races: List[RaceObservation]
     ability_calibrator_kwargs: dict = field(default_factory=dict)
+
+    # Bookmaker's ability‑uncertainty std (in ability units). If zero, the
+    # original behaviour is recovered.
+    bookmaker_sigma: float = 0.0
 
     # learned / produced attributes
     theta_: Dict[str, np.ndarray] = field(init=False, default_factory=dict)
@@ -61,6 +70,47 @@ class DynamicThurstoneCalibrator:
     def __post_init__(self) -> None:
         # ensure races are sorted by time
         self.races = sorted(self.races, key=lambda r: r.time)
+
+    # --- bookmaker predictive density -----------------------------------------
+    def _predictive_base_density(self) -> Density:
+        """
+        Density used when inverting prices. If bookmaker_sigma == 0, returns the
+        original base density. Otherwise returns a mixture of shifted base
+        densities with Gaussian weights over ability offsets.
+        """
+        if self.bookmaker_sigma <= 0.0:
+            return self.base_density
+
+        base = self.base_density
+        unit = float(base.lattice.unit)
+        # express bookmaker std in lattice steps
+        sigma_steps = float(self.bookmaker_sigma) / max(unit, 1e-12)
+        max_steps = int(math.ceil(4.0 * sigma_steps))
+        if max_steps <= 0:
+            return base
+
+        offsets_steps = np.arange(-max_steps, max_steps + 1, dtype=float)
+        # Gaussian over ability offsets (ability units)
+        offsets_ability = offsets_steps * unit
+        w = np.exp(-0.5 * (offsets_ability / float(self.bookmaker_sigma)) ** 2)
+        w_sum = float(np.sum(w))
+        if w_sum <= 0.0:
+            return base
+        w /= w_sum
+
+        pdf_pred = np.zeros_like(np.asarray(base.p, dtype=float), dtype=float)
+        for o_steps, weight in zip(offsets_steps, w):
+            if weight == 0.0:
+                continue
+            shifted = base.shift_fractional(float(o_steps))
+            pdf_pred += weight * np.asarray(shifted.p, dtype=float)
+
+        return Density(base.lattice, pdf_pred)
+
+    def _new_calibrator(self) -> AbilityCalibrator:
+        """Factory for AbilityCalibrator using the predictive base density."""
+        pred_base = self._predictive_base_density()
+        return AbilityCalibrator(pred_base, **self.ability_calibrator_kwargs)
 
     # --- indexing -------------------------------------------------------------
     def _build_horse_index(self) -> Dict[str, List[int]]:
@@ -90,7 +140,7 @@ class DynamicThurstoneCalibrator:
         # per‑race ability vectors (aligned to race.horse_ids)
         race_abilities: List[Dict[str, float]] = []
         for race in self.races:
-            cal = AbilityCalibrator(self.base_density, **self.ability_calibrator_kwargs)
+            cal = self._new_calibrator()
             # race.prices should be risk‑neutral winning probabilities
             ability_vec = cal.solve_from_prices(race.prices)
             per_horse = {h: float(a) for h, a in zip(race.horse_ids, ability_vec)}
@@ -347,7 +397,7 @@ class DynamicThurstoneCalibrator:
         if winner_id is None or winner_id not in horse_ids:
             return ability
         winner_idx = int(horse_ids.index(winner_id))
-        cal = AbilityCalibrator(self.base_density, **self.ability_calibrator_kwargs)
+        cal = self._new_calibrator()
         base_probs = np.asarray(cal.state_prices_from_ability(ability.tolist()), dtype=float)
         # loss = -log q_w
         loss0 = -float(np.log(max(base_probs[winner_idx], 1e-15)))
@@ -377,7 +427,7 @@ class DynamicThurstoneCalibrator:
         horse_index = self._build_horse_index()
         race_abilities: List[Dict[str, float]] = []
         for race in self.races:
-            cal = AbilityCalibrator(self.base_density, **self.ability_calibrator_kwargs)
+            cal = self._new_calibrator()
             ability_vec = np.asarray(cal.solve_from_prices(race.prices), dtype=float)
             a = ability_vec.copy()
             for _ in range(max(0, int(refine_steps))):

@@ -33,8 +33,8 @@ from thurstone.dynamic import RaceObservation, DynamicThurstoneCalibrator
 # Configuration – central place for key parameters
 # ------------------------------------------------------------------
 RNG_SEED: int = 7
-NUM_HORSES: int = 50
-NUM_RACES: int = 500
+NUM_HORSES: int = 20
+NUM_RACES: int = 50
 RACE_SIZE_RANGE: tuple[int, int] = (8, 14)
 HORIZON_DAYS: float = 2000
 ALPHA_RW: float = 0.03            # σ_true(dt) = sqrt(ALPHA_RW * dt)
@@ -51,6 +51,7 @@ SIGMA_N_BINS: int = 10
 SIGMA_MIN_POINTS: int = 50
 SIGMA_MONOTONE: bool = True
 OBS_VAR: float = BOOKMAKER_TAU ** 2
+SMOOTH_SIGMA_SCALE: float = 1.4   # >1 to reduce over-smoothing by increasing σ(Δt)
 
 
 def sigma_true(dt: float, alpha: float = 0.04) -> float:
@@ -279,6 +280,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
+        bookmaker_sigma=BOOKMAKER_TAU,
     )
 
     # 0) Bookmaker-only baseline: invert prices without any result information
@@ -286,6 +288,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
+        bookmaker_sigma=BOOKMAKER_TAU,
     )
     dyn_book.fit_abilities(sigma_function=None)
     r_book = evaluate_correlation_centered(dyn_book.theta_, dyn_book.times_, true_theta, true_times)
@@ -296,24 +299,25 @@ def main() -> None:
     r_raw = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Raw+Res] correlation (centered): {r_raw:.4f}")
 
-    # 2) Learn σ(Δt) from current trajectories:
-    #    - autocalibrate τ^2 from the smallest-Δt increments
-    #    - then fit binned σ(Δt) with that meas_var
-    sigma_est, meas_var_hat = dyn.fit_sigma_autocalibrate(
-        n_bins=SIGMA_N_BINS,
-        min_points=SIGMA_MIN_POINTS,
-        monotone=SIGMA_MONOTONE,
-        small_quantile=0.2,
+    # 2) Learn σ(Δt) from current trajectories using a parametric model:
+    #    Var(Δθ) ≈ 2*τ^2 + α*Δt  ⇒  τ̂^2 = intercept/2,  α̂ = slope
+    sigma_est, alpha_hat, meas_var_hat = dyn.fit_sigma_parametric(
+        meas_var=None,
         dt_min=0.0,
         dt_max=40.0,
     )
-    print(f"[Sigma]   tau_hat (from small Δt): {math.sqrt(max(meas_var_hat,0.0)):.4f}")
+    print(f"[Sigma]   tau_hat (parametric): {math.sqrt(max(meas_var_hat,0.0)):.4f}")
+    # Optional: compare to a binned estimator using τ̂^2 from the parametric fit
+    # sigma_est, _ = dyn.fit_sigma(n_bins=SIGMA_N_BINS, min_points=SIGMA_MIN_POINTS,
+    #                              monotone=SIGMA_MONOTONE, meas_var=meas_var_hat), meas_var_hat
     rmse_sigma = evaluate_sigma_rmse(sigma_est, sigma_gt, dt_min=0.5, dt_max=40.0, n=80)
     print(f"[Sigma]   RMSE vs true σ(dt):    {rmse_sigma:.4f}")
 
     # 3) Smooth abilities using learned σ(Δt)
-    # Use known bookmaker ability noise variance as observation variance.
-    dyn.fit_abilities(sigma_function=sigma_est, obs_var=OBS_VAR)
+    # Use inferred measurement variance for observation noise and scale σ(Δt) to avoid over-smoothing.
+    def sigma_scaled(dt: float) -> float:
+        return float(SMOOTH_SIGMA_SCALE) * float(sigma_est(float(dt)))
+    dyn.fit_abilities(sigma_function=sigma_scaled, obs_var=float(meas_var_hat))
     r_smooth = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Smooth]  correlation (centered): {r_smooth:.4f}")
     # 4) Infer bookmaker error factor band:
