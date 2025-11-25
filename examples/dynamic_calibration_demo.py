@@ -91,12 +91,15 @@ def simulate_world(
     List[RaceObservation],
     Dict[str, np.ndarray],
     Dict[str, np.ndarray],
+    Dict[str, np.ndarray],
+    Dict[str, np.ndarray],
     callable,
 ]:
     """
     Simulate a dataset:
       - returns races with observed (bookmaker) prices,
       - true per‑horse abilities and times at their races,
+      - the bookmaker's noisy ability samples (μ̂) and times,
       - reference to sigma_true(dt).
     """
     times, fields = simulate_schedule(
@@ -117,6 +120,8 @@ def simulate_world(
     mu_at_race: Dict[Tuple[int, int], float] = {}
     true_theta: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
     true_times: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
+    book_theta: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
+    book_times: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
     for h in range(n_horses):
         mu = float(rng.normal(0.0, sigma0))
         prev_t: Optional[float] = None
@@ -148,6 +153,10 @@ def simulate_world(
         p_obs = np.asarray(forward.state_prices_from_ability(mu_hat.tolist()), dtype=float)
         winner_idx = int(rng.choice(len(fld), p=p_true / max(np.sum(p_true), 1e-12)))
         winner_id = ids[winner_idx]
+        # store bookmaker noisy ability samples at each race time
+        for hid, mhat in zip(ids, mu_hat.tolist()):
+            book_theta[hid].append(float(mhat))
+            book_times[hid].append(times[r_i])
         races.append(
             RaceObservation(
                 race_id=f"R{r_i}",
@@ -160,7 +169,9 @@ def simulate_world(
 
     true_theta_np = {h: np.asarray(v, dtype=float) for h, v in true_theta.items()}
     true_times_np = {h: np.asarray(v, dtype=float) for h, v in true_times.items()}
-    return races, true_theta_np, true_times_np, (lambda dt: sigma_true(dt, alpha=alpha))
+    book_theta_np = {h: np.asarray(v, dtype=float) for h, v in book_theta.items()}
+    book_times_np = {h: np.asarray(v, dtype=float) for h, v in book_times.items()}
+    return races, true_theta_np, true_times_np, book_theta_np, book_times_np, (lambda dt: sigma_true(dt, alpha=alpha))
 
 
 def evaluate_correlation_centered(
@@ -261,7 +272,7 @@ def main() -> None:
     rng = np.random.default_rng(RNG_SEED)
 
     # --- simulate world
-    races, true_theta, true_times, sigma_gt = simulate_world(
+    races, true_theta, true_times, book_theta, book_times, sigma_gt = simulate_world(
         rng,
         n_horses=NUM_HORSES,
         n_races=NUM_RACES,
@@ -342,6 +353,43 @@ def main() -> None:
         plt.legend()
         plt.tight_layout()
         plt.show()
+        # Time‑series plot for true, bookmaker, and post‑race smoothed abilities
+        # Pick up to 6 horses that appear at least twice
+        candidates = [h for h, v in true_times.items() if len(v) >= 2]
+        rng_local = np.random.default_rng(123)
+        sample = candidates[:6] if len(candidates) >= 6 else candidates
+        if len(sample) < 6 and len(candidates) > 6:
+            sample = rng_local.choice(candidates, size=6, replace=False).tolist()
+        if sample:
+            nrows = int(np.ceil(len(sample) / 3))
+            ncols = min(3, len(sample))
+            fig, axes = plt.subplots(nrows, ncols, figsize=(4*ncols, 2.8*nrows), squeeze=False, sharex=False)
+            for k, hid in enumerate(sample):
+                r = k // ncols
+                c = k % ncols
+                ax = axes[r][c]
+                # true
+                tt = true_times.get(hid, np.array([]))
+                th = true_theta.get(hid, np.array([]))
+                if tt.size > 0:
+                    ax.plot(tt, th, '-o', label='true θ', alpha=0.9)
+                # bookmaker noisy μ̂
+                bt = book_times.get(hid, np.array([]))
+                bh = book_theta.get(hid, np.array([]))
+                if bt.size > 0:
+                    ax.plot(bt, bh, 'x-', label='book μ̂', alpha=0.7)
+                # post‑race smoothed (dyn)
+                st = dyn.times_.get(hid, np.array([]))
+                sh = dyn.theta_.get(hid, np.array([]))
+                if st is not None and sh is not None and len(st) > 0:
+                    ax.plot(st, sh, '-.', label='post‑race θ̂ (smoothed)', alpha=0.9)
+                ax.set_title(hid)
+                ax.set_xlabel('time')
+                ax.set_ylabel('ability')
+                ax.grid(True, alpha=0.2)
+                ax.legend(fontsize=8)
+            plt.tight_layout()
+            plt.show()
     except Exception:
         pass
 
