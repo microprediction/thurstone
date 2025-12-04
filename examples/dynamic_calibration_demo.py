@@ -28,6 +28,7 @@ import numpy as np
 from thurstone import UniformLattice, Density
 from thurstone.inference import AbilityCalibrator
 from thurstone.dynamic import RaceObservation, DynamicThurstoneCalibrator
+from thurstone.sim_world import simulate_world, sigma_true
 
 # ------------------------------------------------------------------
 # Configuration – central place for key parameters
@@ -39,7 +40,9 @@ RACE_SIZE_RANGE: tuple[int, int] = (8, 14)
 HORIZON_DAYS: float = 2000
 ALPHA_RW: float = 0.03            # σ_true(dt) = sqrt(ALPHA_RW * dt)
 SIGMA0_INIT: float = 1.0          # initial ability std
-BOOKMAKER_TAU: float = 0.1       # bookmaker ability noise (in ability space)
+# Bookmaker noise model: relative per-horse variance + race-level bias variance
+BOOKMAKER_TAU_REL: float = 0.5
+BOOKMAKER_TAU_BIAS: float = 1.0
 
 # Forward model (fixed emission)
 LATTICE_L: int = 400
@@ -50,128 +53,11 @@ CAL_N_ITER: int = 3
 SIGMA_N_BINS: int = 10
 SIGMA_MIN_POINTS: int = 50
 SIGMA_MONOTONE: bool = True
-OBS_VAR: float = BOOKMAKER_TAU ** 2
+OBS_VAR: float = BOOKMAKER_TAU_REL ** 2
 SMOOTH_SIGMA_SCALE: float = 1.4   # >1 to reduce over-smoothing by increasing σ(Δt)
 
 
-def sigma_true(dt: float, alpha: float = 0.04) -> float:
-    """Ground‑truth stickiness: random‑walk std scales like sqrt(alpha * dt)."""
-    return math.sqrt(max(alpha * max(dt, 0.0), 1e-12))
 
-
-def simulate_schedule(
-    rng: np.random.Generator,
-    n_horses: int,
-    n_races: int,
-    race_size_range: Tuple[int, int],
-    horizon_days: float,
-) -> Tuple[List[float], List[List[int]]]:
-    """Return sorted race times and a list of participant index sets per race."""
-    times = np.sort(rng.uniform(0.0, horizon_days, size=n_races)).tolist()
-    fields: List[List[int]] = []
-    lo, hi = race_size_range
-    for _ in range(n_races):
-        m = int(rng.integers(low=lo, high=hi + 1))
-        m = max(2, min(m, n_horses))
-        field = rng.choice(n_horses, size=m, replace=False).tolist()
-        fields.append(field)
-    return times, fields
-
-
-def simulate_world(
-    rng: np.random.Generator,
-    n_horses: int = 60,
-    n_races: int = 90,
-    race_size_range: Tuple[int, int] = (8, 14),
-    horizon_days: float = 240.0,
-    alpha: float = 0.04,          # RW diffusion scale in σ_true
-    sigma0: float = 0.8,          # initial ability std
-    bookmaker_tau: float = 0.5,   # bookmaker ability noise std (per race)
-) -> Tuple[
-    List[RaceObservation],
-    Dict[str, np.ndarray],
-    Dict[str, np.ndarray],
-    Dict[str, np.ndarray],
-    Dict[str, np.ndarray],
-    callable,
-]:
-    """
-    Simulate a dataset:
-      - returns races with observed (bookmaker) prices,
-      - true per‑horse abilities and times at their races,
-      - the bookmaker's noisy ability samples (μ̂) and times,
-      - reference to sigma_true(dt).
-    """
-    times, fields = simulate_schedule(
-        rng, n_horses=n_horses, n_races=n_races,
-        race_size_range=race_size_range, horizon_days=horizon_days
-    )
-    horse_ids = [f"H{i}" for i in range(n_horses)]
-
-    # Build per‑horse race index lists
-    idx_per_horse: Dict[int, List[int]] = {h: [] for h in range(n_horses)}
-    for r_i, fld in enumerate(fields):
-        for h in fld:
-            idx_per_horse[h].append(r_i)
-    for h in range(n_horses):
-        idx_per_horse[h].sort(key=lambda r_i: times[r_i])
-
-    # Simulate true abilities μ at race times
-    mu_at_race: Dict[Tuple[int, int], float] = {}
-    true_theta: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
-    true_times: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
-    book_theta: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
-    book_times: Dict[str, List[float]] = {hid: [] for hid in horse_ids}
-    for h in range(n_horses):
-        mu = float(rng.normal(0.0, sigma0))
-        prev_t: Optional[float] = None
-        for r_i in idx_per_horse[h]:
-            t = times[r_i]
-            if prev_t is not None:
-                dt = t - prev_t
-                mu += float(rng.normal(0.0, sigma_true(dt, alpha=alpha)))
-            prev_t = t
-            mu_at_race[(h, r_i)] = mu
-            hid = horse_ids[h]
-            true_theta[hid].append(mu)
-            true_times[hid].append(t)
-
-    # Forward model (also used by bookmaker)
-    lattice = UniformLattice(L=400, unit=0.1)
-    base = Density.skew_normal(lattice, loc=0.0, scale=1.0, a=0.0)
-    forward = AbilityCalibrator(base, n_iter=3)
-
-    # Build observed bookmaker prices from noisy abilities:
-    races: List[RaceObservation] = []
-    for r_i, fld in enumerate(fields):
-        ids = [horse_ids[h] for h in fld]
-        mu_true = np.array([mu_at_race[(h, r_i)] for h in fld], dtype=float)
-        # true probabilities (fair)
-        p_true = np.asarray(forward.state_prices_from_ability(mu_true.tolist()), dtype=float)
-        # bookmaker noisy ability view (Gaussian in ability space), then price
-        mu_hat = mu_true + rng.normal(0.0, bookmaker_tau, size=len(fld))
-        p_obs = np.asarray(forward.state_prices_from_ability(mu_hat.tolist()), dtype=float)
-        winner_idx = int(rng.choice(len(fld), p=p_true / max(np.sum(p_true), 1e-12)))
-        winner_id = ids[winner_idx]
-        # store bookmaker noisy ability samples at each race time
-        for hid, mhat in zip(ids, mu_hat.tolist()):
-            book_theta[hid].append(float(mhat))
-            book_times[hid].append(times[r_i])
-        races.append(
-            RaceObservation(
-                race_id=f"R{r_i}",
-                time=times[r_i],
-                horse_ids=ids,
-                prices=p_obs,
-                winner=winner_id,
-            )
-        )
-
-    true_theta_np = {h: np.asarray(v, dtype=float) for h, v in true_theta.items()}
-    true_times_np = {h: np.asarray(v, dtype=float) for h, v in true_times.items()}
-    book_theta_np = {h: np.asarray(v, dtype=float) for h, v in book_theta.items()}
-    book_times_np = {h: np.asarray(v, dtype=float) for h, v in book_times.items()}
-    return races, true_theta_np, true_times_np, book_theta_np, book_times_np, (lambda dt: sigma_true(dt, alpha=alpha))
 
 
 def evaluate_correlation_centered(
@@ -280,7 +166,8 @@ def main() -> None:
         horizon_days=HORIZON_DAYS,
         alpha=ALPHA_RW,
         sigma0=SIGMA0_INIT,
-        bookmaker_tau=BOOKMAKER_TAU,
+        bookmaker_rel_tau=BOOKMAKER_TAU_REL,
+        bookmaker_bias_tau=BOOKMAKER_TAU_BIAS,
     )
 
     # base model for inference
@@ -291,7 +178,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
-        bookmaker_sigma=BOOKMAKER_TAU,
+        bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
 
     # 0) Bookmaker-only baseline: invert prices without any result information
@@ -299,7 +186,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
-        bookmaker_sigma=BOOKMAKER_TAU,
+        bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
     dyn_book.fit_abilities(sigma_function=None)
     r_book = evaluate_correlation_centered(dyn_book.theta_, dyn_book.times_, true_theta, true_times)
@@ -310,9 +197,17 @@ def main() -> None:
     r_raw = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Raw+Res] correlation (centered): {r_raw:.4f}")
 
-    # 2) Learn σ(Δt) from current trajectories using a parametric model:
-    #    Var(Δθ) ≈ 2*τ^2 + α*Δt  ⇒  τ̂^2 = intercept/2,  α̂ = slope
-    sigma_est, alpha_hat, meas_var_hat = dyn.fit_sigma_parametric(
+    # 2) Learn σ(Δt) from RAW price‑implied abilities (no refinement),
+    #    to avoid inflating increments with winner-based nudges.
+    dyn_sigma = DynamicThurstoneCalibrator(
+        base_density=base,
+        races=races,
+        ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
+        bookmaker_sigma=BOOKMAKER_TAU,
+    )
+    dyn_sigma.fit_abilities(sigma_function=None)
+    # Parametric model: Var(Δθ) ≈ 2*τ^2 + α*Δt  ⇒  τ̂^2 = intercept/2,  α̂ = slope
+    sigma_est, alpha_hat, meas_var_hat = dyn_sigma.fit_sigma_parametric(
         meas_var=None,
         dt_min=0.0,
         dt_max=40.0,

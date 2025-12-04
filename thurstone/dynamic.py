@@ -142,7 +142,9 @@ class DynamicThurstoneCalibrator:
         for race in self.races:
             cal = self._new_calibrator()
             # race.prices should be risk‑neutral winning probabilities
-            ability_vec = cal.solve_from_prices(race.prices)
+            ability_vec = np.asarray(cal.solve_from_prices(race.prices), dtype=float)
+            # Center per-race to remove translation ambiguity
+            ability_vec = ability_vec - float(np.median(ability_vec))
             per_horse = {h: float(a) for h, a in zip(race.horse_ids, ability_vec)}
             race_abilities.append(per_horse)
 
@@ -429,6 +431,8 @@ class DynamicThurstoneCalibrator:
         for race in self.races:
             cal = self._new_calibrator()
             ability_vec = np.asarray(cal.solve_from_prices(race.prices), dtype=float)
+            # Center per-race to remove translation ambiguity before refinement
+            ability_vec = ability_vec - float(np.median(ability_vec))
             a = ability_vec.copy()
             for _ in range(max(0, int(refine_steps))):
                 a = self._refine_with_result_once(
