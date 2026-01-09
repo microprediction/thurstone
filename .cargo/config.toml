@@ -1,0 +1,5 @@
+# [alias]
+# bundle = "run -p perspective-bundle"
+
+[build]
+rustflags = ["--cfg=pyo3_disable_reference_pool", "-Ctarget-cpu=native"]

@@ -1,3 +1,6 @@
+if True:
+    from . import thurstone
+
 
 from .lattice import UniformLattice
 from .density import Density
