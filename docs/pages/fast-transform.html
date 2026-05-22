@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The fast ability transform</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="thurstone.html">Thurstone models</a>
+        <a href="fast-transform.html">Fast ability transform</a>
+        <a href="rating-systems.html">Rating systems</a>
+        <a href="../demos/">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>The fast ability transform</h1>
+    <p>
+      The lattice algorithm of <a href="https://epubs.siam.org/doi/10.1137/19M1276261">Cotton
+      (2021)</a> turns the Thurstone multi-entrant problem into bookkeeping over three lattice
+      vectors per group of horses. The trick that makes it scale is being able to <strong>remove
+      one runner from the field</strong> in $O(L)$ &mdash; without that the inverse loop would be
+      $O(N^2 L)$ per iteration.
+    </p>
+
+    <h2>Setting</h2>
+    <p>
+      Discretise performance to a uniform lattice $\{-Lu, \dots, Lu\}$ of $2L+1$ points with spacing
+      $u$. Each runner $i$ has a lattice density $f_i$ and survival $S_i(j) = \Pr(X_i &gt; j) = 1 - F_i(j)$.
+      Lower scores are better. We want the state price
+      $$p_i \;=\; \mathbb{E}\!\left[\frac{\iota_{X_i = X^{(1)}}}{\sum_k \iota_{X_k = X^{(1)}}}\right],$$
+      where $X^{(1)}$ is the first order statistic. The denominator handles dead-heats: a runner who
+      ties with $m$ others for first collects $1/(1+m)$.
+    </p>
+
+    <h2>The triple: $(f, S, m)$</h2>
+    <p>
+      Represent any subset $A$ of runners by three lattice vectors:
+    </p>
+    <ul>
+      <li>$f_A$ &mdash; the density of the group&apos;s first order statistic (the winning performance).</li>
+      <li>$S_A$ &mdash; its survival function.</li>
+      <li>$m_A(j)$ &mdash; the <em>conditional multiplicity</em>: the expected number of horses in
+        $A$ tied for first <em>given</em> the winning value is $j$.</li>
+    </ul>
+    <p>
+      The first two are redundant ($S = 1 - F$) but it&apos;s cleaner to carry both. The third is
+      the ingredient that lets us split tie mass correctly on the lattice &mdash; without it the
+      discrete approximation drifts away from the underlying continuous Thurstone model. A single
+      horse is a group with $m_i \equiv 1$.
+    </p>
+
+    <h2>Operation 1: union (combine two groups)</h2>
+    <p>
+      By independence the survival multiplies: $S_{A \cup B} = S_A \cdot S_B$. Difference for the
+      density. Multiplicity is a weighted combination, indexed by which group(s) produce the tying
+      runners at lattice point $j$:
+      $$
+        m_{A \cup B}(j) \;=\;
+        \frac{m_A f_A S_B \;+\; (m_A + m_B)\,f_A f_B \;+\; m_B f_B S_A}
+             {f_A S_B \;+\; f_A f_B \;+\; f_B S_A}.
+      $$
+      The numerator weights each group&apos;s multiplicity by the probability that the win comes
+      from that group; the middle term is the cross-group tie. Applied to a single horse at a time,
+      this gives the whole-field representation in $N$ steps of $O(L)$.
+    </p>
+
+    <h2>Operation 2: removal (take one runner out) &mdash; the scalable trick</h2>
+    <p>
+      Given the full field $\Upsilon = (f, S, m)$, the "field minus runner $i$" is
+      $$
+        S_{\hat\imath}(j) \;=\; \frac{S(j)}{S_i(j)},
+        \qquad f_{\hat\imath}(j) \;=\; -\Delta S_{\hat\imath}(j),
+      $$
+      and the multiplicity inverts cleanly from the union identity:
+      $$
+        m_{\hat\imath}(j) \;=\;
+        \frac{m\,f_i S_{\hat\imath} \;+\; m\,f_i f_{\hat\imath} \;+\; m\,f_{\hat\imath} S_i
+              \;-\; m_i f_i S_{\hat\imath}}
+             {f_{\hat\imath}\,(f_i + S_i)}.
+      $$
+      That is the heart of the algorithm. Building the whole-field triple is $O(NL)$; producing
+      every "field minus one" triple is then $O(L)$ <em>per runner</em>, instead of $O(NL)$ per
+      runner from scratch. Without it the inverse iteration would not be tractable beyond toy fields.
+    </p>
+
+    <h2>Operation 3: comparison (per-runner expected payoff)</h2>
+    <p>
+      Given runner $i$&apos;s own $(f_i, S_i)$ and the "rest" triple $(f_{\hat\imath}, S_{\hat\imath},
+      m_{\hat\imath})$, the expected payoff is
+      $$
+        p_i \;\approx\; \sum_j f_i(j)\, \Bigl\{\, \frac{f_{\hat\imath}(j)}{1 + m_{\hat\imath}(j)} \;+\; S_{\hat\imath}(j) \,\Bigr\}.
+      $$
+      The first term inside the braces handles the tie at $j$ (paid $1/(1+m_{\hat\imath}(j))$,
+      where the multiplicity is the rest-of-field expectation at that grid point); the second is
+      the outright-win contribution where the rest of the field strictly trails. The only
+      approximation is replacing $\mathbb{E}[1/M\,|\,j]$ by $1/\mathbb{E}[M\,|\,j]$ in the tie
+      term, and that bias is negligible because $M \ge 2$ on the tie event.
+    </p>
+    <pre><code>import { Race } from "../js/thurstone/index.js";
+const prices = new Race(densities).statePrices();
+// Internally: winnerOfMany() builds (f, S, m) for the whole field once via Operation 1,
+// then expectedPayoffWithMultiplicity() peels off each runner via Operations 2 + 3.</code></pre>
+
+    <h2>The inverse loop</h2>
+    <p>
+      With those three operations the inverse problem becomes a few cheap passes:
+    </p>
+    <ol>
+      <li>Initialise $\mu_i = 0$ for all runners. Build the field triple $(f, S, m)$ once via
+        Operation 1.</li>
+      <li>For a shared grid of candidate offsets $g_1, \dots, g_K$, compute the implied price
+        $\hat p(g_k)$ of a single shifted runner against the current field &mdash; one Operation 3
+        per grid point, reading $(f_{\hat\imath}, S_{\hat\imath}, m_{\hat\imath})$ from Operation 2.
+        This produces a global curve $\hat p(g)$.</li>
+      <li>Sort the curve by price, dedupe, and invert each observed $p_i$ by monotone linear
+        interpolation. Read off $\mu_i = g \cdot u$.</li>
+      <li>Rebuild the field with the new $\mu_i$ and repeat. Three iterations usually suffice.</li>
+    </ol>
+    <pre><code>import { AbilityCalibrator } from "../js/thurstone/index.js";
+const cal     = new AbilityCalibrator(base, { nIter: 3 });
+const ability = cal.solveFromDividends([3.2, 4.8, 12.0, 7.5, 20.0]);</code></pre>
+
+    <h2>Walkovers and runners off the lattice</h2>
+    <p>
+      What if a runner is so much better than the field that its offset hangs off the left edge of the
+      lattice (or so much worse it hangs off the right)? The
+      <code>ClusterSplitter</code> handles this by splitting the field at the largest gap, computing
+      group representative winning densities, and recursing on the weaker side. Edge cases (runner
+      at $+\infty$ &rarr; cannot win; runners at $-\infty$ &rarr; equal share of certainty) fall out
+      naturally. See the <a href="../demos/walkover-ties.html">walkovers &amp; ties demo</a>.
+    </p>
+
+    <h2>What you get back</h2>
+    <p>
+      Abilities returned by the JS calibrator are in <em>physical units</em> of the lattice (same units
+      as the grid spacing). They are median-centered, since the model is translation-invariant: only
+      <em>differences</em> of abilities have an unambiguous meaning, not their absolute level.
+    </p>
+
+    <h2>Trustworthy in your browser</h2>
+    <p>
+      Every JavaScript module on this site is verified against the Python reference using JSON
+      golden fixtures emitted by <code>scripts/generate_fixtures.py</code>. The test suite
+      (<a href="https://github.com/microprediction/thurstone/tree/main/docs/tests">docs/tests</a>)
+      asserts max-absolute-difference under tight tolerances:
+    </p>
+    <ul>
+      <li>normpdf / normcdf: $&lt; 10^{-6}$</li>
+      <li>skew-normal density, shifts, convolution, dilation: $&lt; 10^{-10}$</li>
+      <li>winner-of-many, state prices: $&lt; 10^{-8}$</li>
+      <li>inverse calibration: $&lt; 10^{-6}$</li>
+      <li>global LS stitch: $&lt; 5 \cdot 10^{-4}$</li>
+    </ul>
+
+    <h2>Play with it</h2>
+    <p>
+      Now go break things. Drag sliders, paste dividends, watch the curve invert in real time:
+    </p>
+    <ul>
+      <li><a href="../demos/forward-pricing.html">Forward pricing</a> &mdash; abilities to prices.</li>
+      <li><a href="../demos/inverse-calibration.html">Inverse calibration</a> &mdash; dividends to abilities.</li>
+      <li><a href="../demos/density-playground.html">Density playground</a> &mdash; shifts, skew, dilation.</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../">Home</a> &middot;
+    <a href="thurstone.html">&larr; Thurstone models</a> &middot;
+    <a href="rating-systems.html">Next: rating systems &rarr;</a>
+  </footer>
+</body>
+</html>

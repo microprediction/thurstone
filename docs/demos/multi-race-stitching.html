@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multi-race stitching &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Multi-race stitching</h1>
+    <p>
+      Several races sharing some runners. Each line is one race in the format
+      <code>id:dividend, id:dividend, ...</code>. The relative-then-LS calibrator inverts each
+      race independently, removes the per-race translation, and stitches by slope-weighted least
+      squares per item.
+    </p>
+
+    <div class="demo-card">
+      <textarea id="races">A:3.0, B:4.5, C:6.0
+B:3.5, C:5.5, D:7.0
+A:3.2, C:5.0, D:9.0
+A:2.8, B:5.0, D:8.0, E:14.0
+B:4.0, D:6.5, E:11.0</textarea>
+      <br><br>
+      <button id="fit">Fit global &theta;</button>
+      <button id="example2" class="secondary">Larger overlapping set</button>
+      <div id="plot" class="plot"></div>
+      <h3>Recovered global ability</h3>
+      <table>
+        <thead><tr><th>Item</th><th>&theta;</th><th>n races</th></tr></thead>
+        <tbody id="theta-table"></tbody>
+      </table>
+      <p id="status"></p>
+    </div>
+
+    <p>
+      How to read it: $\theta$ is the median-centred latent ability shared across races. The bars in
+      the plot show $\theta$ with vertical error bars equal to the per-item standard deviation of
+      the (centred) race-local locations &mdash; a quick proxy for stability of the stitch.
+    </p>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, StatePricer, AbilityCalibrator, GlobalLSCalibrator, GlobalAbilityCalibrator } from "../js/thurstone/index.js";
+
+    const lat  = new UniformLattice(1000, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+
+    function parseRaces(text) {
+      const races = [];
+      for (const line of text.split(/\n/)) {
+        const cleaned = line.trim();
+        if (!cleaned) continue;
+        const ids = [], div = [];
+        for (const tok of cleaned.split(",")) {
+          const t = tok.trim(); if (!t) continue;
+          const [id, d] = t.split(":").map(s => s.trim());
+          if (!id || d == null) continue;
+          const x = +d;
+          if (Number.isNaN(x) || x <= 0) continue;
+          ids.push(id); div.push(x);
+        }
+        if (ids.length >= 2) races.push({ ids, div });
+      }
+      return races;
+    }
+
+    function median(a) {
+      const s = [...a].sort((x, y) => x - y);
+      const n = s.length;
+      return n % 2 ? s[(n - 1) >>> 1] : 0.5 * (s[n / 2 - 1] + s[n / 2]);
+    }
+
+    function fit() {
+      const races = parseRaces(document.getElementById("races").value);
+      if (races.length === 0) { document.getElementById("status").textContent = "No races parsed."; return; }
+      const all = new Set();
+      races.forEach(r => r.ids.forEach(i => all.add(i)));
+      const ids = Array.from(all).sort();
+      const gl = new GlobalLSCalibrator(ids);
+      const localPerItem = Object.fromEntries(ids.map(i => [i, []]));
+      const cals = [];
+      for (const r of races) {
+        const cal = new AbilityCalibrator(base, { nIter: 3 });
+        const prices = Array.from(StatePricer.pricesFromDividends(r.div));
+        gl.addRace(cal, r.ids, prices);
+        // re-invert per race to compute local locs for per-item stddev display
+        const localLocs = cal.solveFromPrices(prices);
+        const med = median(localLocs);
+        r.ids.forEach((id, j) => localPerItem[id].push(localLocs[j] - med));
+        cals.push(cal);
+      }
+      gl.fit({ useSlopeWeights: true, ridge: 1e-6 });
+
+      const theta = ids.map(i => gl.theta[i]);
+      const stds = ids.map(i => {
+        const a = localPerItem[i];
+        if (a.length < 2) return 0;
+        const m = a.reduce((u, v) => u + v, 0) / a.length;
+        const s2 = a.reduce((u, v) => u + (v - m) * (v - m), 0) / (a.length - 1);
+        return Math.sqrt(s2);
+      });
+      const counts = ids.map(i => localPerItem[i].length);
+
+      Plotly.react("plot", [{
+        type: "bar",
+        x: ids, y: theta,
+        error_y: { type: "data", array: stds, visible: true, color: "#888" },
+        marker: { color: "#4a3aff" },
+        hovertemplate: "%{x}<br>θ=%{y:.3f}<br>±%{error_y.array:.3f}<extra></extra>",
+      }], {
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        xaxis: { title: "item" },
+        yaxis: { title: "global ability θ", zeroline: true },
+        height: 360,
+      }, { displayModeBar: false, responsive: true });
+
+      const body = document.getElementById("theta-table");
+      body.innerHTML = "";
+      ids.forEach((i, k) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${i}</td><td>${theta[k].toFixed(3)}</td><td>${counts[k]}</td>`;
+        body.appendChild(tr);
+      });
+      document.getElementById("status").textContent =
+        `Fit ${races.length} race${races.length > 1 ? "s" : ""} over ${ids.length} item${ids.length > 1 ? "s" : ""}.`;
+    }
+
+    document.getElementById("fit").addEventListener("click", fit);
+    document.getElementById("example2").addEventListener("click", () => {
+      document.getElementById("races").value = [
+        "A:2.5, B:3.5, C:5.0, D:8.0",
+        "A:2.8, C:4.5, E:6.0, F:10.0",
+        "B:3.0, D:6.5, E:5.5, G:14.0",
+        "A:3.0, F:7.0, G:11.0, H:9.0",
+        "C:4.0, D:6.0, H:7.5, I:18.0",
+        "B:3.2, E:5.0, F:8.0, I:13.0",
+      ].join("\n");
+      fit();
+    });
+
+    fit();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="inverse-calibration.html">&larr; Inverse calibration</a> &middot;
+    <a href="density-playground.html">Next: density playground &rarr;</a>
+  </footer>
+</body>
+</html>

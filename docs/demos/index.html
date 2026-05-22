@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demos &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="./">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Interactive demos</h1>
+    <p>
+      All six demos below run the JavaScript port of the thurstone Python package in your browser.
+      No servers; the price&ndash;ability map is recomputed live as you change inputs.
+    </p>
+
+    <div class="demo-grid">
+      <div class="demo-card">
+        <span class="tag">argument</span>
+        <h3><a href="triple-crown.html">The Triple Crown</a></h3>
+        <p>Three generative models &mdash; identical winning probabilities, completely different shapes. The case for Thurstone over Luce.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">forward</span>
+        <h3><a href="forward-pricing.html">Forward pricing</a></h3>
+        <p>Drag ability sliders for a 5-runner race. Watch state prices and dividends update live.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">inverse</span>
+        <h3><a href="inverse-calibration.html">Inverse calibration</a></h3>
+        <p>Type dividends; recover implied abilities and check the round-trip back to prices.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">multi-race</span>
+        <h3><a href="multi-race-stitching.html">Multi-race stitching</a></h3>
+        <p>Paste several races sharing runners; recover a single global $\theta$ vector.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">density</span>
+        <h3><a href="density-playground.html">Density playground</a></h3>
+        <p>Play with skew-normal performance densities, integer/fractional shifts, convolution, dilation.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">ties</span>
+        <h3><a href="walkover-ties.html">Walkovers &amp; ties</a></h3>
+        <p>Hang runners off the lattice. See walkover and equal-share behaviour of the cluster splitter.</p>
+      </div>
+      <div class="demo-card">
+        <span class="tag">2D</span>
+        <h3><a href="loc-scale-2d.html">2D (loc, scale) inversion</a></h3>
+        <p>Per-runner scale interpreted as consistency. Inverse calibration in two dimensions.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../">Home</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rating systems across races</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="thurstone.html">Thurstone models</a>
+        <a href="fast-transform.html">Fast ability transform</a>
+        <a href="rating-systems.html">Rating systems</a>
+        <a href="../demos/">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Rating systems across races</h1>
+    <p>
+      A single race tells you about <em>relative</em> abilities among the runners present, up to a
+      translation. To build a rating system that compares runners across <em>many</em> races we have
+      to stitch these per-race estimates together coherently. This page describes the three flavours
+      thurstone supports: 1D global, 1D dynamic (over time), and multi-dimensional (over conditions).
+    </p>
+
+    <h2>One ability per item: curve-based global calibration</h2>
+    <p>
+      Assume each item $i$ has a scalar latent ability $\theta_i$. In race $r$ with intercept $b_r$
+      (the race-specific translation), runner $i$ has effective location $\mu_{r,i} = \theta_i + b_r$.
+      The <strong>right</strong> way to fit $\{\theta_i, b_r\}$ jointly is to keep the original
+      market prices in view at all times and match them in <em>probability space</em>, not in
+      ability space. That is what <code>GlobalAbilityCalibrator</code> does in the Python package
+      (and Chapter 11 of the book): for each race, tabulate the smooth, monotone
+      ability&rarr;price curve $g_{r,i}(\mu)$ once on a grid, then run Gauss&ndash;Newton on
+      $$L(\theta, b) = \tfrac12 \sum_{r,i \in H_r} w_{r,i} \bigl(g_{r,i}(\theta_i + b_r) - p_{r,i}\bigr)^2,$$
+      alternating block updates: one ridge step per race for $(b_r, v_r)$, one per item for $\theta_i$,
+      rebuilding the curves every few outer iterations. Because each $g_{r,i}$ is a one-dimensional
+      lookup, each Gauss&ndash;Newton step costs only interpolation and a tiny linear solve. The fit
+      stays fully consistent with the Thurstone forward physics and recovers the centered
+      $\theta^*$ almost perfectly even when items are sparsely connected across races.
+    </p>
+
+    <h2>A fast baseline: relative-then-LS stitch</h2>
+    <p>
+      For comparison and as a quick starting point, the <code>GlobalLSCalibrator</code>
+      &mdash; the only one currently exposed in the JavaScript port and powering the
+      <a href="../demos/multi-race-stitching.html">multi-race stitching demo</a> &mdash;
+      shortcuts the whole loop. It inverts each race independently to get per-race locations
+      $\hat\mu_{r,i}$, centers each race by its median (removing $b_r$), and averages the
+      centered residuals per item with slope weights:
+      $$\hat\theta_i = \frac{\sum_{r \ni i} w_{r,i}\,(\hat\mu_{r,i} - \mathrm{med}_r)}{\sum_{r \ni i} w_{r,i}},
+      \qquad w_{r,i} = \bigl| \partial p_{r,i} / \partial \mu \bigr|.$$
+      This is fast, diagonal by construction, and robust &mdash; but it never revisits the original
+      prices, so all of the Thurstone structure has to flow through the noisy intermediate
+      $\hat\mu_{r,i}$. Empirically, this gives noticeable regression toward the mean for items
+      that appear in only a few races. Use it as a baseline, a warm start, or when you need a
+      one-pass approximation at scale.
+    </p>
+
+    <h2>One ability per item, evolving in time</h2>
+    <p>
+      For real horses / players / models, ability drifts. <code>KalmanAbilityTracker</code> in the
+      Python package treats per-race observations as noisy measurements of a slowly-varying state and
+      runs a univariate Kalman filter per item. This is straightforward to bolt on top of the LS
+      approach above &mdash; the JS port focuses on the static case, but the same idea applies.
+    </p>
+
+    <h2>Multi-dimensional ability: conditions matter</h2>
+    <p>
+      Many contests have <em>conditions</em>: course, weather, distance, model prompt template. A
+      runner that excels in one condition may underperform in another. The natural extension keeps a
+      latent embedding $z_i \in \mathbb{R}^d$ per item and a direction $v_c \in \mathbb{R}^d$
+      (with $\|v_c\| = 1$) per condition. The effective ability of item $i$ in condition $c$ is then
+      $$\mu_{c,i} = \beta_c + \langle v_c, z_i \rangle.$$
+    </p>
+    <ul>
+      <li><strong>$d = 1$</strong>: every condition picks the same direction up to sign. Equivalent to
+        the single-ability model.</li>
+      <li><strong>$d = 2$</strong>: items live on a plane; conditions are unit vectors. Useful when
+        two latent factors (say speed vs stamina) explain most variation.</li>
+      <li><strong>$d = 3$</strong>: a third axis (technique, focus, &hellip;). Still cheap to fit.</li>
+    </ul>
+    <p>
+      <code>MultiRayGlobalCalibrator</code> alternates Gauss&ndash;Newton updates for $(v_c, \beta_c)$
+      with updates for $z_i$, using the cached price&ndash;location curves to evaluate predicted
+      prices and their slopes. The system is diagonal in items (given conditions) and block-diagonal
+      in conditions (given items), so each inner step is small and direct.
+    </p>
+
+    <h2>Identifiability (and the gauge fix)</h2>
+    <p>
+      Latent embeddings have ambiguities that observations cannot pin down:
+    </p>
+    <ul>
+      <li>Translation: shifting all $z_i$ by the same vector and absorbing into $\beta_c$ does nothing.</li>
+      <li>Rescaling: rescaling $z_i$ and inversely rescaling $v_c$ does nothing.</li>
+      <li>Rotation: any orthogonal transform of $\{z_i\}$ together with the inverse on $\{v_c\}$ does nothing.</li>
+    </ul>
+    <p>
+      We fix the gauge by:
+    </p>
+    <ol>
+      <li>Centring $\{z_i\}$ to mean zero.</li>
+      <li>Constraining each $\|v_c\| = 1$ after every update.</li>
+      <li>Centring the per-item theta (1D) to median zero.</li>
+    </ol>
+    <p>
+      Rotational ambiguity in $d \ge 2$ is left intact: comparisons of $\langle v_c, z_i \rangle$ are
+      invariant to it, but the raw coordinates of $z_i$ are not interpretable in isolation.
+    </p>
+
+    <h2>Connection to Elo, Glicko, and friends</h2>
+    <p>
+      Elo and Glicko are practical rating systems derived from Bradley&ndash;Terry-style logistic
+      updates: each game gives a signed update proportional to actual minus expected score. They are
+      online approximations to the pairwise maximum-likelihood ability estimate. The thurstone-based
+      LS / Kalman approaches above generalise these to multi-entrant contests with non-trivial fields
+      and dead-heats &mdash; while remaining cheap enough to run on a laptop or, indeed, in your browser.
+    </p>
+
+    <h2>Connection to LLM preference learning</h2>
+    <p>
+      LLM alignment objectives like DPO are Bradley&ndash;Terry-of-the-LLM-world: efficient but pairwise
+      and logit-based. Listwise methods (LiPO, 2024) move toward distributional/field objectives, closer
+      in spirit to what this package does for races. Permutation self-consistency (Tang et al., 2023)
+      restores set-invariance by averaging over input orderings &mdash; the same property the lattice
+      algorithm has by construction.
+    </p>
+
+    <h2>Where to next</h2>
+    <ul>
+      <li><a href="../demos/multi-race-stitching.html">Multi-race stitching demo</a> &mdash;
+        paste races, see the recovered $\theta$.</li>
+      <li><a href="../demos/loc-scale-2d.html">2D (loc, scale) inversion demo</a> &mdash;
+        per-runner scale interpreted as consistency.</li>
+      <li><a href="https://github.com/microprediction/thurstone">thurstone repo</a> &mdash; full Python
+        implementation including Kalman, multi-ray, and the 1D/2D Gauss&ndash;Newton multi-race fits.</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../">Home</a> &middot;
+    <a href="fast-transform.html">&larr; Fast ability transform</a> &middot;
+    <a href="../demos/">Demos &rarr;</a>
+  </footer>
+</body>
+</html>

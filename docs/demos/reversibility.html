@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>No reverse gear &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+    .big { font-size: 2.4rem; font-variant-numeric: tabular-nums; font-weight: 600; margin: 0; }
+    .small-lbl { font-size: 0.85rem; color: var(--muted); }
+    .ok    { color: #1b5e20; }
+    .clash { color: #c62828; }
+    .frac { display: inline-block; vertical-align: middle; text-align: center; line-height: 1; }
+    .frac .num { display: block; border-bottom: 1px solid currentColor; padding: 0 .25em; }
+    .frac .den { display: block; padding: 0 .25em; }
+    .case { padding: 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>No reverse gear</h1>
+    <p>
+      Harville&apos;s formula &mdash; pricing combinatorial bets by repeated renormalisation of
+      winning probabilities &mdash; is the classical application of Luce&apos;s Axiom of Choice to
+      racing. It is also <em>logically inconsistent</em>: the same event gets different
+      probabilities depending on whether you compute it forward (from the winner) or backward
+      (from the loser). Try it.
+    </p>
+
+    <div class="demo-card">
+      <h3>Winning probabilities</h3>
+      <p>Set the three winning probabilities. The defaults reproduce the canonical example $(1/2, 1/3, 1/6)$ from the book.</p>
+      <div class="controls">
+        <label>p₁ (favourite)</label><input id="p1" type="range" min="0.05" max="0.85" step="0.01" value="0.5"><div class="value" id="p1-val">0.500</div>
+        <label>p₂</label><input id="p2" type="range" min="0.05" max="0.85" step="0.01" value="0.333"><div class="value" id="p2-val">0.333</div>
+        <label>p₃ (outsider)</label><input id="p3" type="number" step="0.001" min="0.01" value="0.167" readonly style="width:6em"><div></div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--muted)">
+        $p_3 = 1 - p_1 - p_2$. We auto-rescale if your sliders push $p_3$ negative.
+      </p>
+    </div>
+
+    <div class="compare">
+      <div class="case">
+        <h3>Forward Harville</h3>
+        <p class="small-lbl">$P(\text{H1 first, H2 second})$, computed winner&rarr;runner-up:</p>
+        <p>
+          $P(\text{H1 first}) \times \dfrac{p_2}{1 - p_1}$
+        </p>
+        <p id="forward-formula"></p>
+        <p class="big ok" id="forward-val"></p>
+      </div>
+      <div class="case">
+        <h3>Backward Harville</h3>
+        <p class="small-lbl">Same event, computed loser&rarr;runner-up-from-last using losing probabilities (themselves obtained from Harville forward):</p>
+        <p>
+          $P(\text{H3 last}) \times \dfrac{p_2^{\text{lose}}}{p_1^{\text{lose}} + p_2^{\text{lose}}}$
+        </p>
+        <p id="backward-formula"></p>
+        <p class="big clash" id="backward-val"></p>
+      </div>
+    </div>
+
+    <div class="demo-card" style="margin-top:14px">
+      <h3>The damning ratio</h3>
+      <p>
+        These two numbers describe the <em>same event</em>: horses 1 and 2 take the top two
+        positions in that order. If a model is coherent the ratio is 1. Harville gives:
+      </p>
+      <p class="big" id="ratio-val" style="text-align:center"></p>
+      <p id="ratio-note" style="text-align:center"></p>
+    </div>
+
+    <p>
+      You can chase the discrepancy away by setting $p_2 = p_3$ &mdash; then the field becomes
+      symmetric in those two, and forward and backward Harville agree by accident. The only
+      <em>generative</em> setup that makes them agree everywhere is the one where performance
+      distributions are exponential (i.e.\ Luce&apos;s axiom holds by force of the distribution).
+      For any other model, repeated renormalisation is incoherent &mdash; running the same
+      arithmetic backward from the loser instead of forward from the winner gives you a
+      different answer.
+    </p>
+    <p>
+      The Thurstone alternative computes the probability of <em>any</em> finishing arrangement
+      from the underlying performance density once, with no asymmetry between &ldquo;the winner is
+      drawn first&rdquo; and &ldquo;the loser is drawn last&rdquo;. See the
+      <a href="../pages/fast-transform.html">fast ability transform</a> page for how, or the
+      <a href="forward-pricing.html">forward pricing demo</a> for it in action.
+    </p>
+  </main>
+
+  <script>
+    function setRangeAndVal(id, v) {
+      document.getElementById(id).value = v;
+      document.getElementById(id + "-val").textContent = (+v).toFixed(3);
+    }
+    function v(id) { return +document.getElementById(id).value; }
+
+    // P(horse i loses) = P(it finishes outside top n-2). For n=3 it's P(it finishes last).
+    // Compute by summing over the other-pair orderings.
+    function harvilleLast(i, p) {
+      // P(i finishes third) = sum over j != i, k != i, j != k of P(j first) * p_k / (1 - p_j)
+      let total = 0;
+      for (let j = 0; j < 3; j++) if (j !== i) for (let k = 0; k < 3; k++) if (k !== i && k !== j) {
+        total += p[j] * p[k] / (1 - p[j]);
+      }
+      return total;
+    }
+
+    function recompute() {
+      let p1 = v("p1"), p2 = v("p2");
+      let p3 = 1 - p1 - p2;
+      if (p3 < 0.01) {
+        // squeeze p1 and p2 down proportionally to leave room for a small p3
+        const s = (1 - 0.01) / (p1 + p2);
+        p1 *= s; p2 *= s; p3 = 0.01;
+        setRangeAndVal("p1", p1.toFixed(3));
+        setRangeAndVal("p2", p2.toFixed(3));
+      } else {
+        document.getElementById("p1-val").textContent = p1.toFixed(3);
+        document.getElementById("p2-val").textContent = p2.toFixed(3);
+      }
+      document.getElementById("p3").value = p3.toFixed(3);
+      const p = [p1, p2, p3];
+
+      // Forward: P(1 first, 2 second) = p1 * p2 / (1 - p1)
+      const forward = p1 * p2 / (1 - p1);
+
+      // Backward: start from the loser (horse 3 last), then condition on the remaining pair.
+      // P(H3 last) = harvilleLast(2, p)
+      const p3Last = harvilleLast(2, p);
+      const p1Last = harvilleLast(0, p);
+      const p2Last = harvilleLast(1, p);
+      // Among the remaining two (H1, H2), apply Luce to "loser among those two" using losing probs.
+      // P(H1 last among {1,2} | H3 already last) = p1Last / (p1Last + p2Last)
+      //  -> i.e. "H2 second" event. So
+      // P(H1 first, H2 second) computed backward = P(H3 last) * P(H2 second-last among the rest | H3 last)
+      // which means P(H1 last among {1,2}) since runner-up-from-last = last in the field of two.
+      const backward = p3Last * p1Last / (p1Last + p2Last);
+
+      document.getElementById("forward-formula").innerHTML =
+        `= ${p1.toFixed(3)} × <span class="frac"><span class="num">${p2.toFixed(3)}</span><span class="den">${(1 - p1).toFixed(3)}</span></span>`;
+      document.getElementById("forward-val").textContent = forward.toFixed(4);
+
+      document.getElementById("backward-formula").innerHTML =
+        `= ${p3Last.toFixed(3)} × <span class="frac"><span class="num">${p1Last.toFixed(3)}</span><span class="den">${(p1Last + p2Last).toFixed(3)}</span></span>`;
+      document.getElementById("backward-val").textContent = backward.toFixed(4);
+
+      const ratio = forward === 0 ? 0 : backward / forward;
+      const ratioEl = document.getElementById("ratio-val");
+      const noteEl = document.getElementById("ratio-note");
+      ratioEl.textContent = `backward / forward = ${ratio.toFixed(3)}`;
+      if (Math.abs(ratio - 1) < 0.002) {
+        ratioEl.className = "big ok";
+        noteEl.textContent = "Coincidence: in this corner the two methods agree.";
+      } else {
+        ratioEl.className = "big clash";
+        const pct = ((ratio - 1) * 100).toFixed(1);
+        noteEl.textContent = `The same event is priced ${pct}% differently depending on which end you start from.`;
+      }
+    }
+
+    for (const id of ["p1", "p2"]) document.getElementById(id).addEventListener("input", recompute);
+    recompute();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a>
+  </footer>
+</body>
+</html>

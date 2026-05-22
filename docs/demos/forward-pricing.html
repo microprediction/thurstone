@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Forward pricing &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Forward pricing</h1>
+    <p>
+      Five runners with skew-normal performance densities, identical scale and shape. Each slider
+      shifts that runner's density. The state prices (normalised winning probabilities) and the
+      implied dividends update live, multiplicity-aware.
+    </p>
+
+    <div class="demo-card">
+      <div id="controls"></div>
+      <button id="reset" class="secondary">Reset</button>
+      <button id="randomize" class="secondary">Randomise</button>
+      <div id="plot" class="plot"></div>
+      <h3>Prices &amp; dividends</h3>
+      <table>
+        <thead><tr><th>Runner</th><th>Ability</th><th>Price</th><th>Dividend</th></tr></thead>
+        <tbody id="prices-table"></tbody>
+      </table>
+    </div>
+
+    <p>
+      Notice: when two abilities are equal the prices are equal (set-coherence). Move one runner far
+      to the left and watch the field collapse onto it (probability of winning &rarr; 1). Move one
+      far to the right and its price drifts to zero, with the field dividing the remaining mass.
+    </p>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, Race, StatePricer } from "../js/thurstone/index.js";
+
+    const NAMES = ["A", "B", "C", "D", "E"];
+    const DEFAULTS = [-1.0, -0.4, 0.0, 0.3, 0.9];
+    let abilities = DEFAULTS.slice();
+
+    const lat = new UniformLattice(200, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+
+    function buildControls() {
+      const div = document.getElementById("controls");
+      div.innerHTML = "";
+      const cls = document.createElement("div");
+      cls.className = "controls";
+      NAMES.forEach((n, i) => {
+        const lbl = document.createElement("label");
+        lbl.textContent = `Runner ${n}`;
+        const inp = document.createElement("input");
+        inp.type = "range"; inp.min = -3; inp.max = 3; inp.step = 0.05; inp.value = abilities[i];
+        const val = document.createElement("div");
+        val.className = "value";
+        val.textContent = abilities[i].toFixed(2);
+        inp.addEventListener("input", () => {
+          abilities[i] = +inp.value;
+          val.textContent = abilities[i].toFixed(2);
+          recompute();
+        });
+        cls.appendChild(lbl); cls.appendChild(inp); cls.appendChild(val);
+      });
+      div.appendChild(cls);
+    }
+
+    function recompute() {
+      const densities = abilities.map(a => base.shiftFractional(a / lat.unit));
+      const prices = Array.from(new Race(densities).statePrices());
+      const dividends = StatePricer.dividendsFromPrices(prices);
+
+      // Plot per-runner densities
+      const x = Array.from(lat.grid());
+      const traces = densities.map((d, i) => ({
+        x, y: Array.from(d.p), mode: "lines", name: NAMES[i],
+        hovertemplate: "x=%{x:.2f}<br>p=%{y:.4f}<extra>" + NAMES[i] + "</extra>",
+      }));
+      Plotly.react("plot", traces, {
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        xaxis: { title: "performance (smaller = better)" },
+        yaxis: { title: "lattice probability mass" },
+        showlegend: true,
+        height: 360,
+      }, { displayModeBar: false, responsive: true });
+
+      // Table
+      const body = document.getElementById("prices-table");
+      body.innerHTML = "";
+      for (let i = 0; i < NAMES.length; i++) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${NAMES[i]}</td><td>${abilities[i].toFixed(2)}</td>` +
+          `<td>${prices[i].toFixed(4)}</td><td>${dividends[i].toFixed(2)}</td>`;
+        body.appendChild(tr);
+      }
+    }
+
+    document.getElementById("reset").addEventListener("click", () => {
+      abilities = DEFAULTS.slice(); buildControls(); recompute();
+    });
+    document.getElementById("randomize").addEventListener("click", () => {
+      abilities = NAMES.map(() => +(Math.random() * 4 - 2).toFixed(2));
+      buildControls(); recompute();
+    });
+
+    buildControls();
+    recompute();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="inverse-calibration.html">Next: inverse calibration &rarr;</a>
+  </footer>
+</body>
+</html>

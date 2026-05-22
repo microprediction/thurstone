@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Triple Crown &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <style>
+    .legs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .legs .plot { min-height: 240px; }
+    .legs .leg-title { text-align: center; font-weight: 600; margin: 6px 0 0; }
+    .legs .leg-sub { text-align: center; font-size: 0.85rem; color: var(--muted); margin: 0 0 4px; }
+    @media (max-width: 720px) { .legs { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>The Triple Crown</h1>
+    <p>
+      Three races. Three different-looking sets of performance densities. <em>Identical</em>
+      winning probabilities. The reader who agrees with the market on $\{p_i\}$ has agreed on
+      <em>nothing</em> about what the world looks like underneath, and this demo walks through
+      why that matters.
+    </p>
+    <p>
+      Two of the three races (Preakness and Belmont) sit inside the family where Luce&apos;s
+      Choice Axiom holds exactly. The third (Derby) is the Standard Normal Horse Race &mdash; the
+      Thurstone Class V alternative. They&apos;re tuned to the same winning probabilities; pick
+      whichever you find more believable as a generative story for how runners actually finish.
+    </p>
+
+    <div class="demo-card">
+      <h3>Set winning probabilities</h3>
+      <p>Enter raw weights for five runners (any positive numbers &mdash; they&apos;ll be normalised to sum to 1).</p>
+      <div class="controls">
+        <label>weight (horse 1, favourite)</label>
+        <input id="w1" type="number" step="0.1" min="0.01" value="5"><div></div>
+        <label>weight (horse 2)</label>
+        <input id="w2" type="number" step="0.1" min="0.01" value="4"><div></div>
+        <label>weight (horse 3)</label>
+        <input id="w3" type="number" step="0.1" min="0.01" value="3"><div></div>
+        <label>weight (horse 4)</label>
+        <input id="w4" type="number" step="0.1" min="0.01" value="2"><div></div>
+        <label>weight (horse 5, outsider)</label>
+        <input id="w5" type="number" step="0.1" min="0.01" value="1"><div></div>
+      </div>
+      <button id="recalc">Recalculate</button>
+      <button id="canonical" class="secondary">Canonical (5,4,3,2,1)</button>
+      <button id="closer" class="secondary">Closer field</button>
+      <button id="extreme" class="secondary">Extreme favourite</button>
+      <p id="probs" style="margin-top:10px"></p>
+      <p style="font-size:0.85rem;color:var(--muted)">
+        Edit the weights then click <em>Recalculate</em> &mdash; the lattice calibration for the
+        Derby takes a moment, so we don&apos;t rerun it on every keystroke.
+      </p>
+    </div>
+
+    <div class="demo-card">
+      <h3>The three races</h3>
+      <div class="legs">
+        <div>
+          <div id="plot-derby" class="plot"></div>
+          <div class="leg-title">Kentucky Derby</div>
+          <div class="leg-sub">Normal performances, equal variance &mdash; Thurstone Class V</div>
+        </div>
+        <div>
+          <div id="plot-preakness" class="plot"></div>
+          <div class="leg-title">Preakness Stakes</div>
+          <div class="leg-sub">Exponential performances &mdash; Luce-compliant by construction</div>
+        </div>
+        <div>
+          <div id="plot-belmont" class="plot"></div>
+          <div class="leg-title">Belmont Stakes</div>
+          <div class="leg-sub">Fourth-root exponential (Weibull shape 4) &mdash; &ldquo;Normalish&rdquo;, still Luce-compliant</div>
+        </div>
+      </div>
+      <p>
+        Take a moment with these three panels. The <strong>Preakness</strong> (exponential) is the
+        Lucian model in its undisguised form &mdash; rates $\lambda_i = p_i$ and the win
+        probabilities pop out by force of the memoryless property. The shape is unmistakable: each
+        density peaks at zero and decays. It is not what anyone&apos;s mental model of a finishing
+        time looks like.
+      </p>
+      <p>
+        The <strong>Belmont</strong> is the same race in disguise. If $Z_i \sim
+        \mathrm{Exp}(\lambda_i)$ then $X_i = Z_i^{1/4}$ has a Weibull (shape 4) distribution
+        &mdash; bell-shaped, plausible-looking, almost normal to the eye. But $x \mapsto x^{1/4}$
+        is monotone, and <em>any rank-determined probability is invariant under a monotone transform
+        of performance</em>. So from the order-statistics point of view, the Preakness and the
+        Belmont are the <em>same race</em>: every quinella, exacta, trifecta, every losing
+        probability, every conditional ranking they assign is identical. They differ only in what
+        units you choose to measure the runners with.
+      </p>
+      <div class="callout">
+        <strong>A trap to avoid.</strong> It would be unfair to dismiss the Preakness on the
+        grounds that &ldquo;exponential finishing times are absurd&rdquo; without realising that
+        the Belmont prices every trifecta, quinella, and exacta <em>identically</em>. If you
+        reject the Preakness you have also rejected the Belmont &mdash; they are the same model
+        wearing different clothes. The two would only price differently for wagers that depend on
+        the actual units of performance (winning margin in lengths, finishing time in seconds);
+        for any bet decided by finish <em>order</em> alone, the two are interchangeable.
+      </div>
+      <p>
+        That equivalence is what makes the Belmont&apos;s real flaw worth noticing. The flaw is
+        not the shape &mdash; the densities look reasonable. The flaw is in the variances. To match
+        the same winning probabilities under Luce&apos;s axiom, the Belmont has to inflate the
+        performance variance of the weakest horse: with the canonical $(5,4,3,2,1)$ field,
+        $\sigma_5 / \sigma_1 = (p_1/p_5)^{1/4} = 5^{1/4} \approx 1.50$, and for an extreme
+        favourite it gets close to $2$. The bias-variance plot below shows it directly.
+      </p>
+      <p>
+        The <strong>Kentucky Derby</strong> is something genuinely different. It is the Standard
+        Normal Horse Race &mdash; Thurstone&apos;s Class V model &mdash; calibrated by the fast
+        ability transform on a uniform lattice so that the implied winning probabilities match.
+        Each runner has a normal density with the same variance, separated only by translation.
+        That is the natural prior most modellers would write down if they sat down and asked,
+        &ldquo;how is finishing time distributed around a horse&apos;s underlying ability?&rdquo;
+        It is also <em>not</em> Luce-compliant for $n \ge 3$: its rank-determined probabilities
+        differ from the Preakness/Belmont, even though the marginal winning probabilities agree.
+      </p>
+    </div>
+
+    <div class="demo-card">
+      <h3>The constraint that Lucian models can&apos;t leave</h3>
+      <p>
+        One diamond per horse, both models. Bias on the x-axis, variance ratio on the y, both
+        measured relative to the favourite. Luce&apos;s axiom forces you onto a manifold;
+        Thurstone&apos;s Normal model spans the plane.
+      </p>
+      <div id="plot-bv" class="plot" style="min-height:420px"></div>
+      <p>
+        The Derby horses line up along the flat blue line: equal variance by construction, bias
+        free to vary. The Belmont horses climb the green curve: every step away from the favourite
+        in bias also drags the variance ratio upward, and for the weakest horse in an extreme field
+        the variance has to nearly double the favourite&apos;s. There is no empirical reason that
+        should be so &mdash; Secretariat&apos;s 31-length Belmont rebuts it directly &mdash; but
+        Lucian arithmetic doesn&apos;t leave you a choice. Pick the axiom and you pick the manifold.
+      </p>
+    </div>
+
+    <p>
+      This is the Triple Crown argument distilled: the winning probabilities don&apos;t adjudicate
+      between sensible generative models, but Luce&apos;s axiom &mdash; whether you reach it via
+      raw exponentials (Preakness) or a tasteful monotone transform of them (Belmont) &mdash;
+      lives on a narrow manifold where bias and variance must move together. The
+      <a href="../pages/fast-transform.html">fast ability transform</a> is what lets us walk off
+      that manifold and use whatever performance density actually matches the data.
+    </p>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, AbilityCalibrator } from "../js/thurstone/index.js";
+
+    const lat  = new UniformLattice(200, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+    const cal  = new AbilityCalibrator(base, { nIter: 3 });
+
+    // Pre-compute the Derby/Belmont sweep ONCE. The sweep varies the favourite's share
+    // s ∈ [0.25, 0.65] keeping the rest of the field in ratio 4:3:2:1 (matching the canonical preset).
+    // Repeated solveFromPrices calls dominate cost, so we cache the trajectory.
+    let SWEEP = null;
+    function buildSweep() {
+      if (SWEEP) return SWEEP;
+      const ss = [];
+      for (let s = 0.22; s <= 0.66; s += 0.02) ss.push(+s.toFixed(4));
+      const out = { derby: { x: [], y: [] }, belm: { x: [], y: [] } };
+      for (const s of ss) {
+        const rest = 1 - s;
+        const probs = [s, rest * 4 / 10, rest * 3 / 10, rest * 2 / 10, rest / 10];
+        // Derby: equal-variance Normal — calibrate locations on the lattice
+        const a = cal.solveFromPrices(probs);
+        out.derby.x.push(a[4] - a[0]);   // bias (μ5 − μ1)/σ1, with σ1 = 1
+        out.derby.y.push(1);             // variance ratio fixed at 1
+        // Belmont: σ_i ∝ λ_i^(-1/4), μ_i ∝ λ_i^(-1/4); ratio for 5 vs 1
+        const r4 = Math.pow(probs[0] / probs[4], 0.25);
+        out.belm.x.push((GAMMA_5_4 / WEIBULL_SD_CONST) * (r4 - 1));
+        out.belm.y.push(r4);
+      }
+      SWEEP = out;
+      return out;
+    }
+
+    // Gamma function via Lanczos approximation - we only need Γ(5/4) and Γ(3/2) constants.
+    const GAMMA_5_4 = 0.9064024770554770;  // Γ(5/4)
+    const GAMMA_3_2 = 0.8862269254527580;  // Γ(3/2) = √π / 2
+    const WEIBULL_SD_CONST = Math.sqrt(GAMMA_3_2 - GAMMA_5_4 * GAMMA_5_4);
+
+    const WEIGHT_IDS = ["w1", "w2", "w3", "w4", "w5"];
+    const HORSE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"];
+
+    function readWeights() {
+      const w = WEIGHT_IDS.map(id => Math.max(1e-6, +document.getElementById(id).value || 0));
+      const s = w.reduce((a, b) => a + b, 0);
+      return w.map(x => x / s);
+    }
+
+    function expPdf(x, lambda) { return x < 0 ? 0 : lambda * Math.exp(-lambda * x); }
+    function weibull4Pdf(x, lambda) {
+      if (x < 0) return 0;
+      const x2 = x * x;
+      const x4 = x2 * x2;
+      return 4 * lambda * x * x2 * Math.exp(-lambda * x4);
+    }
+    function normalPdf(x, mu, sigma) {
+      const z = (x - mu) / sigma;
+      return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+    }
+
+    function linspace(a, b, n) {
+      const out = new Float64Array(n);
+      const step = (b - a) / (n - 1);
+      for (let i = 0; i < n; i++) out[i] = a + i * step;
+      return out;
+    }
+
+    function plotDerby(p, ability) {
+      // Calibrated normal locations passed in (computed once in recompute).
+      const xs = linspace(-5, 5, 240);
+      const traces = ability.map((mu, i) => ({
+        x: Array.from(xs),
+        y: Array.from(xs).map(x => normalPdf(x, mu, 1)),
+        mode: "lines",
+        name: `H${i + 1}  μ=${mu.toFixed(2)}`,
+        line: { color: HORSE_COLORS[i], width: 2 },
+        fill: "tozeroy",
+        fillcolor: HORSE_COLORS[i] + "22",
+      }));
+      Plotly.react("plot-derby", traces, {
+        margin: { t: 8, l: 40, r: 10, b: 35 },
+        xaxis: { title: "performance" },
+        yaxis: { showticklabels: false },
+        showlegend: true,
+        legend: { font: { size: 10 } },
+        height: 240,
+      }, { displayModeBar: false, responsive: true });
+    }
+
+    function plotLucianRace(elemId, pdfFn, lambdas, xMax) {
+      const xs = linspace(0, xMax, 240);
+      const traces = lambdas.map((lam, i) => ({
+        x: Array.from(xs),
+        y: Array.from(xs).map(x => pdfFn(x, lam)),
+        mode: "lines",
+        name: `H${i + 1}  λ=${lam.toFixed(3)}`,
+        line: { color: HORSE_COLORS[i], width: 2 },
+        fill: "tozeroy",
+        fillcolor: HORSE_COLORS[i] + "22",
+      }));
+      Plotly.react(elemId, traces, {
+        margin: { t: 8, l: 40, r: 10, b: 35 },
+        xaxis: { title: "performance" },
+        yaxis: { showticklabels: false },
+        showlegend: true,
+        legend: { font: { size: 10 } },
+        height: 240,
+      }, { displayModeBar: false, responsive: true });
+    }
+
+    function plotBV(p, derbyAbility) {
+      // Axes: x = relative bias (μi − μ1)/σ1, y = variance ratio σi/σ1.
+      // One marker per horse for each model. Horse 1 (favourite) sits at the origin (0, 1) for both.
+      // Derby (Normal Class V): all 5 markers on the horizontal line y = 1.
+      // Belmont (Luce): markers walk up the manifold as horses get worse.
+      const sw = buildSweep();
+      const labels = ["H1", "H2", "H3", "H4", "H5"];
+      const derbyXs = derbyAbility.map(a => a - derbyAbility[0]);
+      const derbyYs = derbyXs.map(() => 1);
+      const belmXs = p.map(pi => (GAMMA_5_4 / WEIBULL_SD_CONST) * (Math.pow(p[0] / pi, 0.25) - 1));
+      const belmYs = p.map(pi => Math.pow(p[0] / pi, 0.25));
+
+      const traces = [
+        { x: sw.derby.x, y: sw.derby.y, mode: "lines",
+          name: "Derby: Normal (free)",
+          line: { color: "#1f77b4", width: 2, dash: "dash" },
+          hoverinfo: "skip" },
+        { x: sw.belm.x, y: sw.belm.y, mode: "lines",
+          name: "Belmont: Luce manifold",
+          line: { color: "#2ca02c", width: 2, dash: "dash" },
+          hoverinfo: "skip" },
+        { x: derbyXs, y: derbyYs, mode: "markers+text",
+          name: "Derby horses",
+          marker: { size: 18, color: "#1f77b4", symbol: "diamond",
+                    line: { width: 2, color: "#fff" } },
+          text: labels, textposition: "top center",
+          textfont: { size: 11, color: "#1f77b4" },
+          hovertemplate: "Derby %{text}<br>bias=%{x:.2f}<br>σᵢ/σ₁=%{y:.2f}<extra></extra>" },
+        { x: belmXs, y: belmYs, mode: "markers+text",
+          name: "Belmont horses",
+          marker: { size: 18, color: "#2ca02c", symbol: "diamond",
+                    line: { width: 2, color: "#fff" } },
+          text: labels, textposition: "bottom center",
+          textfont: { size: 11, color: "#2ca02c" },
+          hovertemplate: "Belmont %{text}<br>bias=%{x:.2f}<br>σᵢ/σ₁=%{y:.2f}<extra></extra>" },
+      ];
+      Plotly.react("plot-bv", traces, {
+        margin: { t: 10, l: 60, r: 10, b: 50 },
+        xaxis: { title: "relative bias  (μᵢ − μ₁) / σ₁", zeroline: true },
+        yaxis: { title: "variance ratio  σᵢ / σ₁", zeroline: false,
+                 rangemode: "tozero" },
+        height: 420,
+        legend: { font: { size: 11 }, x: 0.02, y: 0.98, bgcolor: "rgba(255,255,255,0.85)" },
+      }, { displayModeBar: false, responsive: true });
+    }
+
+    function recompute() {
+      const p = readWeights();
+      document.getElementById("probs").innerHTML =
+        `Winning probabilities: <code>(${p.map(v => v.toFixed(3)).join(", ")})</code> &mdash; identical across all three races.`;
+
+      // Calibrate Normal locations once — both the Derby plot and the bias/variance plot use them.
+      const derbyAbility = cal.solveFromPrices(p);
+      plotDerby(p, derbyAbility);
+      // Lucian races: λ_i = p_i (so p_i = λ_i / Σλ_j holds with Σλ = 1).
+      const lambdas = p;
+      const xMaxExp = Math.min(25, 3.5 / Math.min(...lambdas));
+      plotLucianRace("plot-preakness", expPdf, lambdas, xMaxExp);
+      const xMaxBelm = Math.min(4, 2.5 / Math.pow(Math.min(...lambdas), 0.25));
+      plotLucianRace("plot-belmont", weibull4Pdf, lambdas, xMaxBelm);
+      plotBV(p, derbyAbility);
+    }
+
+    document.getElementById("recalc").addEventListener("click", recompute);
+    function setAndRecalc(ws) {
+      WEIGHT_IDS.forEach((id, i) => { document.getElementById(id).value = ws[i]; });
+      recompute();
+    }
+    document.getElementById("canonical").addEventListener("click", () => setAndRecalc([5, 4, 3, 2, 1]));
+    document.getElementById("closer").addEventListener("click", () => setAndRecalc([1.5, 1.3, 1.1, 1.0, 0.9]));
+    document.getElementById("extreme").addEventListener("click", () => setAndRecalc([10, 1, 1, 1, 1]));
+    for (const id of WEIGHT_IDS) {
+      document.getElementById(id).addEventListener("keydown", e => {
+        if (e.key === "Enter") recompute();
+      });
+    }
+
+    recompute();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a>
+  </footer>
+</body>
+</html>
