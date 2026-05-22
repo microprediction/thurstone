@@ -9,6 +9,12 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
     onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+  <style>
+    .md-demo { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 12px; align-items: stretch; }
+    .md-demo .plot { min-height: 320px; }
+    @media (max-width: 720px) { .md-demo { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -40,6 +46,31 @@
       Everything else &mdash; the Thurstone forward physics, the lattice machinery, the curves
       &mdash; is unchanged.
     </p>
+
+    <h2>See it in 2D</h2>
+    <p>
+      Five horses in a <em>(speed, stamina)</em> plane. The arrow is the race&apos;s skill ray
+      $v_r$. Slide the ray from horizontal (pure sprint) to vertical (pure stayer): the favourites
+      shuffle because each horse&apos;s effective ability is its projection onto the ray.
+      Same 5 horses, completely different rankings depending on what the race is asking for.
+    </p>
+    <div class="demo-card">
+      <div class="controls" style="grid-template-columns: 1fr auto auto;">
+        <label>race ray angle</label>
+        <input id="md-angle" type="range" min="0" max="180" step="2" value="0">
+        <div class="value" id="md-angle-val">0°</div>
+      </div>
+      <div>
+        <button id="md-sprint" class="secondary">Sprint (0°)</button>
+        <button id="md-mile" class="secondary">Mile (45°)</button>
+        <button id="md-stayer" class="secondary">Stayer (90°)</button>
+      </div>
+      <div class="md-demo" style="margin-top:12px">
+        <div id="md-plane" class="plot"></div>
+        <div id="md-bars"  class="plot"></div>
+      </div>
+      <p style="font-size:0.9rem;color:var(--muted);margin-top:8px" id="md-caption"></p>
+    </div>
 
     <h2>The model</h2>
     <p>
@@ -190,6 +221,112 @@ const predictedC1 = mr.predictCondition("c1");</code></pre>
         <code>thurstone/multiray.py</code></a> &mdash; the reference implementation.</li>
     </ul>
   </main>
+
+  <script type="module">
+    import { UniformLattice, Density, Race } from "../js/thurstone/index.js";
+
+    // Five horses with (speed, stamina) skill vectors. Larger projection on
+    // the race ray = better in that race.
+    const HORSES = [
+      { name: "Sprinter", z: [ 1.4, -0.3], color: "#1f77b4" },
+      { name: "Speed",    z: [ 0.9,  0.3], color: "#ff7f0e" },
+      { name: "Mile",     z: [ 0.4,  0.6], color: "#2ca02c" },
+      { name: "Stayer-",  z: [-0.3,  1.0], color: "#d62728" },
+      { name: "Stayer",   z: [-1.0,  1.2], color: "#9467bd" },
+    ];
+    const NAMES = HORSES.map(h => h.name);
+    const COLORS = HORSES.map(h => h.color);
+
+    const lat = new UniformLattice(300, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+
+    function recompute() {
+      const deg = +document.getElementById("md-angle").value;
+      document.getElementById("md-angle-val").textContent = `${deg}°`;
+      const rad = (deg * Math.PI) / 180;
+      const v = [Math.cos(rad), Math.sin(rad)];
+
+      // skill projection; better skill -> smaller location -> wins more often.
+      const skills = HORSES.map(h => v[0] * h.z[0] + v[1] * h.z[1]);
+      const locs = skills.map(s => -s);
+      const dens = locs.map(l => base.shiftFractional(l / lat.unit));
+      const prices = Array.from(new Race(dens).statePrices());
+
+      // Plane plot: horses as points, ray as an arrow
+      const arrowLen = 1.6;
+      const planeTraces = [
+        // ray arrow (a line + an annotation)
+        { x: [0, v[0] * arrowLen], y: [0, v[1] * arrowLen],
+          mode: "lines", line: { color: "#1f1d3d", width: 3 },
+          name: "race ray", hoverinfo: "skip" },
+        // horses
+        { x: HORSES.map(h => h.z[0]), y: HORSES.map(h => h.z[1]),
+          mode: "markers+text",
+          text: HORSES.map((h, i) => `${h.name} (${(prices[i] * 100).toFixed(0)}%)`),
+          textposition: "top center",
+          textfont: { size: 11 },
+          marker: { size: 14, color: COLORS,
+                    line: { width: 2, color: "#fff" } },
+          hovertemplate: "%{text}<extra></extra>",
+          name: "horses",
+          showlegend: false,
+        },
+      ];
+      Plotly.react("md-plane", planeTraces, {
+        margin: { t: 20, l: 40, r: 20, b: 40 },
+        xaxis: { title: "speed", range: [-1.6, 1.8], zeroline: true, zerolinecolor: "#bbb" },
+        yaxis: { title: "stamina", range: [-0.8, 1.7], scaleanchor: "x", scaleratio: 1,
+                 zeroline: true, zerolinecolor: "#bbb" },
+        showlegend: false,
+        annotations: [{
+          x: v[0] * arrowLen, y: v[1] * arrowLen, ax: 0, ay: 0,
+          xref: "x", yref: "y", axref: "x", ayref: "y",
+          showarrow: true, arrowhead: 3, arrowsize: 1.2, arrowwidth: 2,
+          arrowcolor: "#1f1d3d",
+        }],
+        height: 320,
+      }, { displayModeBar: false, responsive: true });
+
+      // Bars
+      Plotly.react("md-bars", [{
+        type: "bar",
+        x: NAMES, y: prices,
+        marker: { color: COLORS },
+        text: prices.map(p => `${(p * 100).toFixed(1)}%`),
+        textposition: "outside",
+        hovertemplate: "%{x}<br>%{y:.3f}<extra></extra>",
+      }], {
+        margin: { t: 20, l: 50, r: 10, b: 40 },
+        xaxis: { title: "" },
+        yaxis: { title: "winning probability", range: [0, Math.max(...prices) * 1.18 + 0.05] },
+        height: 320,
+      }, { displayModeBar: false, responsive: true });
+
+      const lead = NAMES[prices.indexOf(Math.max(...prices))];
+      document.getElementById("md-caption").innerHTML =
+        `Ray direction $v_r = (${v[0].toFixed(2)},\\ ${v[1].toFixed(2)})$. ` +
+        `Current favourite: <strong>${lead}</strong>. Same five horses, same z-vectors; ` +
+        `change the ray and the leaderboard re-sorts.`;
+      if (window.renderMathInElement) {
+        window.renderMathInElement(document.getElementById("md-caption"), {
+          delimiters: [{ left: "$", right: "$", display: false }],
+        });
+      }
+    }
+
+    document.getElementById("md-angle").addEventListener("input", recompute);
+    document.getElementById("md-sprint").addEventListener("click", () => {
+      document.getElementById("md-angle").value = 0; recompute();
+    });
+    document.getElementById("md-mile").addEventListener("click", () => {
+      document.getElementById("md-angle").value = 45; recompute();
+    });
+    document.getElementById("md-stayer").addEventListener("click", () => {
+      document.getElementById("md-angle").value = 90; recompute();
+    });
+
+    recompute();
+  </script>
 
   <footer class="site-footer">
     <a href="../">Home</a> &middot;
