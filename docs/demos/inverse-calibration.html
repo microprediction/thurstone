@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inverse calibration &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Inverse calibration</h1>
+    <p>
+      Enter dividends (one per line, or comma-separated). The calibrator runs three iterations of
+      monotone-interpolated inversion against the field, and we round-trip the recovered abilities
+      back to prices/dividends to show how tight the closure is.
+    </p>
+
+    <div class="demo-card">
+      <div class="controls">
+        <label>Dividends (one per line)</label>
+        <div></div><div></div>
+      </div>
+      <textarea id="dividends">3.2
+4.8
+12.0
+7.5
+20.0</textarea>
+      <br><br>
+      <button id="solve">Solve</button>
+      <button id="example2" class="secondary">Tight favourites</button>
+      <button id="example3" class="secondary">Long-tailed field</button>
+      <div id="plot" class="plot"></div>
+      <h3>Implied abilities &amp; round-trip prices</h3>
+      <table>
+        <thead><tr><th>Runner</th><th>Input div</th><th>Fair div</th><th>Input price</th><th>Recovered ability</th><th>Round-trip price</th></tr></thead>
+        <tbody id="result-table"></tbody>
+      </table>
+      <p id="status"></p>
+    </div>
+
+    <p>
+      <strong>Reading the table.</strong> Input dividends rarely sum to a fair book &mdash;
+      $\sum 1/d_i$ usually exceeds 1 by the bookmaker&apos;s <em>overround</em>. The calibrator
+      first normalises the prices to sum to 1, which is equivalent to working with the &ldquo;fair
+      dividends&rdquo; in the second column. The round-trip price should agree with the input
+      price to ~$10^{-4}$ &mdash; that&apos;s the column to watch. Dividend differences
+      between input and fair are the overround, not a calibration error.
+    </p>
+    <p>
+      Recovered abilities are median-centred (only differences are identified). For very small
+      prices the ability transform is well-defined but flat &mdash; small price errors translate
+      to large ability errors, so don&apos;t read too much into the absolute number for hopeless
+      outsiders.
+    </p>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, StatePricer, AbilityCalibrator } from "../js/thurstone/index.js";
+
+    // Lattice L=1000, unit=0.05: grid ±50 with 2001 points. Coarser lattices (e.g. L=200,
+    // unit=0.05) leave the support width comparable to the half-width, forcing ClusterSplitter
+    // to recurse and introducing a few percent of round-trip drift; this lattice keeps the
+    // round-trip price error below ~10⁻⁴.
+    const lat  = new UniformLattice(1000, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+
+    function parseDividends(s) {
+      return s.split(/[,\s\n\r]+/).map(t => t.trim()).filter(Boolean).map(Number).filter(x => !Number.isNaN(x));
+    }
+
+    function solve() {
+      const div = parseDividends(document.getElementById("dividends").value);
+      if (div.length < 2) {
+        document.getElementById("status").textContent = "Need at least two dividends.";
+        return;
+      }
+      const cal = new AbilityCalibrator(base, { nIter: 3 });
+      const prices = Array.from(StatePricer.pricesFromDividends(div));
+      const ability = cal.solveFromDividends(div);
+      const rtPrices = cal.statePricesFromAbility(ability);
+      const rtDiv = rtPrices.map(p => 1.0 / p);
+
+      // Plot the cached price curve
+      const curve = cal.lookupCurve1dPrices;
+      const trace = { x: Array.from(curve.locs), y: Array.from(curve.prices), mode: "lines", name: "p(μ)" };
+      const markers = {
+        x: ability, y: prices, mode: "markers", name: "recovered",
+        marker: { size: 10, color: "#e64a19" },
+        text: div.map((_, i) => `runner ${i + 1}`),
+        hovertemplate: "%{text}<br>μ=%{x:.3f}<br>p=%{y:.4f}<extra></extra>",
+      };
+      Plotly.react("plot", [trace, markers], {
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        xaxis: { title: "ability μ (physical units)" },
+        yaxis: { title: "implied state price" },
+        showlegend: true,
+        height: 360,
+      }, { displayModeBar: false, responsive: true });
+
+      const body = document.getElementById("result-table");
+      body.innerHTML = "";
+      const fairDiv = prices.map(p => 1.0 / p);
+      const overround = div.reduce((s, d) => s + 1 / d, 0);
+      const maxPriceErr = Math.max(...prices.map((p, i) => Math.abs(p - rtPrices[i]) / p));
+      div.forEach((d, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${i + 1}</td><td>${d.toFixed(2)}</td><td>${fairDiv[i].toFixed(2)}</td>` +
+          `<td>${prices[i].toFixed(4)}</td><td>${ability[i].toFixed(3)}</td>` +
+          `<td>${rtPrices[i].toFixed(4)}</td>`;
+        body.appendChild(tr);
+      });
+      document.getElementById("status").innerHTML =
+        `Input overround: <strong>${((overround - 1) * 100).toFixed(2)}%</strong> &middot; ` +
+        `max relative price round-trip error: <strong>${(maxPriceErr * 100).toFixed(4)}%</strong>`;
+    }
+
+    document.getElementById("solve").addEventListener("click", solve);
+    document.getElementById("example2").addEventListener("click", () => {
+      document.getElementById("dividends").value = "2.5\n2.7\n3.0\n12.0\n50.0";
+      solve();
+    });
+    document.getElementById("example3").addEventListener("click", () => {
+      document.getElementById("dividends").value = "1.8\n6.0\n8.5\n15.0\n40.0\n80.0\n120.0";
+      solve();
+    });
+
+    solve();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="forward-pricing.html">&larr; Forward pricing</a> &middot;
+    <a href="multi-race-stitching.html">Next: multi-race stitching &rarr;</a>
+  </footer>
+</body>
+</html>

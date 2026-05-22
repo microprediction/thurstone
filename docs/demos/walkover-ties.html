@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Walkovers &amp; ties &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Walkovers &amp; ties</h1>
+    <p>
+      Hang runners off the edge of the lattice using extreme abilities (large magnitude or
+      <code>-Infinity</code> / <code>+Infinity</code>). The <code>ClusterSplitter</code> takes over:
+      it groups runners around the largest gap, computes group-representative winning densities, and
+      recurses on the weaker side. See how walkovers (one runner takes all) and equal-share
+      behaviour (indistinguishable favourites) emerge naturally.
+    </p>
+
+    <div class="demo-card">
+      <h3>Field</h3>
+      <p>One ability per line. Use <code>-inf</code> for a certain winner, <code>inf</code> for a hopeless outsider.</p>
+      <textarea id="abilities">-0.5
+0.0
+0.5
+1.0
+10.0</textarea>
+      <br><br>
+      <button id="solve">Compute prices</button>
+      <button id="ex-walk" class="secondary">Walkover</button>
+      <button id="ex-tied" class="secondary">Tied favourites</button>
+      <button id="ex-far" class="secondary">Outliers</button>
+      <div id="plot" class="plot"></div>
+      <table>
+        <thead><tr><th>Runner</th><th>Ability</th><th>Price</th><th>Dividend</th></tr></thead>
+        <tbody id="result-table"></tbody>
+      </table>
+      <p id="status"></p>
+    </div>
+
+    <p>
+      Try the buttons:
+    </p>
+    <ul>
+      <li><strong>Walkover</strong>: one runner is well inside the lattice while everyone else is far
+        away. That runner takes nearly all the probability.</li>
+      <li><strong>Tied favourites</strong>: several runners at identical ability with everyone else
+        hopeless. They split the win mass equally.</li>
+      <li><strong>Outliers</strong>: two clusters at large distance. The splitter handles the gap by
+        treating each cluster as a single representative for the cross-group race.</li>
+    </ul>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, AbilityCalibrator } from "../js/thurstone/index.js";
+
+    const lat = new UniformLattice(1000, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+    const cal  = new AbilityCalibrator(base);
+
+    function parse(text) {
+      const xs = [];
+      for (const line of text.split(/\n/)) {
+        const t = line.trim().toLowerCase();
+        if (!t) continue;
+        if (t === "inf" || t === "+inf" || t === "infinity") { xs.push(Infinity); continue; }
+        if (t === "-inf" || t === "-infinity") { xs.push(-Infinity); continue; }
+        const x = +t; if (Number.isNaN(x)) continue;
+        xs.push(x);
+      }
+      return xs;
+    }
+
+    function solve() {
+      const ability = parse(document.getElementById("abilities").value);
+      if (ability.length < 2) { document.getElementById("status").textContent = "Need >= 2 runners."; return; }
+      const prices = cal.statePricesFromAbility(ability);
+      const dividends = prices.map(p => p > 1e-12 ? 1 / p : Infinity);
+
+      Plotly.react("plot", [{
+        type: "bar",
+        x: ability.map((a, i) => `R${i + 1}`),
+        y: prices,
+        text: ability.map(a => Number.isFinite(a) ? a.toFixed(2) : (a > 0 ? "+∞" : "−∞")),
+        textposition: "outside",
+        marker: { color: "#4a3aff" },
+        hovertemplate: "%{x}<br>price=%{y:.4f}<extra></extra>",
+      }], {
+        margin: { t: 20, l: 50, r: 20, b: 50 },
+        xaxis: { title: "runner (ability shown above bar)" },
+        yaxis: { title: "winning probability", range: [0, Math.max(...prices) * 1.15 + 0.05] },
+        height: 360,
+      }, { displayModeBar: false, responsive: true });
+
+      const body = document.getElementById("result-table"); body.innerHTML = "";
+      ability.forEach((a, i) => {
+        const tr = document.createElement("tr");
+        const aStr = Number.isFinite(a) ? a.toFixed(2) : (a > 0 ? "+∞" : "−∞");
+        const dStr = Number.isFinite(dividends[i]) ? dividends[i].toFixed(2) : "∞";
+        tr.innerHTML = `<td>R${i + 1}</td><td>${aStr}</td><td>${prices[i].toFixed(4)}</td><td>${dStr}</td>`;
+        body.appendChild(tr);
+      });
+      const sum = prices.reduce((a, b) => a + b, 0);
+      document.getElementById("status").textContent = `Σ prices = ${sum.toFixed(6)}`;
+    }
+
+    document.getElementById("solve").addEventListener("click", solve);
+    document.getElementById("ex-walk").addEventListener("click", () => {
+      document.getElementById("abilities").value = "-3.0\n3.0\n4.0\n5.0\n6.0"; solve();
+    });
+    document.getElementById("ex-tied").addEventListener("click", () => {
+      document.getElementById("abilities").value = "-2.0\n-2.0\n-2.0\n5.0\n5.0"; solve();
+    });
+    document.getElementById("ex-far").addEventListener("click", () => {
+      document.getElementById("abilities").value = "-5.0\n-4.7\n0.0\n4.5\n5.0"; solve();
+    });
+
+    solve();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="density-playground.html">&larr; Density playground</a> &middot;
+    <a href="loc-scale-2d.html">Next: 2D (loc, scale) inversion &rarr;</a>
+  </footer>
+</body>
+</html>

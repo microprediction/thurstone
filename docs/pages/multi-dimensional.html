@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multi-dimensional ability &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="thurstone.html">Thurstone models</a>
+        <a href="fast-transform.html">Fast ability transform</a>
+        <a href="rating-systems.html">Rating systems</a>
+        <a href="multi-dimensional.html">Multi-dimensional</a>
+        <a href="../demos/">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Multi-dimensional ability</h1>
+    <p>
+      A scalar ability $\theta_h$ assumes every race tests the same skill. Most real contests
+      don&apos;t: horses run different distances on different surfaces; players have grass games
+      and clay games; LLMs that win on factual recall lose on long-context reasoning. Forcing one
+      number per item then averaging across races throws away the signal that those races are
+      measuring different things.
+    </p>
+    <p>
+      The fix is to give each item a small latent <em>vector</em>, and each race a small latent
+      direction that selects which combination of the item&apos;s skills matters for that race.
+      Everything else &mdash; the Thurstone forward physics, the lattice machinery, the curves
+      &mdash; is unchanged.
+    </p>
+
+    <h2>The model</h2>
+    <p>
+      Pick a small dimension $d \ge 1$ (typically 2 or 3). Each item $h$ has a latent embedding
+      $z_h \in \mathbb{R}^d$. Each race (or more generally, each <em>condition</em>) $r$ has a
+      unit-norm direction $v_r \in \mathbb{R}^d$ and a scalar bias $b_r$. The effective ability of
+      item $h$ in race $r$ is
+      $$
+        a_{r,h} \;=\; b_r \;+\; \langle v_r,\, z_h \rangle.
+      $$
+      In words: project the item&apos;s vector onto the race&apos;s direction, shift by the
+      race&apos;s bias. The projected scalar is what feeds into the Thurstone contest for that
+      race &mdash; exactly as if it were a scalar ability in the 1D model.
+    </p>
+    <p>
+      Reading the dimensions:
+    </p>
+    <ul>
+      <li><strong>$d = 1$</strong>, $v_r \equiv 1$: collapses to the scalar global model
+        $a_{r,h} = b_r + \theta_h$.</li>
+      <li><strong>$d = 2$</strong>: items live on a plane; each race is a unit vector picking out a
+        direction. The classic example is sprinters vs stayers &mdash; one axis for raw speed,
+        another for stamina, and the race&apos;s ray says how it weights the two.</li>
+      <li><strong>$d = 3$</strong>: a third axis (going, surface, concentration&hellip;). Still
+        cheap to fit; the linear-algebra cost per inner step is $O(d^3)$ per item.</li>
+    </ul>
+
+    <h2>Why it&apos;s still a Thurstone race</h2>
+    <p>
+      Given $z$, $v$, $b$ we get the projected scalar ability $a_{r,h}$ for every item in every
+      race. From that point the model is identical to the 1D case: shift the base density by
+      $a_{r,h}$, build the field, read off state prices via multiplicity-aware payoffs. The
+      contest physics doesn&apos;t care that the ability was constructed by a dot product instead
+      of given directly.
+    </p>
+    <p>
+      What multi-dimensional structure buys is <em>coupling across races</em>. Two races whose
+      directions $v_r$, $v_{r'}$ are not orthogonal share information about every item that runs
+      in both. A horse that performs well at a short distance constrains its $z_h$, which then
+      shows up &mdash; perhaps with a different sign &mdash; at a long distance. The model
+      explains all races with a shared geometry rather than a fresh ability per (item, condition).
+    </p>
+
+    <h2>Fitting: block Gauss-Newton on the cached curves</h2>
+    <p>
+      The same trick that made the scalar global fit cheap works here. For each race $r$ and item
+      $h$, tabulate the ability$\to$price curve $g_{r,h}(\mu)$ once on a grid (using the
+      single-race machinery). Then alternate two block updates on the joint objective
+      $$
+        L(z, v, b) \;=\; \tfrac12 \sum_r \sum_{h \in H_r} w_{r,h}\,
+        \bigl( g_{r,h}(b_r + v_r^{\!\top} z_h) - p_{r,h} \bigr)^2.
+      $$
+    </p>
+    <p><strong>Race-side step (with $z$ fixed):</strong> linearise $g_{r,h}$ in $(b_r, v_r)$,
+      define the pseudo-response $y_{r,h} = -e_{r,h}/s_{r,h}$ (with the slope $s_{r,h} = g'_{r,h}$
+      from the cached curve), and solve a $(1 + d)$-dimensional ridge regression per race:
+      $$
+        \min_{\delta b_r,\,\delta v_r}\,
+        \sum_{h \in H_r} \bigl( \delta b_r + \delta v_r^{\!\top} z_h - y_{r,h} \bigr)^2
+        + \lambda_v \|\delta v_r\|^2.
+      $$
+      Update $b_r$ and $v_r$ with a step-size, renormalise $\|v_r\|$ to 1.
+    </p>
+    <p><strong>Item-side step (with $b, v$ fixed):</strong> for each item, linearise across the
+      races it ran in and solve a $d$-dimensional ridge problem:
+      $$
+        \min_{\delta z_h}\,
+        \sum_{r \in \mathcal{R}(h)} \bigl( v_r^{\!\top} \delta z_h - y_{r,h} \bigr)^2
+        + \lambda_z \|\delta z_h\|^2.
+      $$
+    </p>
+    <p>
+      Every few inner iterations, rebuild the cached curves $g_{r,h}$ around the current
+      projected abilities. This is what <code>MultiRayGlobalCalibrator</code> does (in both
+      Python and the JS port); the per-step cost is dominated by curve rebuilds, not the linear
+      algebra.
+    </p>
+
+    <h2>Identifiability &mdash; what the data can&apos;t pin down</h2>
+    <p>
+      A latent-embedding model has gauges. Three of them are unobservable from the prices alone:
+    </p>
+    <ul>
+      <li><strong>Translation.</strong> Shifting all $z_h$ by the same vector and absorbing into
+        $\beta_c$ leaves every projected ability unchanged.</li>
+      <li><strong>Scale.</strong> Rescaling all $z_h$ by $\alpha$ and all $v_r$ by $1/\alpha$
+        leaves the dot products invariant.</li>
+      <li><strong>Rotation.</strong> Any orthogonal transform applied jointly to $\{z_h\}$ and
+        $\{v_r\}^{-\top}$ leaves all projections invariant.</li>
+    </ul>
+    <p>
+      We fix the first two by (1) centring $\{z_h\}$ to mean zero each outer iteration and (2)
+      constraining each $\|v_r\| = 1$ after every update. The third &mdash; rotation &mdash; is
+      left intact. Comparisons $\langle v_r, z_h \rangle$ are invariant under it, but the raw
+      coordinates of $z_h$ are not interpretable in isolation: don&apos;t report &ldquo;item $h$
+      has speed-component 0.42&rdquo; without nailing down a reference frame first.
+    </p>
+
+    <h2>Worked use cases</h2>
+    <ul>
+      <li><strong>Horses across distances and surfaces.</strong> Two-dimensional embedding;
+        sprint races have $v_r$ near one axis, stayers&apos; races near the other; the bias
+        absorbs surface-day-going.</li>
+      <li><strong>Players across opponents or formats.</strong> Tennis (clay vs grass), chess
+        (classical vs blitz), e-sports (different maps). Each format is a condition with its own
+        $v_r$.</li>
+      <li><strong>LLM benchmarks.</strong> Items are models, conditions are benchmarks. The
+        embedding $z_h$ describes a model&apos;s skill profile; the ray $v_r$ describes which
+        skills a benchmark exercises. Predicting performance on a held-out benchmark is just
+        $g_{r,h}(b_r + v_r^{\!\top} z_h)$.</li>
+    </ul>
+
+    <h2>Code</h2>
+    <pre><code>// JS
+import {
+  UniformLattice, Density, AbilityCalibrator,
+  MultiRayGlobalCalibrator,
+} from "../js/thurstone/index.js";
+
+const lat   = new UniformLattice(1000, 0.05);
+const base  = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+const items = ["A", "B", "C", "D", "E"];
+const mr    = new MultiRayGlobalCalibrator(items, { dim: 2 });
+
+for (const c of conditions) {
+  const cal = new AbilityCalibrator(base, { nIter: 3 });
+  cal.solveFromPrices(c.prices);
+  mr.addCondition({ condId: c.id, calibrator: cal,
+                    itemIds: c.ids, prices: c.prices });
+}
+mr.fitWithRebuild({ outer: 3, inner: 10 });
+
+const predictedC1 = mr.predictCondition("c1");</code></pre>
+    <p>
+      The Python equivalent is in <code>thurstone/multiray.py</code>; both implementations
+      track the same gauge fixes and Gauss-Newton inner steps. See also Chapter 13 of the book
+      for the geometric derivation.
+    </p>
+
+    <h2>Where to next</h2>
+    <ul>
+      <li><a href="rating-systems.html">Rating systems</a> &mdash; the scalar (one ability per
+        item) story, which this page generalises.</li>
+      <li><a href="../demos/loc-scale-2d.html">2D (loc, scale) inversion demo</a> &mdash; a
+        different kind of two-dimensional fit (per-runner scale as consistency), not the same
+        thing as latent embeddings but related in spirit.</li>
+      <li><a href="https://github.com/microprediction/thurstone/blob/main/thurstone/multiray.py">
+        <code>thurstone/multiray.py</code></a> &mdash; the reference implementation.</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../">Home</a> &middot;
+    <a href="rating-systems.html">&larr; Rating systems</a>
+  </footer>
+</body>
+</html>

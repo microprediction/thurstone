@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Density playground &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Density playground</h1>
+    <p>
+      Pick a base skew-normal density, then apply transforms. Watch how mass is conserved
+      (the integral stays at 1) and how the mean shifts with each operation. The lattice
+      structure is preserved throughout.
+    </p>
+
+    <div class="demo-card">
+      <h3>Base density</h3>
+      <div class="controls">
+        <label>location</label><input id="loc" type="range" min="-3" max="3" step="0.1" value="0"><div class="value" id="loc-val">0.00</div>
+        <label>scale</label><input id="scale" type="range" min="0.2" max="3" step="0.05" value="1"><div class="value" id="scale-val">1.00</div>
+        <label>skew a</label><input id="a" type="range" min="-5" max="5" step="0.1" value="0"><div class="value" id="a-val">0.00</div>
+      </div>
+      <h3>Apply</h3>
+      <div class="controls">
+        <label>integer shift k</label><input id="k" type="range" min="-50" max="50" step="1" value="0"><div class="value" id="k-val">0</div>
+        <label>fractional shift x</label><input id="x" type="range" min="-50" max="50" step="0.25" value="0"><div class="value" id="x-val">0.00</div>
+        <label>dilate ratio</label><input id="r" type="range" min="0.5" max="3" step="0.05" value="1"><div class="value" id="r-val">1.00</div>
+      </div>
+      <div>
+        <button id="conv-self">Convolve with self</button>
+        <button id="reset" class="secondary">Reset</button>
+      </div>
+      <div id="plot" class="plot"></div>
+      <p id="stats"></p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density } from "../js/thurstone/index.js";
+
+    const lat = new UniformLattice(200, 0.05);
+    let convolveSelf = false;
+
+    function v(id) { return +document.getElementById(id).value; }
+    function setVal(id, txt) { document.getElementById(id + "-val").textContent = txt; }
+
+    function recompute() {
+      const loc = v("loc"), scale = v("scale"), a = v("a");
+      setVal("loc", loc.toFixed(2)); setVal("scale", scale.toFixed(2)); setVal("a", a.toFixed(2));
+      const k = v("k"), x = v("x"), r = v("r");
+      setVal("k", k.toFixed(0)); setVal("x", x.toFixed(2)); setVal("r", r.toFixed(2));
+
+      const baseDens = Density.skewNormal(lat, { loc, scale, a });
+      let d = baseDens;
+      if (k !== 0) d = d.shiftInteger(k);
+      if (x !== 0) d = d.shiftFractional(x);
+      if (r !== 1) d = d.dilate(r);
+      if (convolveSelf) d = d.convolve(d);
+
+      const xs = Array.from(lat.grid());
+      const traces = [
+        { x: xs, y: Array.from(baseDens.p), mode: "lines", name: "base", line: { dash: "dot", color: "#888" } },
+        { x: xs, y: Array.from(d.p), mode: "lines", name: "transformed", line: { color: "#4a3aff" } },
+      ];
+      Plotly.react("plot", traces, {
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        xaxis: { title: "x" },
+        yaxis: { title: "lattice probability mass" },
+        height: 360,
+        showlegend: true,
+      }, { displayModeBar: false, responsive: true });
+
+      let sum = 0; for (const v of d.p) sum += v;
+      document.getElementById("stats").textContent =
+        `mean = ${d.mean().toFixed(4)}    ∫ p = ${sum.toFixed(6)}    support width = ${d.approxSupportWidth(1e-8)} steps`;
+    }
+
+    for (const id of ["loc", "scale", "a", "k", "x", "r"]) {
+      document.getElementById(id).addEventListener("input", recompute);
+    }
+    document.getElementById("conv-self").addEventListener("click", () => { convolveSelf = !convolveSelf; recompute(); });
+    document.getElementById("reset").addEventListener("click", () => {
+      for (const [id, val] of [["loc", 0], ["scale", 1], ["a", 0], ["k", 0], ["x", 0], ["r", 1]]) {
+        document.getElementById(id).value = val;
+      }
+      convolveSelf = false;
+      recompute();
+    });
+
+    recompute();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="multi-race-stitching.html">&larr; Multi-race stitching</a> &middot;
+    <a href="walkover-ties.html">Next: walkovers &amp; ties &rarr;</a>
+  </footer>
+</body>
+</html>

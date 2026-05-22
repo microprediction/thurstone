@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Thurstone models &mdash; an introduction</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="thurstone.html">Thurstone models</a>
+        <a href="fast-transform.html">Fast ability transform</a>
+        <a href="rating-systems.html">Rating systems</a>
+        <a href="multi-dimensional.html">Multi-dimensional</a>
+        <a href="../demos/">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Thurstone models</h1>
+    <p>
+      In 1927, L. L. Thurstone proposed a deceptively simple idea: each item being compared has a
+      latent <em>discriminal process</em> &mdash; a random variable representing its momentary
+      psychological magnitude &mdash; and one item is judged greater than another whenever its draw
+      exceeds the other's. He framed this purely in <em>pairwise</em> terms, leading to his
+      <em>Law of Comparative Judgment</em>, and laid out five cases distinguished by what is
+      assumed about the variances and correlations of the discriminal processes.
+    </p>
+    <p>
+      <strong>Case V</strong>, the most restrictive, takes the processes to be independent and
+      identically distributed up to a translation (typically normal with a common variance). It
+      reduces the pairwise comparison probability to a probit:
+      $\Pr(i \succ j) = \Phi\!\bigl(\tfrac{\mu_i - \mu_j}{\sigma\sqrt 2}\bigr).$
+      The natural extension to N-entrant contests &mdash; whoever draws the smallest (fastest,
+      best) wins, so winning probabilities are probabilities involving the <em>minimum</em> of
+      several i.i.d.-up-to-translation random variables &mdash; is not in Thurstone's 1927 paper
+      but is now the workhorse generalisation we'll call a <strong>Thurstone Class V model</strong>
+      throughout this site. The same lattice machinery also handles copula-correlated variants
+      (loosely, Cases I&ndash;IV) when the modeller wants performance dependence between
+      contestants &mdash; we return to those in the later chapters on rank probabilities.
+    </p>
+
+    <h2>The pairwise case</h2>
+    <p>
+      For two contestants with performances $X_i \sim \mathcal{N}(\mu_i, \sigma_i^2)$,
+      $\Pr(\text{$i$ wins}) = \Pr(X_i < X_j) = \Phi\!\left(\tfrac{\mu_j - \mu_i}{\sqrt{\sigma_i^2 + \sigma_j^2}}\right)$
+      where $\Phi$ is the standard normal CDF. This is Thurstone's Case V (equal variances) when $\sigma_i = \sigma_j$.
+      The link function is <strong>probit</strong>.
+    </p>
+    <p>
+      Bradley&ndash;Terry (1952) is the same story with a Gumbel performance distribution, giving the
+      <strong>logit</strong> link
+      $\Pr(\text{$i$ wins}) = \dfrac{e^{\mu_i}}{e^{\mu_i} + e^{\mu_j}}.$
+      Easier to fit; nearly indistinguishable in practice on pairs.
+    </p>
+
+    <h2>The multi-entrant case: a hard problem</h2>
+    <p>
+      With $N \ge 3$ contestants the Thurstone winning probability is
+      $\Pr(\text{$i$ wins}) = \int_{-\infty}^{\infty} f_i(x) \prod_{j\ne i} \big(1 - F_j(x)\big)\,dx.$
+      Each new race shape requires evaluating that $N$-dimensional structure. Historically this is
+      where the trade-off bit:
+    </p>
+    <ul>
+      <li><strong>Thurstone (probit):</strong> theoretically pure, computationally heavy beyond pairs.</li>
+      <li><strong>Bradley&ndash;Terry / Luce (logit):</strong> efficient, but inherits the
+        rigid Gumbel-family shape it implicitly assumes, and its <em>independence of irrelevant
+        alternatives</em> (IIA) leads to outright logical inconsistencies when used to price
+        combinatorial outcomes &mdash; the same event computed forward versus backward gives
+        different probabilities (see the <a href="../demos/reversibility.html">reversibility
+        demo</a>).</li>
+      <li><strong>Harville / Plackett&ndash;Luce:</strong> fast listwise formulas, but inherit
+        IIA-style weaknesses and handle ties poorly.</li>
+      <li><strong>Mallows / RIM:</strong> elegant priors on permutations, no latent performance scale,
+        scaling problems with $N$ (Boehmer et al., 2024).</li>
+    </ul>
+    <blockquote>
+      <strong>The tractability vs purity dilemma:</strong> until recently practitioners had to choose
+      between believable random-utility semantics and fast multi-entrant computation.
+    </blockquote>
+
+    <h2>Why ties matter (even when they don&apos;t)</h2>
+    <p>
+      In the continuous Thurstone problem two performances tie on a set of measure zero;
+      bookkeepers and theorists can ignore them. The moment you discretise performance onto a
+      lattice, however, ties become events with <em>positive probability</em> &mdash; the same
+      grid that makes the algorithm fast also forces neighbours onto the same cell from time to
+      time. Pretend they aren&apos;t there (or split 50/50 and move on) and the lattice answer
+      drifts away from the underlying continuous Thurstone model.
+    </p>
+    <p>
+      The trick at the heart of the fast ability transform is to keep a <em>conditional
+      multiplicity</em> $m(j)$ alongside the field-min density: at every lattice point $j$, $m(j)$
+      is the expected number of contestants tied for the win given that the winning score lands
+      at $j$. Each contestant&apos;s tie share is then $1/(1+m(j))$ &mdash; the exact dead-heat
+      payoff, applied to every grid cell, summed into the expected payoff. This is what makes the
+      discrete approximation faithful to the continuous model, even when dead-heats in your
+      application are vanishingly rare. The real-world fairness of paying dead-heats by fractional
+      shares falls out as a bonus.
+    </p>
+
+    <h2>Why the base distribution matters (realism)</h2>
+    <p>
+      Bradley&ndash;Terry and Luce&apos;s logit aren&apos;t &ldquo;distribution-free&rdquo; &mdash; they are
+      mathematically equivalent to assuming each contestant&apos;s latent performance is drawn from an
+      <em>i.i.d. Gumbel</em> (extreme-value) distribution. Pick BT/Luce and you have picked exponential
+      tails and a fixed shape, whether you meant to or not. That is a strong assumption about how the
+      world generates results.
+    </p>
+    <p>
+      Real performances rarely look Gumbel. Finishing times have soft floors (you can&apos;t run a
+      negative split) and fat right tails (catastrophic blowups). Player ratings are often skewed.
+      Markets carry context-specific shape. Thurstone&apos;s random-utility framework is genuinely
+      distribution-general: choose normal, skew-normal, heavy-tailed Cauchy, a mixture, or an empirical
+      bootstrap of historical performances &mdash; the lattice algorithm just convolves whatever density
+      you hand it. The model is as <em>realistic</em> as the base distribution you can defend, not as
+      restrictive as the link function you can solve in closed form.
+    </p>
+
+    <h2>Why coherence under scratches matters</h2>
+    <p>
+      Add a horse, scratch one: the model should still be the same <em>kind</em> of model on the new
+      field. Luce/BT struggles here because of IIA: removing a runner reshuffles probabilities by a fixed
+      ratio regardless of which substructure the runner belonged to. Thurstone-class models naturally
+      recompute the field minimum.
+    </p>
+
+    <h2>Where this lands today</h2>
+    <p>
+      The lattice algorithm we describe in the
+      <a href="fast-transform.html">next page</a> resolves the dilemma: $O(N)$ per race for a fixed grid
+      with arbitrary base distributions, exact tie handling, set-coherence, and a tractable inverse
+      (prices&nbsp;&rarr;&nbsp;abilities). It is the basis for the
+      <a href="https://github.com/microprediction/thurstone">thurstone</a> package and (since you are
+      reading this) for the JavaScript port that powers the
+      <a href="../demos/">interactive demos</a>.
+    </p>
+
+    <h2>Further reading</h2>
+    <ul>
+      <li>L. L. Thurstone, &ldquo;A Law of Comparative Judgment,&rdquo; 1927.</li>
+      <li>F. Mosteller, &ldquo;Remarks on the Method of Paired Comparisons,&rdquo; 1951.</li>
+      <li>R. A. Bradley &amp; M. E. Terry, 1952. R. D. Luce, 1959.</li>
+      <li>D. A. Harville, &ldquo;Assigning Probabilities to the Outcomes of Multi-Entry Competitions,&rdquo; 1973.</li>
+      <li>R. L. Plackett, &ldquo;The Analysis of Permutations,&rdquo; 1975.</li>
+      <li>R. R. Davidson, &ldquo;Extending the Bradley-Terry Model to Accommodate Ties,&rdquo; 1970.</li>
+      <li>Cotton, P. (2021), DOI <a href="https://epubs.siam.org/doi/10.1137/19M1276261">10.1137/19M1276261</a>.</li>
+      <li>Boehmer, Faliszewski, Kraiczy (2024), arXiv:2401.14562.</li>
+    </ul>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../">Home</a> &middot;
+    <a href="fast-transform.html">Next: the fast ability transform &rarr;</a>
+  </footer>
+</body>
+</html>

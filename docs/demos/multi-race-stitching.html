@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multi-race stitching &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
+        <a href="./">Demos</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Multi-race stitching</h1>
+    <p>
+      Several races sharing some runners. Each line is one race in the format
+      <code>id:dividend, id:dividend, ...</code>. We fit a single global ability $\theta_h$ per
+      item plus a per-race bias $b_r$ two ways:
+    </p>
+    <ul>
+      <li><strong>Curve-based Gauss&ndash;Newton (primary).</strong> The proper method &mdash;
+        matches prices in probability space, alternating ridge updates for $(b_r)$ and
+        $(\theta_h)$ on the cached ability$\to$price curves. See the
+        <a href="../pages/rating-systems.html">rating-systems page</a>.</li>
+      <li><strong>Relative-then-LS (comparison).</strong> The fast baseline &mdash; invert each
+        race independently, centre by median, then slope-weighted-average per item. Doesn&apos;t
+        revisit the prices, so it tends to shrink towards the mean when items are sparsely
+        connected.</li>
+    </ul>
+
+    <div class="demo-card">
+      <textarea id="races">A:3.0, B:4.5, C:6.0
+B:3.5, C:5.5, D:7.0
+A:3.2, C:5.0, D:9.0
+A:2.8, B:5.0, D:8.0, E:14.0
+B:4.0, D:6.5, E:11.0</textarea>
+      <br><br>
+      <button id="fit">Fit global &theta;</button>
+      <button id="example2" class="secondary">Larger overlapping set</button>
+      <div id="plot" class="plot"></div>
+      <h3>Recovered global ability</h3>
+      <table>
+        <thead><tr><th>Item</th><th>GN &theta;</th><th>LS &theta;</th><th>GN&minus;LS</th><th>n races</th></tr></thead>
+        <tbody id="theta-table"></tbody>
+      </table>
+      <p id="status"></p>
+    </div>
+
+    <p>
+      The two methods agree closely on well-connected items and drift on items that appear in few
+      races. The GN bars are the proper answer; the LS bars give you a feel for how much the
+      cheap stitch costs you when coverage is thin. Watch the "max GN residual" in the status line
+      &mdash; that&apos;s the largest price error the GN fit leaves behind, in probability units.
+    </p>
+  </main>
+
+  <script type="module">
+    import { UniformLattice, Density, StatePricer, AbilityCalibrator, GlobalLSCalibrator, GlobalAbilityCalibrator } from "../js/thurstone/index.js";
+
+    const lat  = new UniformLattice(1000, 0.05);
+    const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+
+    function parseRaces(text) {
+      const races = [];
+      for (const line of text.split(/\n/)) {
+        const cleaned = line.trim();
+        if (!cleaned) continue;
+        const ids = [], div = [];
+        for (const tok of cleaned.split(",")) {
+          const t = tok.trim(); if (!t) continue;
+          const [id, d] = t.split(":").map(s => s.trim());
+          if (!id || d == null) continue;
+          const x = +d;
+          if (Number.isNaN(x) || x <= 0) continue;
+          ids.push(id); div.push(x);
+        }
+        if (ids.length >= 2) races.push({ ids, div });
+      }
+      return races;
+    }
+
+    function median(a) {
+      const s = [...a].sort((x, y) => x - y);
+      const n = s.length;
+      return n % 2 ? s[(n - 1) >>> 1] : 0.5 * (s[n / 2 - 1] + s[n / 2]);
+    }
+
+    function fit() {
+      const races = parseRaces(document.getElementById("races").value);
+      if (races.length === 0) { document.getElementById("status").textContent = "No races parsed."; return; }
+      const all = new Set();
+      races.forEach(r => r.ids.forEach(i => all.add(i)));
+      const ids = Array.from(all).sort();
+
+      // GN and LS each get their own AbilityCalibrator per race so curve rebuilds don't collide.
+      const gn = new GlobalAbilityCalibrator(ids, { l2: 1e-8, stepBias: 0.3, stepTheta: 0.3 });
+      const ls = new GlobalLSCalibrator(ids);
+      const counts = Object.fromEntries(ids.map(i => [i, 0]));
+      const racePayloads = [];   // remembered for residual computation after fit
+
+      for (const r of races) {
+        const calGn = new AbilityCalibrator(base, { nIter: 3 });
+        const calLs = new AbilityCalibrator(base, { nIter: 3 });
+        const prices = Array.from(StatePricer.pricesFromDividends(r.div));
+        gn.addRace(calGn, r.ids, prices);
+        ls.addRace(calLs, r.ids, prices);
+        r.ids.forEach(id => { counts[id]++; });
+        racePayloads.push({ ids: r.ids, prices });
+      }
+      gn.fitWithRebuild({ outer: 3, inner: 10 });
+      ls.fit({ useSlopeWeights: true, ridge: 1e-6 });
+
+      const gnTheta = ids.map(i => gn.theta[i]);
+      const lsTheta = ids.map(i => ls.theta[i]);
+      const cnt = ids.map(i => counts[i]);
+
+      // Largest residual the GN fit leaves behind, in price units.
+      let maxRes = 0;
+      for (let r = 0; r < racePayloads.length; r++) {
+        const pHat = Array.from(gn.predictRace(r));
+        for (let i = 0; i < pHat.length; i++) {
+          const e = Math.abs(pHat[i] - racePayloads[r].prices[i]);
+          if (e > maxRes) maxRes = e;
+        }
+      }
+
+      Plotly.react("plot", [
+        {
+          type: "bar", x: ids, y: gnTheta, name: "GN (curve-based)",
+          marker: { color: "#4a3aff" },
+          hovertemplate: "%{x}<br>GN θ=%{y:.3f}<extra></extra>",
+        },
+        {
+          type: "bar", x: ids, y: lsTheta, name: "LS (relative-then-stitch)",
+          marker: { color: "#bdbdbd" },
+          hovertemplate: "%{x}<br>LS θ=%{y:.3f}<extra></extra>",
+        },
+      ], {
+        margin: { t: 20, l: 50, r: 20, b: 40 },
+        xaxis: { title: "item" },
+        yaxis: { title: "global ability θ", zeroline: true },
+        height: 360,
+        barmode: "group",
+        legend: { x: 0.02, y: 0.98, bgcolor: "rgba(255,255,255,0.85)" },
+      }, { displayModeBar: false, responsive: true });
+
+      const body = document.getElementById("theta-table");
+      body.innerHTML = "";
+      ids.forEach((i, k) => {
+        const diff = gnTheta[k] - lsTheta[k];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${i}</td><td>${gnTheta[k].toFixed(3)}</td>` +
+          `<td>${lsTheta[k].toFixed(3)}</td><td>${diff.toFixed(3)}</td>` +
+          `<td>${cnt[k]}</td>`;
+        body.appendChild(tr);
+      });
+      document.getElementById("status").innerHTML =
+        `Fit ${races.length} race${races.length > 1 ? "s" : ""} over ${ids.length} item${ids.length > 1 ? "s" : ""}. ` +
+        `Max GN price residual: <strong>${(maxRes * 100).toFixed(3)}%</strong>.`;
+    }
+
+    document.getElementById("fit").addEventListener("click", fit);
+    document.getElementById("example2").addEventListener("click", () => {
+      document.getElementById("races").value = [
+        "A:2.5, B:3.5, C:5.0, D:8.0",
+        "A:2.8, C:4.5, E:6.0, F:10.0",
+        "B:3.0, D:6.5, E:5.5, G:14.0",
+        "A:3.0, F:7.0, G:11.0, H:9.0",
+        "C:4.0, D:6.0, H:7.5, I:18.0",
+        "B:3.2, E:5.0, F:8.0, I:13.0",
+      ].join("\n");
+      fit();
+    });
+
+    fit();
+  </script>
+
+  <footer class="site-footer">
+    <a href="./">All demos</a> &middot;
+    <a href="inverse-calibration.html">&larr; Inverse calibration</a> &middot;
+    <a href="density-playground.html">Next: density playground &rarr;</a>
+  </footer>
+</body>
+</html>
