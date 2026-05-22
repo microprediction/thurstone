@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import {
   UniformLattice, Density, Race, StatePricer, AbilityCalibrator,
-  GlobalLSCalibrator, MultiRayGlobalCalibrator,
+  GlobalLSCalibrator, GlobalAbilityCalibrator, MultiRayGlobalCalibrator,
 } from "../js/thurstone/index.js";
 
 const lat  = new UniformLattice(200, 0.05);
@@ -30,7 +30,9 @@ test("inverse-calibration demo path", () => {
 });
 
 test("multi-race-stitching demo path", () => {
-  const gl = new GlobalLSCalibrator(["A", "B", "C", "D", "E"]);
+  const ids = ["A", "B", "C", "D", "E"];
+  const gn = new GlobalAbilityCalibrator(ids);
+  const gl = new GlobalLSCalibrator(ids);
   const races = [
     { ids: ["A", "B", "C"], div: [3.0, 4.5, 6.0] },
     { ids: ["B", "C", "D"], div: [3.5, 5.5, 7.0] },
@@ -38,10 +40,14 @@ test("multi-race-stitching demo path", () => {
     { ids: ["A", "B", "D", "E"], div: [2.8, 5.0, 8.0, 14.0] },
   ];
   for (const r of races) {
-    const cal = new AbilityCalibrator(base, { nIter: 3 });
+    const calGn = new AbilityCalibrator(base, { nIter: 3 });
+    const calLs = new AbilityCalibrator(base, { nIter: 3 });
     const prices = Array.from(StatePricer.pricesFromDividends(r.div));
-    gl.addRace(cal, r.ids, prices);
+    gn.addRace(calGn, r.ids, prices);
+    gl.addRace(calLs, r.ids, prices);
   }
+  gn.fitWithRebuild({ outer: 2, inner: 5 });
+  if (Object.values(gn.theta).some(v => !Number.isFinite(v))) throw new Error("non-finite GN theta");
   gl.fit({ useSlopeWeights: true, ridge: 1e-6 });
   const vals = Object.values(gl.theta);
   if (vals.some(v => !Number.isFinite(v))) throw new Error("non-finite theta");

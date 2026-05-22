@@ -29,10 +29,19 @@
     <h1>Multi-race stitching</h1>
     <p>
       Several races sharing some runners. Each line is one race in the format
-      <code>id:dividend, id:dividend, ...</code>. The relative-then-LS calibrator inverts each
-      race independently, removes the per-race translation, and stitches by slope-weighted least
-      squares per item.
+      <code>id:dividend, id:dividend, ...</code>. We fit a single global ability $\theta_h$ per
+      item plus a per-race bias $b_r$ two ways:
     </p>
+    <ul>
+      <li><strong>Curve-based Gauss&ndash;Newton (primary).</strong> The proper method &mdash;
+        matches prices in probability space, alternating ridge updates for $(b_r)$ and
+        $(\theta_h)$ on the cached ability$\to$price curves. See the
+        <a href="../pages/rating-systems.html">rating-systems page</a>.</li>
+      <li><strong>Relative-then-LS (comparison).</strong> The fast baseline &mdash; invert each
+        race independently, centre by median, then slope-weighted-average per item. Doesn&apos;t
+        revisit the prices, so it tends to shrink towards the mean when items are sparsely
+        connected.</li>
+    </ul>
 
     <div class="demo-card">
       <textarea id="races">A:3.0, B:4.5, C:6.0
@@ -46,16 +55,17 @@ B:4.0, D:6.5, E:11.0</textarea>
       <div id="plot" class="plot"></div>
       <h3>Recovered global ability</h3>
       <table>
-        <thead><tr><th>Item</th><th>&theta;</th><th>n races</th></tr></thead>
+        <thead><tr><th>Item</th><th>GN &theta;</th><th>LS &theta;</th><th>GN&minus;LS</th><th>n races</th></tr></thead>
         <tbody id="theta-table"></tbody>
       </table>
       <p id="status"></p>
     </div>
 
     <p>
-      How to read it: $\theta$ is the median-centred latent ability shared across races. The bars in
-      the plot show $\theta$ with vertical error bars equal to the per-item standard deviation of
-      the (centred) race-local locations &mdash; a quick proxy for stability of the stitch.
+      The two methods agree closely on well-connected items and drift on items that appear in few
+      races. The GN bars are the proper answer; the LS bars give you a feel for how much the
+      cheap stitch costs you when coverage is thin. Watch the "max GN residual" in the status line
+      &mdash; that&apos;s the largest price error the GN fit leaves behind, in probability units.
     </p>
   </main>
 
@@ -96,53 +106,72 @@ B:4.0, D:6.5, E:11.0</textarea>
       const all = new Set();
       races.forEach(r => r.ids.forEach(i => all.add(i)));
       const ids = Array.from(all).sort();
-      const gl = new GlobalLSCalibrator(ids);
-      const localPerItem = Object.fromEntries(ids.map(i => [i, []]));
-      const cals = [];
+
+      // GN and LS each get their own AbilityCalibrator per race so curve rebuilds don't collide.
+      const gn = new GlobalAbilityCalibrator(ids, { l2: 1e-8, stepBias: 0.3, stepTheta: 0.3 });
+      const ls = new GlobalLSCalibrator(ids);
+      const counts = Object.fromEntries(ids.map(i => [i, 0]));
+      const racePayloads = [];   // remembered for residual computation after fit
+
       for (const r of races) {
-        const cal = new AbilityCalibrator(base, { nIter: 3 });
+        const calGn = new AbilityCalibrator(base, { nIter: 3 });
+        const calLs = new AbilityCalibrator(base, { nIter: 3 });
         const prices = Array.from(StatePricer.pricesFromDividends(r.div));
-        gl.addRace(cal, r.ids, prices);
-        // re-invert per race to compute local locs for per-item stddev display
-        const localLocs = cal.solveFromPrices(prices);
-        const med = median(localLocs);
-        r.ids.forEach((id, j) => localPerItem[id].push(localLocs[j] - med));
-        cals.push(cal);
+        gn.addRace(calGn, r.ids, prices);
+        ls.addRace(calLs, r.ids, prices);
+        r.ids.forEach(id => { counts[id]++; });
+        racePayloads.push({ ids: r.ids, prices });
       }
-      gl.fit({ useSlopeWeights: true, ridge: 1e-6 });
+      gn.fitWithRebuild({ outer: 3, inner: 10 });
+      ls.fit({ useSlopeWeights: true, ridge: 1e-6 });
 
-      const theta = ids.map(i => gl.theta[i]);
-      const stds = ids.map(i => {
-        const a = localPerItem[i];
-        if (a.length < 2) return 0;
-        const m = a.reduce((u, v) => u + v, 0) / a.length;
-        const s2 = a.reduce((u, v) => u + (v - m) * (v - m), 0) / (a.length - 1);
-        return Math.sqrt(s2);
-      });
-      const counts = ids.map(i => localPerItem[i].length);
+      const gnTheta = ids.map(i => gn.theta[i]);
+      const lsTheta = ids.map(i => ls.theta[i]);
+      const cnt = ids.map(i => counts[i]);
 
-      Plotly.react("plot", [{
-        type: "bar",
-        x: ids, y: theta,
-        error_y: { type: "data", array: stds, visible: true, color: "#888" },
-        marker: { color: "#4a3aff" },
-        hovertemplate: "%{x}<br>θ=%{y:.3f}<br>±%{error_y.array:.3f}<extra></extra>",
-      }], {
+      // Largest residual the GN fit leaves behind, in price units.
+      let maxRes = 0;
+      for (let r = 0; r < racePayloads.length; r++) {
+        const pHat = Array.from(gn.predictRace(r));
+        for (let i = 0; i < pHat.length; i++) {
+          const e = Math.abs(pHat[i] - racePayloads[r].prices[i]);
+          if (e > maxRes) maxRes = e;
+        }
+      }
+
+      Plotly.react("plot", [
+        {
+          type: "bar", x: ids, y: gnTheta, name: "GN (curve-based)",
+          marker: { color: "#4a3aff" },
+          hovertemplate: "%{x}<br>GN θ=%{y:.3f}<extra></extra>",
+        },
+        {
+          type: "bar", x: ids, y: lsTheta, name: "LS (relative-then-stitch)",
+          marker: { color: "#bdbdbd" },
+          hovertemplate: "%{x}<br>LS θ=%{y:.3f}<extra></extra>",
+        },
+      ], {
         margin: { t: 20, l: 50, r: 20, b: 40 },
         xaxis: { title: "item" },
         yaxis: { title: "global ability θ", zeroline: true },
         height: 360,
+        barmode: "group",
+        legend: { x: 0.02, y: 0.98, bgcolor: "rgba(255,255,255,0.85)" },
       }, { displayModeBar: false, responsive: true });
 
       const body = document.getElementById("theta-table");
       body.innerHTML = "";
       ids.forEach((i, k) => {
+        const diff = gnTheta[k] - lsTheta[k];
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${i}</td><td>${theta[k].toFixed(3)}</td><td>${counts[k]}</td>`;
+        tr.innerHTML = `<td>${i}</td><td>${gnTheta[k].toFixed(3)}</td>` +
+          `<td>${lsTheta[k].toFixed(3)}</td><td>${diff.toFixed(3)}</td>` +
+          `<td>${cnt[k]}</td>`;
         body.appendChild(tr);
       });
-      document.getElementById("status").textContent =
-        `Fit ${races.length} race${races.length > 1 ? "s" : ""} over ${ids.length} item${ids.length > 1 ? "s" : ""}.`;
+      document.getElementById("status").innerHTML =
+        `Fit ${races.length} race${races.length > 1 ? "s" : ""} over ${ids.length} item${ids.length > 1 ? "s" : ""}. ` +
+        `Max GN price residual: <strong>${(maxRes * 100).toFixed(3)}%</strong>.`;
     }
 
     document.getElementById("fit").addEventListener("click", fit);
