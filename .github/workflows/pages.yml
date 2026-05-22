@@ -1,0 +1,41 @@
+name: Deploy docs/ to GitHub Pages
+
+# Uploads docs/ as a static-site artifact and deploys with the official
+# Pages actions. Bypasses the legacy Jekyll-on-/docs build path, which
+# choked on the Primer theme's SCSS even with .nojekyll present.
+
+on:
+  push:
+    branches: ["main", "multi"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload docs/ as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
