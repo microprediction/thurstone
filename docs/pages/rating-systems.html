@@ -75,48 +75,15 @@
       approach above &mdash; the JS port focuses on the static case, but the same idea applies.
     </p>
 
-    <h2>Multi-dimensional ability: conditions matter</h2>
+    <h2>Beyond one ability per item</h2>
     <p>
-      Many contests have <em>conditions</em>: course, weather, distance, model prompt template. A
-      runner that excels in one condition may underperform in another. The natural extension keeps a
-      latent embedding $z_i \in \mathbb{R}^d$ per item and a direction $v_c \in \mathbb{R}^d$
-      (with $\|v_c\| = 1$) per condition. The effective ability of item $i$ in condition $c$ is then
-      $$\mu_{c,i} = \beta_c + \langle v_c, z_i \rangle.$$
-    </p>
-    <ul>
-      <li><strong>$d = 1$</strong>: every condition picks the same direction up to sign. Equivalent to
-        the single-ability model.</li>
-      <li><strong>$d = 2$</strong>: items live on a plane; conditions are unit vectors. Useful when
-        two latent factors (say speed vs stamina) explain most variation.</li>
-      <li><strong>$d = 3$</strong>: a third axis (technique, focus, &hellip;). Still cheap to fit.</li>
-    </ul>
-    <p>
-      <code>MultiRayGlobalCalibrator</code> alternates Gauss&ndash;Newton updates for $(v_c, \beta_c)$
-      with updates for $z_i$, using the cached price&ndash;location curves to evaluate predicted
-      prices and their slopes. The system is diagonal in items (given conditions) and block-diagonal
-      in conditions (given items), so each inner step is small and direct.
-    </p>
-
-    <h2>Identifiability (and the gauge fix)</h2>
-    <p>
-      Latent embeddings have ambiguities that observations cannot pin down:
-    </p>
-    <ul>
-      <li>Translation: shifting all $z_i$ by the same vector and absorbing into $\beta_c$ does nothing.</li>
-      <li>Rescaling: rescaling $z_i$ and inversely rescaling $v_c$ does nothing.</li>
-      <li>Rotation: any orthogonal transform of $\{z_i\}$ together with the inverse on $\{v_c\}$ does nothing.</li>
-    </ul>
-    <p>
-      We fix the gauge by:
-    </p>
-    <ol>
-      <li>Centring $\{z_i\}$ to mean zero.</li>
-      <li>Constraining each $\|v_c\| = 1$ after every update.</li>
-      <li>Centring the per-item theta (1D) to median zero.</li>
-    </ol>
-    <p>
-      Rotational ambiguity in $d \ge 2$ is left intact: comparisons of $\langle v_c, z_i \rangle$ are
-      invariant to it, but the raw coordinates of $z_i$ are not interpretable in isolation.
+      When races test different skills &mdash; sprint vs stayer, clay vs grass, factual recall vs
+      long-context reasoning &mdash; collapsing each item to a single scalar throws away the
+      signal. The natural generalisation gives each item a small latent vector $z_h$ and each
+      race a unit direction $v_r$ that selects which mixture matters; the effective ability is
+      then $a_{r,h} = b_r + \langle v_r, z_h \rangle$. The fast ability transform still does the
+      Thurstone race for each condition; only the parameterisation of the projected scalar
+      changes. See the <a href="multi-dimensional.html">multi-dimensional page &rarr;</a>.
     </p>
 
     <h2>Connection to Elo, Glicko, and friends</h2>
