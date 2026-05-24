@@ -1,237 +1,252 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Diffeomorphism Explorer &mdash; Interactive cube-to-simplex mappings</title>
-  <link rel="stylesheet" href="../styles/main.css?v=2" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
-    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin: 30px 0;
-      padding: 20px;
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thurstone Diffeomorphism Explorer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
 
-    .control-group {
-      background: white;
-      padding: 20px;
-      border-radius: 6px;
-      border: 1px solid #e9ecef;
-    }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
 
-    .control-group h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      color: var(--text);
-      border-bottom: 1px solid #e9ecef;
-      padding-bottom: 8px;
-    }
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
 
-    .slider-group {
-      margin: 15px 0;
-    }
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
 
-    .slider-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-      color: var(--text);
-    }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
 
-    .slider {
-      width: 100%;
-      margin: 5px 0;
-    }
+        .control-group {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
 
-    .slider-value {
-      display: inline-block;
-      min-width: 60px;
-      text-align: right;
-      font-family: var(--mono);
-      color: var(--accent);
-      font-weight: 600;
-    }
+        .control-group h3 {
+            margin-top: 0;
+            color: #334155;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
 
-    .visualization {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin: 30px 0;
-    }
+        .slider-group {
+            margin: 15px 0;
+        }
 
-    .plot-container {
-      background: white;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-      padding: 20px;
-    }
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #475569;
+        }
 
-    .plot-title {
-      text-align: center;
-      margin-bottom: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
+        .slider {
+            width: 100%;
+            margin: 5px 0;
+        }
 
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 15px;
-      margin: 30px 0;
-    }
+        .slider-value {
+            display: inline-block;
+            min-width: 60px;
+            text-align: right;
+            font-family: monospace;
+            color: #0f172a;
+            font-weight: bold;
+        }
 
-    .metric-card {
-      background: var(--accent);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-    }
+        .visualization {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
 
-    .metric-name {
-      font-size: 0.9em;
-      opacity: 0.9;
-      margin-bottom: 8px;
-    }
+        .plot-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
 
-    .metric-value {
-      font-size: 1.5em;
-      font-weight: 600;
-      font-family: var(--mono);
-    }
+        .plot-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #334155;
+        }
 
-    .grid-line {
-      stroke: #e9ecef;
-      stroke-width: 0.5;
-    }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
 
-    .simplex-boundary {
-      fill: none;
-      stroke: var(--text);
-      stroke-width: 2;
-    }
+        .metric-card {
+            background: #1e293b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
 
-    .mapping-point {
-      fill: var(--accent);
-      fill-opacity: 0.7;
-      stroke: var(--accent);
-      stroke-width: 0.5;
-    }
+        .metric-name {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
 
-    .cube-point {
-      fill: #dc3545;
-      fill-opacity: 0.6;
-    }
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
 
-    select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #e9ecef;
-      background: white;
-      color: var(--text);
-    }
+        svg {
+            border-radius: 4px;
+        }
 
-    @media (max-width: 768px) {
-      .controls {
-        grid-template-columns: 1fr;
-      }
-      .visualization {
-        grid-template-columns: 1fr;
-      }
-      .metrics {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-  </style>
+        .grid-line {
+            stroke: #e2e8f0;
+            stroke-width: 0.5;
+        }
+
+        .simplex-boundary {
+            fill: none;
+            stroke: #0f172a;
+            stroke-width: 2;
+        }
+
+        .mapping-point {
+            fill: #3b82f6;
+            fill-opacity: 0.7;
+            stroke: #1e40af;
+            stroke-width: 0.5;
+        }
+
+        .cube-point {
+            fill: #ef4444;
+            fill-opacity: 0.6;
+        }
+    </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="nav-inner">
-      <a class="brand" href="../">thurstone</a>
-      <nav>
-        <a href="../pages/thurstone.html">Thurstone models</a>
-        <a href="../pages/fast-transform.html">Fast ability transform</a>
-        <a href="../pages/rating-systems.html">Rating systems</a>
-        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
-        <a href="../demos/">Demos</a>
-        <a href="https://github.com/microprediction/thurstone">GitHub</a>
-      </nav>
-    </div>
-  </header>
+    <div class="container">
+        <h1> Thurstone Diffeomorphism Explorer</h1>
+        <p class="subtitle">Interactive visualization of cube-to-simplex mappings using racing models</p>
 
-  <main class="container">
-    <h1>Interactive Diffeomorphism Explorer</h1>
+        <div class="controls">
+            <div class="control-group">
+                <h3> Symmetric Inverse Normal Mapping</h3>
+                <div class="slider-group">
+                    <label>Scale: <span class="slider-value" id="alpha1-value">1.60</span></label>
+                    <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.1" value="1.6">
+                </div>
+                <div class="slider-group">
+                    <label>Shift: <span class="slider-value" id="gamma1-value">-0.30</span></label>
+                    <input type="range" class="slider" id="gamma1" min="-2.0" max="2.0" step="0.1" value="-0.3">
+                </div>
+            </div>
 
-    <p>
-      This visualization demonstrates smooth mappings from the unit cube $[0,1]^2$ to the 2-simplex
-      (triangle) using Thurstone racing models. Each point in the cube represents a racing scenario,
-      and the simplex shows the corresponding winning probabilities using barycentric coordinates.
-    </p>
+            <div class="control-group">
+                <h3> Special Horse Configuration</h3>
+                <div class="slider-group">
+                    <label>Base Ability: <span class="slider-value" id="special-ability-value">-0.10</span></label>
+                    <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="-0.1">
+                </div>
+                <div class="slider-group">
+                    <label>Location: <span class="slider-value" id="special-location-value">0.00</span></label>
+                    <input type="range" class="slider" id="special-location" min="-1.0" max="1.0" step="0.05" value="0.0">
+                </div>
+                <div class="slider-group">
+                    <label>Scale: <span class="slider-value" id="special-scale-value">0.10</span></label>
+                    <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="0.1">
+                </div>
+                <div class="slider-group">
+                    <label>Distribution:</label>
+                    <select id="special-distribution" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
+                        <option value="normal">Normal</option>
+                        <option value="student_t">Student's t</option>
+                        <option value="laplace">Laplace</option>
+                        <option value="uniform">Uniform</option>
+                        <option value="exponential">Exponential</option>
+                    </select>
+                </div>
+                <div class="slider-group">
+                    <label>Adaptive Mode:</label>
+                    <select id="adaptive-mode" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
+                        <option value="fixed">Fixed</option>
+                        <option value="mean_adaptive" selected>Mean Adaptive</option>
+                        <option value="position_adaptive">Position Adaptive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-    <p>
-      The mapping uses inverse normal CDF transformations to convert cube coordinates to competitor
-      abilities, then applies racing dynamics with a special third competitor. The mean-adaptive mode
-      creates dynamic competition where the special horse's strength inversely relates to the
-      average performance of the regular competitors.
-    </p>
+        <div class="visualization">
+            <div class="plot-container">
+                <div class="plot-title">Unit Cube [0,1]² → Lattice Points</div>
+                <svg id="cube-plot" width="400" height="400"></svg>
+            </div>
+            <div class="plot-container">
+                <div class="plot-title">2-Simplex (Triangle) → Mapped Points</div>
+                <svg id="simplex-plot" width="400" height="400"></svg>
+            </div>
+        </div>
 
-    <div class="controls">
-      <div class="control-group">
-        <h3>Symmetric Inverse Normal Mapping</h3>
-        <div class="slider-group">
-          <label>Scale: <span class="slider-value" id="alpha1-value">1.60</span></label>
-          <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.1" value="1.6">
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-name">Symmetry</div>
+                <div class="metric-value" id="symmetry-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Volume</div>
+                <div class="metric-value" id="volume-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Smoothness</div>
+                <div class="metric-value" id="smoothness-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Coverage</div>
+                <div class="metric-value" id="coverage-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Overall</div>
+                <div class="metric-value" id="overall-metric">0.000</div>
+            </div>
         </div>
-        <div class="slider-group">
-          <label>Shift: <span class="slider-value" id="gamma1-value">-0.30</span></label>
-          <input type="range" class="slider" id="gamma1" min="-2.0" max="2.0" step="0.1" value="-0.3">
-        </div>
-      </div>
-
-      <div class="control-group">
-        <h3>Special Horse Configuration</h3>
-        <div class="slider-group">
-          <label>Base Ability: <span class="slider-value" id="special-ability-value">-0.10</span></label>
-          <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="-0.1">
-        </div>
-        <div class="slider-group">
-          <label>Location: <span class="slider-value" id="special-location-value">0.00</span></label>
-          <input type="range" class="slider" id="special-location" min="-1.0" max="1.0" step="0.05" value="0.0">
-        </div>
-        <div class="slider-group">
-          <label>Scale: <span class="slider-value" id="special-scale-value">0.10</span></label>
-          <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="0.1">
-        </div>
-        <div class="slider-group">
-          <label>Distribution:</label>
-          <select id="special-distribution" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
-            <option value="normal">Normal</option>
-            <option value="student_t">Student's t</option>
-            <option value="laplace">Laplace</option>
-            <option value="uniform">Uniform</option>
-            <option value="exponential">Exponential</option>
-          </select>
-        </div>
-        <div class="slider-group">
-          <label>Adaptive Mode:</label>
-          <select id="adaptive-mode" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
-            <option value="fixed">Fixed</option>
-            <option value="mean_adaptive" selected>Mean Adaptive</option>
-            <option value="position_adaptive">Position Adaptive</option>
-          </select>
-        </div>
-      </div>
     </div>
 
     <script>
@@ -767,317 +782,8 @@
             }
         }
 
-        // Add visualization containers
+        // Initialize the diffeomorphism mapper
         const mapper = new DiffeomorphismMapper();
     </script>
-
-    <div class="visualization">
-        <div class="plot-container">
-            <div class="plot-title">Unit Cube [0,1]² → Lattice Points</div>
-            <svg id="cube-plot" width="400" height="400"></svg>
-        </div>
-        <div class="plot-container">
-            <div class="plot-title">2-Simplex (Triangle) → Mapped Points</div>
-            <svg id="simplex-plot" width="400" height="400"></svg>
-        </div>
-    </div>
-
-    <div class="metrics">
-        <div class="metric-card">
-            <div class="metric-name">Symmetry</div>
-            <div class="metric-value" id="symmetry-metric">0.000</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-name">Volume</div>
-            <div class="metric-value" id="volume-metric">0.000</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-name">Smoothness</div>
-            <div class="metric-value" id="smoothness-metric">0.000</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-name">Coverage</div>
-            <div class="metric-value" id="coverage-metric">0.000</div>
-        </div>
-        <div class="metric-card">
-            <div class="metric-name">Invertibility</div>
-            <div class="metric-value" id="invertibility-metric">0.000</div>
-        </div>
-    </div>
-
-    <h2>Mathematical Framework</h2>
-    <p>The diffeomorphism f: [0,1]² → Δ² is constructed through the following process:</p>
-    <ol>
-        <li><strong>Cube to Abilities</strong>: Transform cube coordinates (x₁, x₂) ∈ [0,1]² to competitor abilities using inverse normal CDF: aᵢ = σ · Φ⁻¹(xᵢ) + μ</li>
-        <li><strong>Special Horse</strong>: Add a third competitor with adaptive ability based on the racing context</li>
-        <li><strong>Racing Dynamics</strong>: Apply softmax with temperature scaling to convert abilities to winning probabilities</li>
-        <li><strong>Simplex Mapping</strong>: The resulting probabilities form barycentric coordinates on the 2-simplex</li>
-    </ol>
-    <p>The inverse normal transformation concentrates sampling density near the cube boundaries, creating rich structure in the simplex mapping. The mean-adaptive special horse creates competitive balance by adjusting its strength inversely to the average competitor ability.</p>
-
-  </main>
-</body>
-</html>
-        }
-
-        const a = [0, -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
-        const b = [0, -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
-        const c = [0, -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
-        const d = [0, 7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
-
-        const pLow = 0.02425;
-        const pHigh = 1 - pLow;
-
-        if (p < pLow) {
-          const q = Math.sqrt(-2 * Math.log(p));
-          return (((((c[1] * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) * q + c[6]) /
-                 ((((d[1] * q + d[2]) * q + d[3]) * q + d[4]) * q + 1);
-        } else if (p <= pHigh) {
-          const q = p - 0.5;
-          const r = q * q;
-          return (((((a[1] * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * r + a[6]) * q /
-                 (((((b[1] * r + b[2]) * r + b[3]) * r + b[4]) * r + b[5]) * r + 1);
-        } else {
-          const q = Math.sqrt(-2 * Math.log(1 - p));
-          return -(((((c[1] * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) * q + c[6]) /
-                  ((((d[1] * q + d[2]) * q + d[3]) * q + d[4]) * q + 1);
-        }
-      }
-
-      computeSpecialHorseAbility(cubePoint, otherAbilities) {
-        const baseAbility = parseFloat(document.getElementById('special-ability').value);
-        const location = parseFloat(document.getElementById('special-location').value);
-        const scale = parseFloat(document.getElementById('special-scale').value);
-        const adaptiveMode = document.getElementById('adaptive-mode').value;
-
-        let ability = baseAbility;
-
-        if (adaptiveMode === 'mean_adaptive') {
-          const meanOther = otherAbilities.reduce((a, b) => a + b, 0) / otherAbilities.length;
-          ability = -meanOther + baseAbility;
-        } else if (adaptiveMode === 'position_adaptive') {
-          const centerDistance = Math.sqrt(Math.pow(cubePoint[0] - 0.5, 2) + Math.pow(cubePoint[1] - 0.5, 2));
-          ability = baseAbility + 0.5 * centerDistance;
-        }
-
-        const [x, y] = cubePoint;
-        const pseudoNoise = scale * Math.sin(7.1 * x + 11.3 * y + 3.7) * Math.cos(5.9 * x - 8.1 * y + 2.1);
-
-        return ability + location + pseudoNoise;
-      }
-
-      cubeToAbilities(cubePoint) {
-        const [x, y] = cubePoint;
-
-        const scale = parseFloat(document.getElementById('alpha1').value) || 1.0;
-        const shift = parseFloat(document.getElementById('gamma1').value) || 0.0;
-
-        const ability1 = scale * this.inverseNormalCDF(x) + shift;
-        const ability2 = scale * this.inverseNormalCDF(y) + shift;
-
-        const regularAbilities = [ability1, ability2];
-        const specialAbility = this.computeSpecialHorseAbility(cubePoint, regularAbilities);
-
-        return [...regularAbilities, specialAbility];
-      }
-
-      abilitiesToSimplex(abilities) {
-        const [a1, a2, a3] = abilities;
-        const temperature = 2.0;
-
-        const exp1 = Math.exp(a1 / temperature);
-        const exp2 = Math.exp(a2 / temperature);
-        const exp3 = Math.exp(a3 / temperature);
-
-        const total = exp1 + exp2 + exp3;
-
-        return [exp1/total, exp2/total, exp3/total];
-      }
-
-      normalCDF(x) {
-        return 0.5 * (1 + this.erf(x / Math.sqrt(2)));
-      }
-
-      erf(x) {
-        const a1 =  0.254829592;
-        const a2 = -0.284496736;
-        const a3 =  1.421413741;
-        const a4 = -1.453152027;
-        const a5 =  1.061405429;
-        const p  =  0.3275911;
-
-        const sign = x >= 0 ? 1 : -1;
-        x = Math.abs(x);
-
-        const t = 1.0 / (1.0 + p * x);
-        const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-
-        return sign * y;
-      }
-
-      cubeToSimplex(cubePoint) {
-        const abilities = this.cubeToAbilities(cubePoint);
-        return this.abilitiesToSimplex(abilities);
-      }
-
-      generateGrid() {
-        const points = [];
-
-        const normalRange = 3.0;
-        for (let i = 0; i < this.resolution; i++) {
-          for (let j = 0; j < this.resolution; j++) {
-            const normalX = -normalRange + (2 * normalRange * i) / (this.resolution - 1);
-            const normalY = -normalRange + (2 * normalRange * j) / (this.resolution - 1);
-
-            const x = this.normalCDF(normalX);
-            const y = this.normalCDF(normalY);
-            const cubePoint = [x, y];
-
-            const simplexPoint = this.cubeToSimplex(cubePoint);
-
-            points.push({
-              cube: cubePoint,
-              simplex: simplexPoint
-            });
-          }
-        }
-
-        return points;
-      }
-
-      updateMapping() {
-        const points = this.generateGrid();
-        this.renderCubePlot(points);
-        this.renderSimplexPlot(points);
-        this.updateMetrics(points);
-      }
-
-      renderCubePlot(points) {
-        const svg = d3.select('#cube-plot');
-        svg.selectAll('*').remove();
-
-        const margin = {top: 20, right: 20, bottom: 40, left: 40};
-        const width = 400 - margin.left - margin.right;
-        const height = 400 - margin.top - margin.bottom;
-
-        const g = svg.append('g')
-          .attr('transform', `translate(${margin.left},${margin.top})`);
-
-        const xScale = d3.scaleLinear().domain([0, 1]).range([0, width]);
-        const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
-
-        g.append('g')
-          .attr('transform', `translate(0,${height})`)
-          .call(d3.axisBottom(xScale));
-
-        g.append('g')
-          .call(d3.axisLeft(yScale));
-
-        g.append('text')
-          .attr('transform', 'rotate(-90)')
-          .attr('y', 0 - margin.left)
-          .attr('x', 0 - (height / 2))
-          .attr('dy', '1em')
-          .style('text-anchor', 'middle')
-          .text('X₂');
-
-        g.append('text')
-          .attr('transform', `translate(${width / 2}, ${height + margin.bottom})`)
-          .style('text-anchor', 'middle')
-          .text('X₁');
-
-        g.selectAll('.cube-point')
-          .data(points)
-          .enter().append('circle')
-          .attr('class', 'cube-point')
-          .attr('cx', d => xScale(d.cube[0]))
-          .attr('cy', d => yScale(d.cube[1]))
-          .attr('r', 2);
-      }
-
-      renderSimplexPlot(points) {
-        const svg = d3.select('#simplex-plot');
-        svg.selectAll('*').remove();
-
-        const margin = {top: 20, right: 20, bottom: 40, left: 40};
-        const width = 400 - margin.left - margin.right;
-        const height = 400 - margin.top - margin.bottom;
-
-        const g = svg.append('g')
-          .attr('transform', `translate(${margin.left},${margin.top})`);
-
-        const barycentricToCartesian = (bary) => {
-          const [w1, w2, w3] = bary;
-          const x = w2 + 0.5 * w3;
-          const y = w3 * (Math.sqrt(3) / 2);
-          return [x, y];
-        };
-
-        const xScale = d3.scaleLinear().domain([0, 1]).range([50, width - 50]);
-        const yScale = d3.scaleLinear().domain([0, Math.sqrt(3) / 2]).range([height - 50, 50]);
-
-        const vertices = [
-          barycentricToCartesian([1, 0, 0]),
-          barycentricToCartesian([0, 1, 0]),
-          barycentricToCartesian([0, 0, 1])
-        ];
-
-        const line = d3.line()
-          .x(d => xScale(d[0]))
-          .y(d => yScale(d[1]));
-
-        g.append('path')
-          .datum([...vertices, vertices[0]])
-          .attr('class', 'simplex-boundary')
-          .attr('d', line);
-
-        // Labels
-        g.append('text')
-          .attr('x', xScale(vertices[0][0]))
-          .attr('y', yScale(vertices[0][1]) + 15)
-          .attr('text-anchor', 'middle')
-          .text('Horse 1');
-
-        g.append('text')
-          .attr('x', xScale(vertices[1][0]))
-          .attr('y', yScale(vertices[1][1]) + 15)
-          .attr('text-anchor', 'middle')
-          .text('Horse 2');
-
-        g.append('text')
-          .attr('x', xScale(vertices[2][0]))
-          .attr('y', yScale(vertices[2][1]) - 10)
-          .attr('text-anchor', 'middle')
-          .text('Special Horse');
-
-        g.selectAll('.mapping-point')
-          .data(points)
-          .enter().append('circle')
-          .attr('class', 'mapping-point')
-          .attr('cx', d => {
-            const cart = barycentricToCartesian(d.simplex);
-            return xScale(cart[0]);
-          })
-          .attr('cy', d => {
-            const cart = barycentricToCartesian(d.simplex);
-            return yScale(cart[1]);
-          })
-          .attr('r', 1.5);
-      }
-
-      updateMetrics(points) {
-        // Simple placeholder metrics
-        document.getElementById('symmetry-metric').textContent = '0.872';
-        document.getElementById('volume-metric').textContent = '0.634';
-        document.getElementById('smoothness-metric').textContent = '0.923';
-        document.getElementById('coverage-metric').textContent = '0.445';
-        document.getElementById('invertibility-metric').textContent = '0.789';
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      new DiffeomorphismMapper();
-    });
-  </script>
 </body>
 </html>
