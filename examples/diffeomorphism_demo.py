@@ -266,13 +266,16 @@ def analyze_lattice_behavior():
 
     print(f"\nSimplex coordinate statistics:")
     print(
-        f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]"
+        f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, "
+        f"range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]"
     )
     print(
-        f"p₂: mean={np.mean(p2_coords):.3f}, std={np.std(p2_coords):.3f}, range=[{np.min(p2_coords):.3f}, {np.max(p2_coords):.3f}]"
+        f"p₂: mean={np.mean(p2_coords):.3f}, std={np.std(p2_coords):.3f}, "
+        f"range=[{np.min(p2_coords):.3f}, {np.max(p2_coords):.3f}]"
     )
     print(
-        f"p₃: mean={np.mean(p3_coords):.3f}, std={np.std(p3_coords):.3f}, range=[{np.min(p3_coords):.3f}, {np.max(p3_coords):.3f}]"
+        f"p₃: mean={np.mean(p3_coords):.3f}, std={np.std(p3_coords):.3f}, "
+        f"range=[{np.min(p3_coords):.3f}, {np.max(p3_coords):.3f}]"
     )
 
     # Check if we're covering the simplex well

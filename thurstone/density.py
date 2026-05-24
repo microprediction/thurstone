@@ -71,7 +71,7 @@ class Density:
         if k <= -K:
             c2 = np.ones_like(c)
         elif -K < k < 0:
-            c2 = np.concatenate([c[abs(k) :], np.full(abs(k), c[-1])])
+            c2 = np.concatenate([c[abs(k):], np.full(abs(k), c[-1])])
         elif 0 < k < K:
             c2 = np.concatenate([np.zeros(k), c[:-k]])
         elif k >= K:

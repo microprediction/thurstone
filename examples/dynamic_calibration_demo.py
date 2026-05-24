@@ -221,7 +221,7 @@ def main() -> None:
         dt_min=0.0,
         dt_max=40.0,
     )
-    print(f"[Sigma]   tau_hat (parametric): {math.sqrt(max(meas_var_hat,0.0)):.4f}")
+    print(f"[Sigma]   tau_hat (parametric): {math.sqrt(max(meas_var_hat, 0.0)):.4f}")
     # Optional: compare to a binned estimator using τ̂^2 from the parametric fit
     # sigma_est, _ = dyn.fit_sigma(n_bins=SIGMA_N_BINS, min_points=SIGMA_MIN_POINTS,
     #                              monotone=SIGMA_MONOTONE, meas_var=meas_var_hat), meas_var_hat
