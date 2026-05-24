@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 from thurstone import Density, UniformLattice
-from thurstone.order_stats import (expected_payoff_with_multiplicity,
-                                   winner_of_many)
+from thurstone.order_stats import expected_payoff_with_multiplicity, winner_of_many
 from thurstone.pricing import expected_payoff_vs_rest
 
 

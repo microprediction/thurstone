@@ -14,8 +14,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from .quality_assessment import (QualityMetrics,
-                                 comprehensive_quality_assessment)
+from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
 
 
 @dataclass

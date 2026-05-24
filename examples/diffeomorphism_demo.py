@@ -20,8 +20,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone.cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 from thurstone.optimization import ParameterBounds, optimize_diffeomorphism
-from thurstone.quality_assessment import (QualityMetrics,
-                                          comprehensive_quality_assessment)
+from thurstone.quality_assessment import (
+    QualityMetrics,
+    comprehensive_quality_assessment,
+)
 
 
 def create_example_mappings() -> dict:

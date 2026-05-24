@@ -13,8 +13,7 @@ Run:
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import (AbilityCalibrator, Density, GlobalLSCalibrator,
-                       UniformLattice)
+from thurstone import AbilityCalibrator, Density, GlobalLSCalibrator, UniformLattice
 
 NUM_HORSES = 500
 NUM_RACES = 100

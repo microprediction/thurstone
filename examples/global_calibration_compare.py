@@ -10,8 +10,13 @@ Run:
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import (AbilityCalibrator, Density, GlobalAbilityCalibrator,
-                       GlobalLSCalibrator, UniformLattice)
+from thurstone import (
+    AbilityCalibrator,
+    Density,
+    GlobalAbilityCalibrator,
+    GlobalLSCalibrator,
+    UniformLattice,
+)
 
 
 def softmax_noise(

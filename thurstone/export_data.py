@@ -15,8 +15,11 @@ import numpy as np
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
 try:
-    from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                         DistributionType, SpecialHorseConfig)
+    from .adaptive_special_horse import (
+        AdaptiveSpecialHorse,
+        DistributionType,
+        SpecialHorseConfig,
+    )
     from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
     from .quality_assessment import comprehensive_quality_assessment
 

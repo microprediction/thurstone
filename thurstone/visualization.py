@@ -21,9 +21,12 @@ except ImportError:
     plt = None
 
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from .quality_assessment import (assess_smoothness, assess_symmetry,
-                                 assess_uniform_coverage,
-                                 assess_volume_preservation)
+from .quality_assessment import (
+    assess_smoothness,
+    assess_symmetry,
+    assess_uniform_coverage,
+    assess_volume_preservation,
+)
 
 
 def _ensure_matplotlib():

@@ -12,13 +12,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .adaptive_special_horse import (AdaptiveSpecialHorse, DistributionType,
-                                     SpecialHorseConfig)
+from .adaptive_special_horse import (
+    AdaptiveSpecialHorse,
+    DistributionType,
+    SpecialHorseConfig,
+)
 from .cube_to_simplex import SigmoidParams
 from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
 from .pure_optimizers import pure_optimize
-from .quality_assessment import (QualityMetrics,
-                                 comprehensive_quality_assessment)
+from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
 
 
 @dataclass
