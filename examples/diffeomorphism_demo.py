@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone.cube_to_simplex import (CubeToSimplexMapping,  # noqa: E402
                                        SigmoidParams)
-from thurstone.optimization import (ParameterBounds,  # noqa: E402
-                                    optimize_diffeomorphism)
+from thurstone.optimization import ParameterBounds  # noqa: E402
+from thurstone.optimization import optimize_diffeomorphism
 from thurstone.quality_assessment import QualityMetrics  # noqa: E402
 from thurstone.quality_assessment import comprehensive_quality_assessment
 
