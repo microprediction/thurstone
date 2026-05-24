@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>API Reference &mdash; thurstone</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .api-section { margin: 2rem 0; }
+    .api-class { background: #f8f9fa; padding: 1rem; border-left: 4px solid #007bff; margin: 1rem 0; }
+    .api-function { background: #f0f9ff; padding: 1rem; border-left: 4px solid #0ea5e9; margin: 1rem 0; }
+    .api-method { background: #f0fdf4; padding: 0.8rem; border-left: 3px solid #22c55e; margin: 0.8rem 0; }
+    .signature { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-weight: bold; }
+    .param-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .param-table th, .param-table td { padding: 0.5rem; border: 1px solid #ddd; text-align: left; }
+    .param-table th { background: #f5f5f5; }
+    .param-name { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-weight: bold; }
+    .toc { background: #f8f9fa; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+    .toc ul { margin: 0; padding-left: 1.5rem; }
+    .toc a { text-decoration: none; color: #007bff; }
+    .toc a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../index.html">thurstone</a>
+      <nav>
+        <a href="thurstone.html">Thurstone models</a>
+        <a href="fast-transform.html">Fast ability transform</a>
+        <a href="rating-systems.html">Rating systems</a>
+        <a href="multi-dimensional.html">Multi-dimensional</a>
+        <a href="api-reference.html">API Reference</a>
+        <a href="../demos/index.html">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>API Reference</h1>
+    <p>
+      Complete Python API reference for the thurstone package. This covers all public classes, functions, and constants exported from the main package.
+    </p>
+
+    <div class="toc">
+      <h3>Table of Contents</h3>
+      <ul>
+        <li><a href="#core-classes">Core Classes</a>
+          <ul>
+            <li><a href="#uniformlattice">UniformLattice</a></li>
+            <li><a href="#density">Density</a></li>
+            <li><a href="#race">Race</a></li>
+            <li><a href="#statepricer">StatePricer</a></li>
+          </ul>
+        </li>
+        <li><a href="#calibration">Calibration & Inference</a>
+          <ul>
+            <li><a href="#abilitycalibrator">AbilityCalibrator</a></li>
+            <li><a href="#globalabilitycalibrator">GlobalAbilityCalibrator</a></li>
+            <li><a href="#kalmanabilitytracker">KalmanAbilityTracker</a></li>
+          </ul>
+        </li>
+        <li><a href="#diffeomorphisms">Cube-to-Simplex Diffeomorphisms</a>
+          <ul>
+            <li><a href="#sigmoidparams">SigmoidParams</a></li>
+            <li><a href="#cubetosimplexmapping">CubeToSimplexMapping</a></li>
+            <li><a href="#qualitymetrics">QualityMetrics</a></li>
+            <li><a href="#optimization">Optimization Functions</a></li>
+          </ul>
+        </li>
+        <li><a href="#constants">Constants & Conventions</a></li>
+      </ul>
+    </div>
+
+    <section id="core-classes" class="api-section">
+      <h2>Core Classes</h2>
+      <p>
+        The fundamental building blocks for Thurstone models: lattices for discretization, densities for performance distributions, and races for competitive scenarios.
+      </p>
+
+      <div id="uniformlattice" class="api-class">
+        <h3>UniformLattice</h3>
+        <p class="signature">UniformLattice(L: int, unit: float)</p>
+        <p>
+          Represents a uniform discretization lattice centered at zero. Used as the foundation for all density computations.
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">L</td><td>int</td><td>Half-width: number of steps on one side of zero</td></tr>
+          <tr><td class="param-name">unit</td><td>float</td><td>Spacing between consecutive lattice points</td></tr>
+        </table>
+
+        <h4>Properties</h4>
+        <div class="api-method">
+          <p class="signature">size → int</p>
+          <p>Total number of lattice points: <code>2*L + 1</code></p>
+        </div>
+        <div class="api-method">
+          <p class="signature">grid → np.ndarray</p>
+          <p>Array of actual lattice point values: <code>unit * np.linspace(-L, L, size)</code></p>
+        </div>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">index_grid() → np.ndarray</p>
+          <p>Array of integer indices: <code>np.arange(-L, L+1)</code></p>
+        </div>
+        <div class="api-method">
+          <p class="signature">assert_compatible(arr: np.ndarray) → None</p>
+          <p>Validates that an array has compatible shape for this lattice</p>
+        </div>
+      </div>
+
+      <div id="density" class="api-class">
+        <h3>Density</h3>
+        <p class="signature">Density(lattice: UniformLattice, p: np.ndarray)</p>
+        <p>
+          A lattice-aligned probability measure representing a performance distribution. Automatically normalizes on construction.
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">lattice</td><td>UniformLattice</td><td>The underlying discretization lattice</td></tr>
+          <tr><td class="param-name">p</td><td>np.ndarray</td><td>Probability mass function values (automatically normalized)</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">cdf() → np.ndarray</p>
+          <p>Cumulative distribution function</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">mean() → float</p>
+          <p>Expected value of the distribution</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">shift_fractional(offset: float) → Density</p>
+          <p>Shift the distribution by a fractional lattice offset (with interpolation)</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">dilate(scale: float) → Density</p>
+          <p>Scale the distribution variance by a factor</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">convolve(other: Density) → Density</p>
+          <p>Convolve with another density (sum of independent random variables)</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">approx_support(tol: float = 1e-12) → tuple[float, float]</p>
+          <p>Approximate support bounds where density exceeds tolerance</p>
+        </div>
+      </div>
+
+      <div id="race" class="api-class">
+        <h3>Race</h3>
+        <p class="signature">Race(densities: List[Density])</p>
+        <p>
+          Represents a competitive race between multiple contestants, each with their own performance density.
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">densities</td><td>List[Density]</td><td>Performance distributions for each contestant</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">state_prices() → np.ndarray</p>
+          <p>Winning probabilities for each contestant</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">dividends() → np.ndarray</p>
+          <p>Fair dividend odds: <code>1.0 / state_prices()</code></p>
+        </div>
+        <div class="api-method">
+          <p class="signature">winner_density() → Density</p>
+          <p>Density of the winning performance (minimum across all contestants)</p>
+        </div>
+      </div>
+
+      <div id="statepricer" class="api-class">
+        <h3>StatePricer</h3>
+        <p class="signature">StatePricer(base_density: Density, offsets: List[float])</p>
+        <p>
+          High-level interface for pricing races where contestants differ only by ability offsets from a common base distribution.
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">base_density</td><td>Density</td><td>Base performance distribution</td></tr>
+          <tr><td class="param-name">offsets</td><td>List[float]</td><td>Ability offsets for each contestant</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">prices() → np.ndarray</p>
+          <p>Winning probabilities</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">dividends() → np.ndarray</p>
+          <p>Fair dividend odds</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="calibration" class="api-section">
+      <h2>Calibration & Inference</h2>
+      <p>
+        Tools for inverse problems: inferring latent abilities from observed market prices or race outcomes.
+      </p>
+
+      <div id="abilitycalibrator" class="api-class">
+        <h3>AbilityCalibrator</h3>
+        <p class="signature">AbilityCalibrator(base: Density, ...)</p>
+        <p>
+          Calibrates ability offsets from observed state prices. Supports both 1D (location-only) and 2D (location + scale) inference.
+        </p>
+
+        <h4>Key Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">base</td><td>Density</td><td>Base performance distribution</td></tr>
+          <tr><td class="param-name">scales</td><td>np.ndarray | None</td><td>Per-runner scale parameters for 2D calibration</td></tr>
+          <tr><td class="param-name">n_iter</td><td>int</td><td>Number of refinement iterations (default: 3)</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">calibrate(state_prices: List[float]) → np.ndarray</p>
+          <p>Infer ability offsets from observed winning probabilities</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">calibrate_2d(state_prices: List[float]) → tuple[np.ndarray, np.ndarray]</p>
+          <p>Infer both location and scale parameters. Returns (locations, scales)</p>
+        </div>
+      </div>
+
+      <div id="globalabilitycalibrator" class="api-class">
+        <h3>GlobalAbilityCalibrator</h3>
+        <p class="signature">GlobalAbilityCalibrator(base: Density, ...)</p>
+        <p>
+          Multi-race calibration: fit a single ability vector across multiple races sharing common contestants.
+        </p>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">fit_races(race_data: List[dict]) → np.ndarray</p>
+          <p>Fit global abilities from multiple race observations</p>
+        </div>
+      </div>
+
+      <div id="kalmanabilitytracker" class="api-class">
+        <h3>KalmanAbilityTracker</h3>
+        <p class="signature">KalmanAbilityTracker(base: Density, ...)</p>
+        <p>
+          Dynamic ability tracking using Kalman filtering for time-varying performance.
+        </p>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">update(state_prices: List[float], contestants: List[int]) → None</p>
+          <p>Update ability estimates with new race observation</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">get_abilities() → np.ndarray</p>
+          <p>Current ability estimates</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="diffeomorphisms" class="api-section">
+      <h2>Cube-to-Simplex Diffeomorphisms</h2>
+      <p>
+        Mathematical mappings from the unit k-cube to the k-simplex using racing dynamics, with quality assessment and optimization tools.
+      </p>
+
+      <div id="sigmoidparams" class="api-class">
+        <h3>SigmoidParams</h3>
+        <p class="signature">SigmoidParams(alpha: float, beta: float, gamma: float)</p>
+        <p>
+          Parameters for a sigmoid mapping function: <code>f(x) = alpha * sigmoid(beta * (x - gamma))</code>
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">alpha</td><td>float</td><td>Scale parameter (output range)</td></tr>
+          <tr><td class="param-name">beta</td><td>float</td><td>Steepness parameter (transition sharpness)</td></tr>
+          <tr><td class="param-name">gamma</td><td>float</td><td>Shift parameter (inflection point location)</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">__call__(x: float) → float</p>
+          <p>Apply the sigmoid transformation to input x</p>
+        </div>
+      </div>
+
+      <div id="cubetosimplexmapping" class="api-class">
+        <h3>CubeToSimplexMapping</h3>
+        <p class="signature">CubeToSimplexMapping(sigmoid_params: List[SigmoidParams], lattice: UniformLattice = None)</p>
+        <p>
+          A smooth diffeomorphism from [0,1]^k to the k-simplex using Thurstone racing dynamics.
+        </p>
+
+        <h4>Parameters</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">sigmoid_params</td><td>List[SigmoidParams]</td><td>Sigmoid parameters for each dimension</td></tr>
+          <tr><td class="param-name">lattice</td><td>UniformLattice</td><td>Discretization lattice (uses default if None)</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">__call__(cube_point: np.ndarray) → np.ndarray</p>
+          <p>Map a point from unit cube to simplex</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">jacobian(cube_point: np.ndarray) → np.ndarray</p>
+          <p>Compute the Jacobian matrix at the given point</p>
+        </div>
+        <div class="api-method">
+          <p class="signature">batch_transform(cube_points: np.ndarray) → np.ndarray</p>
+          <p>Transform multiple points efficiently</p>
+        </div>
+      </div>
+
+      <div id="qualitymetrics" class="api-class">
+        <h3>QualityMetrics</h3>
+        <p class="signature">QualityMetrics(symmetry_score: float, ...)</p>
+        <p>
+          Container for various diffeomorphism quality assessment metrics.
+        </p>
+
+        <h4>Attributes</h4>
+        <table class="param-table">
+          <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="param-name">symmetry_score</td><td>float</td><td>Measure of mapping symmetry preservation</td></tr>
+          <tr><td class="param-name">volume_preservation_score</td><td>float | None</td><td>How well the mapping preserves volume</td></tr>
+          <tr><td class="param-name">smoothness_score</td><td>float | None</td><td>Smoothness of the transformation</td></tr>
+          <tr><td class="param-name">coverage_score</td><td>float | None</td><td>How well the mapping covers the target simplex</td></tr>
+          <tr><td class="param-name">invertibility_score</td><td>float | None</td><td>How close to invertible the mapping is</td></tr>
+        </table>
+
+        <h4>Methods</h4>
+        <div class="api-method">
+          <p class="signature">overall_score(weights: dict = None) → float</p>
+          <p>Compute weighted average of all available metrics</p>
+        </div>
+      </div>
+
+      <div id="optimization" class="api-function">
+        <h3>Optimization Functions</h3>
+
+        <div class="api-method">
+          <p class="signature">comprehensive_quality_assessment(mapping: CubeToSimplexMapping, **kwargs) → QualityMetrics</p>
+          <p>
+            Perform comprehensive quality assessment of a diffeomorphism mapping.
+          </p>
+          <h4>Parameters</h4>
+          <table class="param-table">
+            <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+            <tr><td class="param-name">mapping</td><td>CubeToSimplexMapping</td><td>The mapping to assess</td></tr>
+            <tr><td class="param-name">symmetry_samples</td><td>int</td><td>Number of samples for symmetry test (default: 1000)</td></tr>
+            <tr><td class="param-name">volume_samples</td><td>int</td><td>Number of samples for volume test (default: 100)</td></tr>
+            <tr><td class="param-name">random_seed</td><td>int</td><td>Random seed for reproducible results</td></tr>
+          </table>
+        </div>
+
+        <div class="api-method">
+          <p class="signature">optimize_diffeomorphism(target_metrics: QualityMetrics, bounds: ParameterBounds, **kwargs) → OptimizationResult</p>
+          <p>
+            Optimize sigmoid parameters to achieve target quality metrics.
+          </p>
+          <h4>Parameters</h4>
+          <table class="param-table">
+            <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+            <tr><td class="param-name">target_metrics</td><td>QualityMetrics</td><td>Target quality metrics to optimize toward</td></tr>
+            <tr><td class="param-name">bounds</td><td>ParameterBounds</td><td>Parameter bounds for optimization</td></tr>
+            <tr><td class="param-name">method</td><td>str</td><td>Optimization method (default: 'differential_evolution')</td></tr>
+            <tr><td class="param-name">maxiter</td><td>int</td><td>Maximum optimization iterations</td></tr>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="constants" class="api-section">
+      <h2>Constants & Conventions</h2>
+      <p>
+        Standard parameter sets and conventions used throughout the package.
+      </p>
+
+      <div class="api-function">
+        <h3>Lattice Conventions</h3>
+        <table class="param-table">
+          <tr><th>Name</th><th>Value</th><th>Description</th></tr>
+          <tr><td class="param-name">STD_L</td><td>100</td><td>Standard half-width for lattices</td></tr>
+          <tr><td class="param-name">STD_UNIT</td><td>0.04</td><td>Standard lattice spacing</td></tr>
+          <tr><td class="param-name">STD_SCALE</td><td>1.0</td><td>Standard scale parameter</td></tr>
+          <tr><td class="param-name">STD_A</td><td>0.0</td><td>Standard skew parameter</td></tr>
+        </table>
+
+        <h3>Alternative Conventions</h3>
+        <table class="param-table">
+          <tr><th>Name</th><th>Value</th><th>Description</th></tr>
+          <tr><td class="param-name">ALT_L</td><td>200</td><td>Alternative (finer) half-width</td></tr>
+          <tr><td class="param-name">ALT_UNIT</td><td>0.02</td><td>Alternative (finer) lattice spacing</td></tr>
+          <tr><td class="param-name">ALT_SCALE</td><td>1.2</td><td>Alternative scale parameter</td></tr>
+          <tr><td class="param-name">ALT_A</td><td>0.1</td><td>Alternative skew parameter</td></tr>
+        </table>
+
+        <h3>Special Values</h3>
+        <table class="param-table">
+          <tr><th>Name</th><th>Value</th><th>Description</th></tr>
+          <tr><td class="param-name">NAN_DIVIDEND</td><td>float('nan')</td><td>Placeholder for undefined dividend values</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <section class="api-section">
+      <h2>Usage Examples</h2>
+
+      <h3>Basic Race Pricing</h3>
+      <pre><code>import thurstone as th
+
+# Create a standard lattice and base density
+lattice = th.UniformLattice(L=th.STD_L, unit=th.STD_UNIT)
+base = th.Density.standard_normal(lattice)
+
+# Price a 3-runner race with different ability offsets
+pricer = th.StatePricer(base, offsets=[0.0, 0.5, -0.3])
+prices = pricer.prices()           # [0.45, 0.35, 0.20]
+dividends = pricer.dividends()     # [2.22, 2.86, 5.00]
+</code></pre>
+
+      <h3>Ability Calibration</h3>
+      <pre><code># Infer abilities from observed market prices
+calibrator = th.AbilityCalibrator(base)
+observed_prices = [0.4, 0.3, 0.3]
+inferred_abilities = calibrator.calibrate(observed_prices)
+# Returns ability offsets that reproduce the observed prices
+</code></pre>
+
+      <h3>Cube-to-Simplex Mapping</h3>
+      <pre><code># Create a 2D cube-to-simplex mapping
+sigmoid_params = [
+    th.SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5),
+    th.SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5)
+]
+mapping = th.CubeToSimplexMapping(sigmoid_params)
+
+# Transform a unit square point to triangle
+cube_point = [0.3, 0.7]
+simplex_point = mapping(cube_point)  # [0.25, 0.35, 0.40]
+assert abs(sum(simplex_point) - 1.0) < 1e-10
+
+# Assess quality
+metrics = th.comprehensive_quality_assessment(mapping)
+print(f"Symmetry score: {metrics.symmetry_score:.3f}")
+</code></pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a href="../index.html">Home</a>
+  </footer>
+</body>
+</html>

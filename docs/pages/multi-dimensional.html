@@ -19,13 +19,14 @@
 <body>
   <header class="site-header">
     <div class="nav-inner">
-      <a class="brand" href="../">thurstone</a>
+      <a class="brand" href="../index.html">thurstone</a>
       <nav>
         <a href="thurstone.html">Thurstone models</a>
         <a href="fast-transform.html">Fast ability transform</a>
         <a href="rating-systems.html">Rating systems</a>
         <a href="multi-dimensional.html">Multi-dimensional</a>
-        <a href="../demos/">Demos</a>
+        <a href="api-reference.html">API Reference</a>
+        <a href="../demos/index.html">Demos</a>
         <a href="https://github.com/microprediction/thurstone">GitHub</a>
       </nav>
     </div>
@@ -223,7 +224,10 @@ const predictedC1 = mr.predictCondition("c1");</code></pre>
   </main>
 
   <script type="module">
-    import { UniformLattice, Density, Race } from "../js/thurstone/index.js";
+    // Note: This demo requires serving from a web server (not file://) due to ES module imports
+    // Run: python -m http.server 8000 --directory docs
+    try {
+      const { UniformLattice, Density, Race } = await import("../js/thurstone/index.js");
 
     // Five horses with (speed, stamina) skill vectors. Larger projection on
     // the race ray = better in that race.
@@ -325,11 +329,22 @@ const predictedC1 = mr.predictCondition("c1");</code></pre>
       document.getElementById("md-angle").value = 90; recompute();
     });
 
-    recompute();
+      recompute();
+    } catch (error) {
+      // Fallback when ES modules can't load (e.g., file:// protocol)
+      console.error("Demo requires web server:", error);
+      document.querySelector('.md-demo').innerHTML =
+        '<div style="padding: 40px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">' +
+        '<strong>Demo requires web server</strong><br><br>' +
+        'This interactive demo uses ES modules which require serving from a web server.<br>' +
+        'Run: <code>python -m http.server 8000 --directory docs</code><br>' +
+        'Then visit: <a href="http://localhost:8000/pages/multi-dimensional.html">http://localhost:8000/pages/multi-dimensional.html</a>' +
+        '</div>';
+    }
   </script>
 
   <footer class="site-footer">
-    <a href="../">Home</a> &middot;
+    <a href="../index.html">Home</a> &middot;
     <a href="rating-systems.html">&larr; Rating systems</a>
   </footer>
 </body>

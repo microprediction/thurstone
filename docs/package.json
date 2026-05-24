@@ -1,8 +1,37 @@
 {
   "name": "thurstone-docs",
+  "version": "0.0.1",
+  "description": "JavaScript port and documentation for the thurstone Python package",
   "private": true,
   "type": "module",
+  "main": "./js/thurstone/index.js",
+  "types": "./js/thurstone/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./js/thurstone/index.d.ts",
+      "import": "./js/thurstone/index.js"
+    },
+    "./js/thurstone/*": {
+      "types": "./js/thurstone/*.d.ts",
+      "import": "./js/thurstone/*.js"
+    }
+  },
   "scripts": {
-    "test": "node --test tests"
-  }
+    "test": "node --test tests",
+    "typecheck": "tsc --noEmit --allowJs --checkJs --moduleResolution node --target es2022"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "thurstone",
+    "statistics",
+    "racing",
+    "probability",
+    "inference",
+    "calibration",
+    "racing-models"
+  ],
+  "author": "Peter Cotton <peter.cotton@microprediction.com>",
+  "license": "MIT"
 }
