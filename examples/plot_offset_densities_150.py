@@ -7,9 +7,11 @@ Setup:
 Run:
     python examples/plot_offset_densities_150.py
 """
-import numpy as np
+
 import matplotlib.pyplot as plt
-from thurstone import UniformLattice, Density
+import numpy as np
+
+from thurstone import Density, UniformLattice
 
 
 def main():
@@ -46,7 +48,9 @@ def main():
     fig2, ax2 = plt.subplots(figsize=(11, 6))
     sample_idx = [0, 30, 60, 90, 120, 149]
     for idx in sample_idx:
-        ax2.plot(x, densities[idx].p, lw=1.5, label=f"runner {idx} (a={abilities[idx]:.2f})")
+        ax2.plot(
+            x, densities[idx].p, lw=1.5, label=f"runner {idx} (a={abilities[idx]:.2f})"
+        )
     ax2.set_title("Representative offset densities (subset overlays)")
     ax2.set_xlabel("Performance (lattice units)")
     ax2.set_ylabel("Density")
@@ -59,5 +63,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

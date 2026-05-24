@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
+
 import numpy as np
 
 from .inference import AbilityCalibrator
@@ -23,6 +25,7 @@ class GlobalLSCalibrator:
       1) Per race: invert prices -> local locs (once), center per race to remove translation
       2) Stitch globally via (slope-weighted) LS across overlapping runners
     """
+
     horse_ids: List[str]
     races: List[RaceLS] = field(default_factory=list)
     theta: Dict[str, float] = field(default_factory=dict)  # global abilities
@@ -31,11 +34,19 @@ class GlobalLSCalibrator:
         if not self.theta:
             self.theta = {hid: 0.0 for hid in self.horse_ids}
 
-    def add_race(self, calibrator: AbilityCalibrator, horse_ids: Sequence[str], prices: Sequence[float], scales: Optional[Sequence[float]] = None) -> None:
+    def add_race(
+        self,
+        calibrator: AbilityCalibrator,
+        horse_ids: Sequence[str],
+        prices: Sequence[float],
+        scales: Optional[Sequence[float]] = None,
+    ) -> None:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
         # Ensure lookup curves exist at least once
-        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
+        if (calibrator.lookup_curve_1d_prices is None) and (
+            not calibrator.lookup_curves_2d_prices
+        ):
             calibrator.solve_from_prices(prices_arr)
         # Precompute local raw locs once for this race
         local_locs = np.array(calibrator.solve_from_prices(prices_arr), dtype=float)
@@ -56,7 +67,9 @@ class GlobalLSCalibrator:
             race.local_locs = est
         return race.local_locs - np.median(race.local_locs)
 
-    def _slope_weight(self, cal: AbilityCalibrator, loc: float, scale: Optional[float]) -> float:
+    def _slope_weight(
+        self, cal: AbilityCalibrator, loc: float, scale: Optional[float]
+    ) -> float:
         """Approximate |dp/dmu| using cached curves; fall back to 1.0."""
         try:
             if scale is not None and len(cal.lookup_curves_2d_prices) > 0:
@@ -69,7 +82,11 @@ class GlobalLSCalibrator:
                 elif idx >= len(s_arr):
                     s_sel = s_arr[-1]
                 else:
-                    s_sel = s_arr[idx-1] if (scale - s_arr[idx-1]) <= (s_arr[idx] - scale) else s_arr[idx]
+                    s_sel = (
+                        s_arr[idx - 1]
+                        if (scale - s_arr[idx - 1]) <= (s_arr[idx] - scale)
+                        else s_arr[idx]
+                    )
                 locs, prices = cal.lookup_curves_2d_prices[float(s_sel)]
                 dprices = np.gradient(prices, locs)
                 mu_c = float(np.clip(loc, locs.min(), locs.max()))
@@ -86,13 +103,20 @@ class GlobalLSCalibrator:
             pass
         return 1.0
 
-    def fit(self, use_slope_weights: bool = True, ridge: float = 0.0, weight_cap: Optional[float] = None) -> None:
+    def fit(
+        self,
+        use_slope_weights: bool = True,
+        ridge: float = 0.0,
+        weight_cap: Optional[float] = None,
+    ) -> None:
         """
         Solve for global theta via one-pass (slope-weighted) LS on centered per-race inversions.
         This is a "relative-then-average" stitch, fast and robust.
         """
         sum_w_y: Dict[str, float] = {hid: 0.0 for hid in self.horse_ids}
-        sum_w: Dict[str, float] = {hid: ridge for hid in self.horse_ids}  # ridge on diagonal
+        sum_w: Dict[str, float] = {
+            hid: ridge for hid in self.horse_ids
+        }  # ridge on diagonal
 
         for race in self.races:
             centered = self._invert_and_center(race)
@@ -101,7 +125,11 @@ class GlobalLSCalibrator:
                 if use_slope_weights:
                     sc = None if race.scales is None else float(race.scales[j])
                     # Use raw local loc for slope weight (not centered)
-                    loc_for_slope = float(race.local_locs[j]) if race.local_locs is not None else float(centered[j])
+                    loc_for_slope = (
+                        float(race.local_locs[j])
+                        if race.local_locs is not None
+                        else float(centered[j])
+                    )
                     w = self._slope_weight(race.calibrator, loc_for_slope, sc)
                     if weight_cap is not None:
                         w = min(w, float(weight_cap))
@@ -119,5 +147,3 @@ class GlobalLSCalibrator:
         med = np.median([self.theta[hid] for hid in self.horse_ids])
         for hid in self.horse_ids:
             self.theta[hid] -= float(med)
-
-

@@ -10,12 +10,13 @@ Example: Global ability calibration across multiple races using cached lookup cu
 Run:
     python examples/global_calibration_demo.py
 """
+
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import UniformLattice, Density
-from thurstone.inference import AbilityCalibrator
+from thurstone import Density, UniformLattice
 from thurstone.global_fit import GlobalAbilityCalibrator
+from thurstone.inference import AbilityCalibrator
 
 
 def main():
@@ -92,12 +93,14 @@ def main():
 
     # Simple success heuristic for this demo
     if corr > 0.99 and mae < 0.15:
-        print("Success: recovered global abilities match the truth (up to translation).")
+        print(
+            "Success: recovered global abilities match the truth (up to translation)."
+        )
     else:
-        print("Note: correlation below target; increase num_iters or adjust lattice/grid if needed.")
+        print(
+            "Note: correlation below target; increase num_iters or adjust lattice/grid if needed."
+        )
 
 
 if __name__ == "__main__":
     main()
-
-

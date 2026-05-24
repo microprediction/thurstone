@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Sequence, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
+
 import numpy as np
 
 from .density import Density
-from .inference import AbilityCalibrator
 from .dynamic import RaceObservation  # reuse existing container to keep DRY
+from .inference import AbilityCalibrator
 
 
 @dataclass
 class HorseFilterState:
     """Filter state for a single horse."""
+
     mean: float
     var: float
     last_time: float
@@ -46,8 +48,12 @@ class KalmanAbilityTracker:
 
     # Internal state
     _state: Dict[str, HorseFilterState] = field(init=False, default_factory=dict)
-    _history: Dict[str, List[Tuple[float, float]]] = field(init=False, default_factory=dict)
-    _centers: Dict[str, List[Tuple[float, float]]] = field(init=False, default_factory=dict)
+    _history: Dict[str, List[Tuple[float, float]]] = field(
+        init=False, default_factory=dict
+    )
+    _centers: Dict[str, List[Tuple[float, float]]] = field(
+        init=False, default_factory=dict
+    )
 
     def update_race(self, race: RaceObservation) -> None:
         """
@@ -102,7 +108,9 @@ class KalmanAbilityTracker:
         if var_new < self.min_var:
             var_new = self.min_var
 
-        self._state[horse_id] = HorseFilterState(mean=mean_new, var=var_new, last_time=float(time))
+        self._state[horse_id] = HorseFilterState(
+            mean=mean_new, var=var_new, last_time=float(time)
+        )
         self._history.setdefault(horse_id, []).append((float(time), float(y)))
         # _centers updated in update_race
 
@@ -145,7 +153,9 @@ class KalmanAbilityTracker:
         self.obs_var = float(r)
 
     # -------------------------- smoothing output --------------------------
-    def smooth_horse(self, horse_id: str) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    def smooth_horse(
+        self, horse_id: str
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Return (times, smoothed_means, smoothed_vars) for a horse using the current
         process_var_per_time and obs_var. None if horse has no observations.
@@ -204,7 +214,9 @@ class KalmanAbilityTracker:
 
         return times, m_s, P_s
 
-    def smooth_horse_abs(self, horse_id: str) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    def smooth_horse_abs(
+        self, horse_id: str
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Return absolute (times, smoothed_means_plus_center, smoothed_vars), by adding
         back the per-race centers that were removed during observation construction.
@@ -245,12 +257,20 @@ class KalmanAbilityTracker:
             for t, m in zip(times, means):
                 time_accum_sum[t] = time_accum_sum.get(t, 0.0) + float(m)
                 time_accum_cnt[t] = time_accum_cnt.get(t, 0) + 1
-        time_mean: Dict[float, float] = {t: (time_accum_sum[t] / max(1, time_accum_cnt[t])) for t in time_accum_sum}
+        time_mean: Dict[float, float] = {
+            t: (time_accum_sum[t] / max(1, time_accum_cnt[t])) for t in time_accum_sum
+        }
 
         # Subtract the per-time mean
         anchored: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
         for h, (times, means) in rel.items():
-            adj = np.array([float(m) - float(time_mean.get(float(t), 0.0)) for t, m in zip(times, means)], dtype=float)
+            adj = np.array(
+                [
+                    float(m) - float(time_mean.get(float(t), 0.0))
+                    for t, m in zip(times, means)
+                ],
+                dtype=float,
+            )
             anchored[h] = (times, adj)
         return anchored
 
@@ -344,5 +364,3 @@ class KalmanAbilityTracker:
             q_den += 1.0
 
         return r_num, r_den, q_num, q_den
-
-

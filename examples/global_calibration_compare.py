@@ -6,19 +6,17 @@ Example: Compare two global ability calibration methods on the same synthetic da
 Run:
     python examples/global_calibration_compare.py
 """
+
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import (
-    UniformLattice,
-    Density,
-    AbilityCalibrator,
-    GlobalAbilityCalibrator,
-    GlobalLSCalibrator,
-)
+from thurstone import (AbilityCalibrator, Density, GlobalAbilityCalibrator,
+                       GlobalLSCalibrator, UniformLattice)
 
 
-def softmax_noise(p: np.ndarray, rng, sigma: float = 0.15, eps: float = 1e-12) -> np.ndarray:
+def softmax_noise(
+    p: np.ndarray, rng, sigma: float = 0.15, eps: float = 1e-12
+) -> np.ndarray:
     """Add zero-mean Gaussian noise in log space and re-normalize by softmax."""
     logits = np.log(np.clip(p, eps, 1.0))
     noisy = logits + rng.normal(0.0, sigma, size=p.shape)
@@ -57,7 +55,16 @@ def build_synthetic(rng, num_horses=80, num_races=20, race_size=12, bias_range=0
         race_horse_ids.append(ids_r)
         race_prices_true.append(p_true)
         race_prices_noisy.append(p_noisy)
-    return (lattice, base, horse_ids, true_theta, calibrators, race_horse_ids, race_prices_true, race_prices_noisy)
+    return (
+        lattice,
+        base,
+        horse_ids,
+        true_theta,
+        calibrators,
+        race_horse_ids,
+        race_prices_true,
+        race_prices_noisy,
+    )
 
 
 def eval_centered(true_theta: np.ndarray, est_theta: np.ndarray):
@@ -130,5 +137,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

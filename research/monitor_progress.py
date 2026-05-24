@@ -2,10 +2,11 @@
 Monitor the progress of the systematic study and prepare for next phases.
 """
 
-import os
 import json
+import os
 import time
 from datetime import datetime
+
 
 def check_study_progress():
     """Check the current progress of the systematic study."""
@@ -17,11 +18,11 @@ def check_study_progress():
 
     # Check for completed phases
     phase_files = {
-        'Phase 1 (Grid Search)': 'phase1_grid_search_*.json',
-        'Phase 2 (Optimization)': 'phase2_optimization_comparison_*.json',
-        'Phase 3 (Dimensional)': 'phase3_dimensional_scaling_*.json',
-        'Phase 4 (Application)': 'phase4_application_specific_*.json',
-        'Final Report': 'complete_study_report.json'
+        "Phase 1 (Grid Search)": "phase1_grid_search_*.json",
+        "Phase 2 (Optimization)": "phase2_optimization_comparison_*.json",
+        "Phase 3 (Dimensional)": "phase3_dimensional_scaling_*.json",
+        "Phase 4 (Application)": "phase4_application_specific_*.json",
+        "Final Report": "complete_study_report.json",
     }
 
     print(f"📊 STUDY PROGRESS CHECK - {datetime.now().strftime('%H:%M:%S')}")
@@ -32,6 +33,7 @@ def check_study_progress():
     for phase, pattern in phase_files.items():
         # Check for files matching pattern
         import glob
+
         matches = glob.glob(os.path.join(results_dir, pattern))
 
         if matches:
@@ -39,23 +41,31 @@ def check_study_progress():
             file_size = os.path.getsize(latest_file)
             mod_time = datetime.fromtimestamp(os.path.getmtime(latest_file))
 
-            print(f"✅ {phase}: {os.path.basename(latest_file)} ({file_size:,} bytes, {mod_time.strftime('%H:%M:%S')})")
+            print(
+                f"✅ {phase}: {os.path.basename(latest_file)} ({file_size:,} bytes, {mod_time.strftime('%H:%M:%S')})"
+            )
             completed_phases.append(phase)
 
             # Load and show summary if it's a results file
-            if file_size > 100 and phase != 'Final Report':
+            if file_size > 100 and phase != "Final Report":
                 try:
-                    with open(latest_file, 'r') as f:
+                    with open(latest_file, "r") as f:
                         data = json.load(f)
 
                     if isinstance(data, list) and len(data) > 0:
                         print(f"   📈 Contains {len(data):,} evaluation records")
 
                         # Show some key stats
-                        if 'quality_scores' in data[0]:
-                            scores = [item['quality_scores']['overall'] for item in data if 'quality_scores' in item]
+                        if "quality_scores" in data[0]:
+                            scores = [
+                                item["quality_scores"]["overall"]
+                                for item in data
+                                if "quality_scores" in item
+                            ]
                             if scores:
-                                print(f"   📊 Score range: {min(scores):.4f} - {max(scores):.4f}")
+                                print(
+                                    f"   📊 Score range: {min(scores):.4f} - {max(scores):.4f}"
+                                )
 
                 except Exception as e:
                     print(f"   ⚠️ Could not parse file: {e}")
@@ -65,6 +75,7 @@ def check_study_progress():
     print(f"\n📈 Progress: {len(completed_phases)}/{len(phase_files)} phases complete")
 
     return len(completed_phases), len(phase_files)
+
 
 def prepare_next_phase():
     """Prepare commands for the next phase of research."""
@@ -90,13 +101,15 @@ def prepare_next_phase():
     else:
         print("📊 Study in progress - check back later")
 
+
 def show_key_findings():
     """Show key findings from completed phases."""
     results_dir = "study_results"
 
     # Check for Phase 1 results (parameter exploration)
     import glob
-    phase1_files = glob.glob(os.path.join(results_dir, 'phase1_grid_search_*.json'))
+
+    phase1_files = glob.glob(os.path.join(results_dir, "phase1_grid_search_*.json"))
 
     if phase1_files:
         print(f"\n🔍 KEY FINDINGS FROM PHASE 1:")
@@ -104,34 +117,40 @@ def show_key_findings():
 
         latest_file = max(phase1_files, key=os.path.getctime)
         try:
-            with open(latest_file, 'r') as f:
+            with open(latest_file, "r") as f:
                 data = json.load(f)
 
             if isinstance(data, list) and len(data) > 10:
                 # Find best overall configurations
-                best_configs = sorted(data, key=lambda x: x['quality_scores']['overall'], reverse=True)[:5]
+                best_configs = sorted(
+                    data, key=lambda x: x["quality_scores"]["overall"], reverse=True
+                )[:5]
 
                 print("🏆 TOP 5 PARAMETER CONFIGURATIONS:")
                 for i, config in enumerate(best_configs, 1):
-                    score = config['quality_scores']['overall']
-                    weighting = config['weighting']
-                    special_ability = config['parameters']['special_ability']
+                    score = config["quality_scores"]["overall"]
+                    weighting = config["weighting"]
+                    special_ability = config["parameters"]["special_ability"]
 
-                    print(f"   {i}. Score: {score:.4f} ({weighting}, special: {special_ability:.2f})")
+                    print(
+                        f"   {i}. Score: {score:.4f} ({weighting}, special: {special_ability:.2f})"
+                    )
 
                 # Analyze by weighting scheme
-                weightings = set(item['weighting'] for item in data)
+                weightings = set(item["weighting"] for item in data)
                 print(f"\n📊 BEST BY WEIGHTING SCHEME:")
                 for weight in weightings:
-                    weight_data = [item for item in data if item['weighting'] == weight]
-                    best = max(weight_data, key=lambda x: x['quality_scores']['overall'])
+                    weight_data = [item for item in data if item["weighting"] == weight]
+                    best = max(
+                        weight_data, key=lambda x: x["quality_scores"]["overall"]
+                    )
                     print(f"   {weight}: {best['quality_scores']['overall']:.4f}")
 
         except Exception as e:
             print(f"❌ Error analyzing Phase 1 results: {e}")
 
     # Check for Phase 2 results (optimization comparison)
-    phase2_files = glob.glob(os.path.join(results_dir, 'phase2_optimization_*.json'))
+    phase2_files = glob.glob(os.path.join(results_dir, "phase2_optimization_*.json"))
 
     if phase2_files:
         print(f"\n🎯 KEY FINDINGS FROM PHASE 2:")
@@ -139,25 +158,28 @@ def show_key_findings():
 
         latest_file = max(phase2_files, key=os.path.getctime)
         try:
-            with open(latest_file, 'r') as f:
+            with open(latest_file, "r") as f:
                 data = json.load(f)
 
             if isinstance(data, list) and len(data) > 0:
                 # Group by algorithm
-                algorithms = set(item['algorithm'] for item in data)
+                algorithms = set(item["algorithm"] for item in data)
                 print("🚀 ALGORITHM PERFORMANCE:")
 
                 for alg in algorithms:
-                    alg_data = [item for item in data if item['algorithm'] == alg]
-                    scores = [item['best_score'] for item in alg_data]
+                    alg_data = [item for item in data if item["algorithm"] == alg]
+                    scores = [item["best_score"] for item in alg_data]
 
                     if scores:
                         mean_score = sum(scores) / len(scores)
                         max_score = max(scores)
-                        print(f"   {alg}: Mean={mean_score:.4f}, Best={max_score:.4f} ({len(scores)} runs)")
+                        print(
+                            f"   {alg}: Mean={mean_score:.4f}, Best={max_score:.4f} ({len(scores)} runs)"
+                        )
 
         except Exception as e:
             print(f"❌ Error analyzing Phase 2 results: {e}")
+
 
 def main():
     """Main monitoring function."""
@@ -175,6 +197,7 @@ def main():
 
     print(f"\n💡 TIP: Run this monitor script periodically to track progress:")
     print(f"   python research/monitor_progress.py")
+
 
 if __name__ == "__main__":
     main()

@@ -6,16 +6,18 @@ configurations for optimal diffeomorphism properties.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List, Optional
+
 import numpy as np
 
-from .lattice import UniformLattice
-from .density import Density
-from .pricing import Race
+from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
 from .conventions import STD_L, STD_UNIT
 from .cube_to_simplex import SigmoidParams, parametric_sigmoid
-from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
+from .density import Density
+from .lattice import UniformLattice
+from .pricing import Race
 
 
 @dataclass
@@ -23,6 +25,7 @@ class EnhancedCubeToSimplexMapping:
     """
     Enhanced diffeomorphism with adaptive special horse capabilities.
     """
+
     sigmoid_params: List[SigmoidParams]
     special_horse: AdaptiveSpecialHorse
     noise_scale: float = 1.0
@@ -61,7 +64,9 @@ class EnhancedCubeToSimplexMapping:
         all_abilities = np.concatenate([regular_abilities, [special_ability]])
         return all_abilities
 
-    def create_race_with_sampling(self, cube_point: np.ndarray, n_samples: int = 1) -> Race:
+    def create_race_with_sampling(
+        self, cube_point: np.ndarray, n_samples: int = 1
+    ) -> Race:
         """
         Create a Race object using Monte Carlo sampling for the special horse.
 
@@ -86,10 +91,7 @@ class EnhancedCubeToSimplexMapping:
             densities = []
             for ability in all_abilities:
                 density = Density.skew_normal(
-                    lattice=self.lattice,
-                    loc=ability,
-                    scale=self.noise_scale,
-                    a=0.0
+                    lattice=self.lattice, loc=ability, scale=self.noise_scale, a=0.0
                 )
                 densities.append(density)
 
@@ -106,26 +108,22 @@ class EnhancedCubeToSimplexMapping:
 
             # Use mean of sampled performances
             mean_special_performance = np.mean(special_performances)
-            all_abilities = np.concatenate([regular_abilities, [mean_special_performance]])
+            all_abilities = np.concatenate(
+                [regular_abilities, [mean_special_performance]]
+            )
 
             # Create densities
             densities = []
             for i, ability in enumerate(all_abilities):
                 if i < self.k:  # Regular horses
                     density = Density.skew_normal(
-                        lattice=self.lattice,
-                        loc=ability,
-                        scale=self.noise_scale,
-                        a=0.0
+                        lattice=self.lattice, loc=ability, scale=self.noise_scale, a=0.0
                     )
                 else:  # Special horse - adjust variance if needed
                     special_variance = self.special_horse.get_performance_variance()
                     effective_scale = np.sqrt(special_variance + self.noise_scale**2)
                     density = Density.skew_normal(
-                        lattice=self.lattice,
-                        loc=ability,
-                        scale=effective_scale,
-                        a=0.0
+                        lattice=self.lattice, loc=ability, scale=effective_scale, a=0.0
                     )
                 densities.append(density)
 
@@ -162,7 +160,9 @@ class EnhancedCubeToSimplexMapping:
         """
         cube_points = np.asarray(cube_points)
         if cube_points.ndim != 2 or cube_points.shape[1] != self.k:
-            raise ValueError(f"Expected shape (n_points, {self.k}), got {cube_points.shape}")
+            raise ValueError(
+                f"Expected shape (n_points, {self.k}), got {cube_points.shape}"
+            )
 
         results = []
         for point in cube_points:
@@ -178,7 +178,7 @@ def create_test_mappings() -> dict:
     # Standard sigmoid parameters
     sigmoid_params = [
         SigmoidParams(alpha=1.2, beta=4.0, gamma=0.4),
-        SigmoidParams(alpha=1.0, beta=5.0, gamma=0.6)
+        SigmoidParams(alpha=1.0, beta=5.0, gamma=0.6),
     ]
 
     special_horse_configs = create_special_horse_configs()
@@ -187,9 +187,7 @@ def create_test_mappings() -> dict:
     for name, config in special_horse_configs.items():
         special_horse = AdaptiveSpecialHorse(config)
         mapping = EnhancedCubeToSimplexMapping(
-            sigmoid_params=sigmoid_params,
-            special_horse=special_horse,
-            noise_scale=1.0
+            sigmoid_params=sigmoid_params, special_horse=special_horse, noise_scale=1.0
         )
         mappings[name] = mapping
 
@@ -205,11 +203,7 @@ if __name__ == "__main__":
     mappings = create_test_mappings()
 
     # Test points
-    test_points = [
-        [0.2, 0.3],
-        [0.5, 0.5],
-        [0.8, 0.7]
-    ]
+    test_points = [[0.2, 0.3], [0.5, 0.5], [0.8, 0.7]]
 
     print("Testing different special horse configurations...")
 
@@ -219,7 +213,9 @@ if __name__ == "__main__":
 
         for i, point in enumerate(test_points):
             result = mapping(point)
-            print(f"   Point {i+1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]")
+            print(
+                f"   Point {i+1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]"
+            )
 
         # Test the special property
         center_point = [0.5, 0.5]

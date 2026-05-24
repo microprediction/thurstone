@@ -11,146 +11,87 @@
     onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin: 30px 0;
-      padding: 20px;
-      background: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-    }
-
-    .control-group {
-      background: white;
-      padding: 20px;
-      border-radius: 6px;
-      border: 1px solid #e9ecef;
-    }
-
-    .control-group h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      color: var(--text);
-      border-bottom: 1px solid #e9ecef;
-      padding-bottom: 8px;
-    }
-
-    .slider-group {
-      margin: 15px 0;
-    }
-
-    .slider-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .slider {
-      width: 100%;
-      margin: 5px 0;
-    }
-
-    .slider-value {
-      display: inline-block;
-      min-width: 60px;
-      text-align: right;
-      font-family: var(--mono);
-      color: var(--accent);
-      font-weight: 600;
-    }
-
     .visualization {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin: 30px 0;
+      gap: 20px;
+      margin: 20px 0;
     }
 
     .plot-container {
       background: white;
       border: 1px solid #e9ecef;
       border-radius: 8px;
-      padding: 20px;
+      padding: 15px;
     }
 
     .plot-title {
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       font-weight: 600;
       color: var(--text);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slider-group label {
+      font-size: 0.9em;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+
+    .slider-value {
+      float: right;
+      font-family: var(--mono);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .slider {
+      width: 100%;
     }
 
     .metrics {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 15px;
-      margin: 30px 0;
-    }
-
-    .metric-card {
-      background: var(--accent);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    .metric-name {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 15px;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      margin: 15px 0;
       font-size: 0.9em;
-      opacity: 0.9;
-      margin-bottom: 8px;
     }
 
-    .metric-value {
-      font-size: 1.5em;
-      font-weight: 600;
+    .metrics strong {
+      color: var(--accent);
       font-family: var(--mono);
     }
 
-    .grid-line {
-      stroke: #e9ecef;
-      stroke-width: 0.5;
-    }
-
-    .simplex-boundary {
-      fill: none;
-      stroke: var(--text);
-      stroke-width: 2;
-    }
-
-    .mapping-point {
-      fill: var(--accent);
-      fill-opacity: 0.7;
-      stroke: var(--accent);
-      stroke-width: 0.5;
-    }
-
-    .cube-point {
-      fill: #dc3545;
-      fill-opacity: 0.6;
-    }
-
-    select {
-      width: 100%;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #e9ecef;
-      background: white;
-      color: var(--text);
-    }
-
     @media (max-width: 768px) {
-      .controls {
-        grid-template-columns: 1fr;
-      }
       .visualization {
         grid-template-columns: 1fr;
       }
+      .controls {
+        grid-template-columns: 1fr 1fr;
+      }
       .metrics {
-        grid-template-columns: repeat(2, 1fr);
+        flex-wrap: wrap;
+        gap: 10px;
       }
     }
   </style>
@@ -158,13 +99,13 @@
 <body>
   <header class="site-header">
     <div class="nav-inner">
-      <a class="brand" href="../">thurstone</a>
+      <a class="brand" href="../index.html">thurstone</a>
       <nav>
         <a href="../pages/thurstone.html">Thurstone models</a>
         <a href="../pages/fast-transform.html">Fast ability transform</a>
         <a href="../pages/rating-systems.html">Rating systems</a>
         <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
-        <a href="../demos/">Demos</a>
+        <a href="../demos/index.html">Demos</a>
         <a href="https://github.com/microprediction/thurstone">GitHub</a>
       </nav>
     </div>
@@ -179,94 +120,47 @@
       and the simplex shows the corresponding winning probabilities using barycentric coordinates.
     </p>
 
-    <p>
-      The mapping uses inverse normal CDF transformations to convert cube coordinates to competitor
-      abilities, then applies racing dynamics with a special third competitor. The mean-adaptive mode
-      creates dynamic competition where the special horse's strength inversely relates to the
-      average performance of the regular competitors.
-    </p>
-
-    <div class="controls">
-      <div class="control-group">
-        <h3>📊 Symmetric Inverse Normal Mapping</h3>
-        <div class="slider-group">
-          <label>Scale: <span class="slider-value" id="alpha1-value">1.60</span></label>
-          <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.1" value="1.6">
-        </div>
-        <div class="slider-group">
-          <label>Shift: <span class="slider-value" id="gamma1-value">-0.30</span></label>
-          <input type="range" class="slider" id="gamma1" min="-2.0" max="2.0" step="0.1" value="-0.3">
-        </div>
-      </div>
-
-      <div class="control-group">
-        <h3>🐎 Special Horse Configuration</h3>
-        <div class="slider-group">
-          <label>Base Ability: <span class="slider-value" id="special-ability-value">-0.10</span></label>
-          <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="-0.1">
-        </div>
-        <div class="slider-group">
-          <label>Location: <span class="slider-value" id="special-location-value">0.00</span></label>
-          <input type="range" class="slider" id="special-location" min="-1.0" max="1.0" step="0.05" value="0.0">
-        </div>
-        <div class="slider-group">
-          <label>Scale: <span class="slider-value" id="special-scale-value">0.10</span></label>
-          <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="0.1">
-        </div>
-        <div class="slider-group">
-          <label>Distribution:</label>
-          <select id="special-distribution">
-            <option value="normal">Normal</option>
-            <option value="student_t">Student's t</option>
-            <option value="laplace">Laplace</option>
-            <option value="uniform">Uniform</option>
-            <option value="exponential">Exponential</option>
-          </select>
-        </div>
-        <div class="slider-group">
-          <label>Adaptive Mode:</label>
-          <select id="adaptive-mode">
-            <option value="fixed">Fixed</option>
-            <option value="mean_adaptive" selected>Mean Adaptive</option>
-            <option value="position_adaptive">Position Adaptive</option>
-          </select>
-        </div>
-      </div>
+    <div class="metrics">
+      <span>Symmetry: <strong id="symmetry-metric">0.000</strong></span>
+      <span>Volume: <strong id="volume-metric">0.000</strong></span>
+      <span>Smoothness: <strong id="smoothness-metric">0.000</strong></span>
+      <span>Coverage: <strong id="coverage-metric">0.000</strong></span>
+      <span>Invertibility: <strong id="invertibility-metric">0.000</strong></span>
     </div>
 
     <div class="visualization">
       <div class="plot-container">
         <div class="plot-title">Unit Cube $[0,1]^2$ → Lattice Points</div>
-        <svg id="cube-plot" width="400" height="400"></svg>
+        <svg id="cube-plot" width="500" height="400"></svg>
       </div>
       <div class="plot-container">
         <div class="plot-title">2-Simplex (Triangle) → Mapped Points</div>
-        <svg id="simplex-plot" width="400" height="400"></svg>
+        <svg id="simplex-plot" width="500" height="400"></svg>
       </div>
     </div>
 
-    <div class="metrics">
-      <div class="metric-card">
-        <div class="metric-name">Symmetry</div>
-        <div class="metric-value" id="symmetry-metric">0.000</div>
+    <div class="controls">
+      <div class="slider-group">
+        <label>Scale <span class="slider-value" id="alpha1-value">1.60</span></label>
+        <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.1" value="1.6">
       </div>
-      <div class="metric-card">
-        <div class="metric-name">Volume</div>
-        <div class="metric-value" id="volume-metric">0.000</div>
+      <div class="slider-group">
+        <label>Shift <span class="slider-value" id="gamma1-value">-0.30</span></label>
+        <input type="range" class="slider" id="gamma1" min="-2.0" max="2.0" step="0.1" value="-0.3">
       </div>
-      <div class="metric-card">
-        <div class="metric-name">Smoothness</div>
-        <div class="metric-value" id="smoothness-metric">0.000</div>
+      <div class="slider-group">
+        <label>Base Ability <span class="slider-value" id="special-ability-value">-0.10</span></label>
+        <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="-0.1">
       </div>
-      <div class="metric-card">
-        <div class="metric-name">Coverage</div>
-        <div class="metric-value" id="coverage-metric">0.000</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-name">Invertibility</div>
-        <div class="metric-value" id="invertibility-metric">0.000</div>
+      <div class="slider-group">
+        <label>Special Scale <span class="slider-value" id="special-scale-value">0.10</span></label>
+        <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="0.1">
       </div>
     </div>
+
+    <input type="hidden" id="special-location" value="0.0">
+    <input type="hidden" id="special-distribution" value="normal">
+    <input type="hidden" id="adaptive-mode" value="mean_adaptive">
 
     <h2>Mathematical Framework</h2>
 
@@ -316,7 +210,6 @@
         document.getElementById('alpha1-value').textContent = getValue('alpha1').toFixed(2);
         document.getElementById('gamma1-value').textContent = getValue('gamma1').toFixed(2);
         document.getElementById('special-ability-value').textContent = getValue('special-ability').toFixed(2);
-        document.getElementById('special-location-value').textContent = getValue('special-location').toFixed(2);
         document.getElementById('special-scale-value').textContent = getValue('special-scale').toFixed(2);
       }
 
@@ -461,12 +354,21 @@
         this.updateMetrics(points);
       }
 
+      updateMetrics(points) {
+        // Simple placeholder metrics
+        document.getElementById('symmetry-metric').textContent = '0.872';
+        document.getElementById('volume-metric').textContent = '0.634';
+        document.getElementById('smoothness-metric').textContent = '0.923';
+        document.getElementById('coverage-metric').textContent = '0.445';
+        document.getElementById('invertibility-metric').textContent = '0.789';
+      }
+
       renderCubePlot(points) {
         const svg = d3.select('#cube-plot');
         svg.selectAll('*').remove();
 
         const margin = {top: 20, right: 20, bottom: 40, left: 40};
-        const width = 400 - margin.left - margin.right;
+        const width = 500 - margin.left - margin.right;
         const height = 400 - margin.top - margin.bottom;
 
         const g = svg.append('g')
@@ -501,7 +403,9 @@
           .attr('class', 'cube-point')
           .attr('cx', d => xScale(d.cube[0]))
           .attr('cy', d => yScale(d.cube[1]))
-          .attr('r', 2);
+          .attr('r', 2)
+          .attr('fill', '#dc3545')
+          .attr('fill-opacity', 0.6);
       }
 
       renderSimplexPlot(points) {
@@ -509,7 +413,7 @@
         svg.selectAll('*').remove();
 
         const margin = {top: 20, right: 20, bottom: 40, left: 40};
-        const width = 400 - margin.left - margin.right;
+        const width = 500 - margin.left - margin.right;
         const height = 400 - margin.top - margin.bottom;
 
         const g = svg.append('g')
@@ -537,8 +441,10 @@
 
         g.append('path')
           .datum([...vertices, vertices[0]])
-          .attr('class', 'simplex-boundary')
-          .attr('d', line);
+          .attr('d', line)
+          .attr('fill', 'none')
+          .attr('stroke', 'var(--text)')
+          .attr('stroke-width', 2);
 
         // Labels
         g.append('text')
@@ -571,16 +477,11 @@
             const cart = barycentricToCartesian(d.simplex);
             return yScale(cart[1]);
           })
-          .attr('r', 1.5);
-      }
-
-      updateMetrics(points) {
-        // Simple placeholder metrics
-        document.getElementById('symmetry-metric').textContent = '0.872';
-        document.getElementById('volume-metric').textContent = '0.634';
-        document.getElementById('smoothness-metric').textContent = '0.923';
-        document.getElementById('coverage-metric').textContent = '0.445';
-        document.getElementById('invertibility-metric').textContent = '0.789';
+          .attr('r', 1.5)
+          .attr('fill', 'var(--accent)')
+          .attr('fill-opacity', 0.7)
+          .attr('stroke', 'var(--accent)')
+          .attr('stroke-width', 0.5);
       }
     }
 

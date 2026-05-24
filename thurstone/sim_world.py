@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Optional
 import math
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
-from .lattice import UniformLattice
 from .density import Density
-from .inference import AbilityCalibrator
 from .dynamic import RaceObservation
+from .inference import AbilityCalibrator
+from .lattice import UniformLattice
 
 
 def sigma_true(dt: float, alpha: float = 0.04) -> float:
@@ -40,9 +41,9 @@ def simulate_world(
     n_races: int = 90,
     race_size_range: Tuple[int, int] = (8, 14),
     horizon_days: float = 240.0,
-    alpha: float = 0.04,          # RW diffusion scale in σ_true
-    sigma0: float = 0.8,          # initial ability std
-    bookmaker_rel_tau: float = 0.5,   # per-horse ability noise std (relative skill)
+    alpha: float = 0.04,  # RW diffusion scale in σ_true
+    sigma0: float = 0.8,  # initial ability std
+    bookmaker_rel_tau: float = 0.5,  # per-horse ability noise std (relative skill)
     bookmaker_bias_tau: float = 0.0,  # race-level bias std (relative race strength)
 ) -> Tuple[
     List[RaceObservation],
@@ -60,8 +61,11 @@ def simulate_world(
       - reference to sigma_true(dt).
     """
     times, fields = simulate_schedule(
-        rng, n_horses=n_horses, n_races=n_races,
-        race_size_range=race_size_range, horizon_days=horizon_days
+        rng,
+        n_horses=n_horses,
+        n_races=n_races,
+        race_size_range=race_size_range,
+        horizon_days=horizon_days,
     )
     horse_ids = [f"H{i}" for i in range(n_horses)]
 
@@ -104,13 +108,17 @@ def simulate_world(
         ids = [horse_ids[h] for h in fld]
         mu_true = np.array([mu_at_race[(h, r_i)] for h in fld], dtype=float)
         # true probabilities (fair)
-        p_true = np.asarray(forward.state_prices_from_ability(mu_true.tolist()), dtype=float)
+        p_true = np.asarray(
+            forward.state_prices_from_ability(mu_true.tolist()), dtype=float
+        )
         # bookmaker noisy ability view:
         #   - relative per-horse noise
         #   - plus a race-level bias (same shift added to all entrants)
         race_bias = float(rng.normal(0.0, bookmaker_bias_tau))
         mu_hat = mu_true + rng.normal(0.0, bookmaker_rel_tau, size=len(fld)) + race_bias
-        p_obs = np.asarray(forward.state_prices_from_ability(mu_hat.tolist()), dtype=float)
+        p_obs = np.asarray(
+            forward.state_prices_from_ability(mu_hat.tolist()), dtype=float
+        )
         winner_idx = int(rng.choice(len(fld), p=p_true / max(np.sum(p_true), 1e-12)))
         winner_id = ids[winner_idx]
         # store bookmaker noisy ability samples at each race time
@@ -131,6 +139,11 @@ def simulate_world(
     true_times_np = {h: np.asarray(v, dtype=float) for h, v in true_times.items()}
     book_theta_np = {h: np.asarray(v, dtype=float) for h, v in book_theta.items()}
     book_times_np = {h: np.asarray(v, dtype=float) for h, v in book_times.items()}
-    return races, true_theta_np, true_times_np, book_theta_np, book_times_np, (lambda dt: sigma_true(dt, alpha=alpha))
-
-
+    return (
+        races,
+        true_theta_np,
+        true_times_np,
+        book_theta_np,
+        book_times_np,
+        (lambda dt: sigma_true(dt, alpha=alpha)),
+    )

@@ -9,14 +9,17 @@ Example: Global LS calibration via per-race relative abilities.
 Run:
     python examples/global_calibration_ls_demo.py
 """
+
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import UniformLattice, Density, AbilityCalibrator, GlobalLSCalibrator
+from thurstone import (AbilityCalibrator, Density, GlobalLSCalibrator,
+                       UniformLattice)
 
 NUM_HORSES = 500
 NUM_RACES = 100
 RACE_SIZE = 20
+
 
 def main():
     rng = default_rng(123)
@@ -79,7 +82,9 @@ def main():
         p_true = race_prices[r]
         # Align race by per-race median of (local inversion - global theta) as a bias estimate
         local_inv = np.array(calibrators[r].solve_from_prices(p_true), dtype=float)
-        br = float(np.median(local_inv - np.array([gls.theta[h] for h in ids], dtype=float)))
+        br = float(
+            np.median(local_inv - np.array([gls.theta[h] for h in ids], dtype=float))
+        )
         mu_fit = [float(gls.theta[h] + br) for h in ids]
         p_fit = np.array(calibrators[r].state_prices_from_ability(mu_fit), dtype=float)
         l2 = float(np.linalg.norm(p_true - p_fit))
@@ -94,6 +99,7 @@ def main():
     # Plot true vs inferred (centered)
     try:
         import matplotlib.pyplot as plt
+
         fig, ax = plt.subplots(figsize=(8, 5))
         ax.scatter(true_c, est_c, s=24, alpha=0.8)
         lim = float(max(np.max(np.abs(true_c)), np.max(np.abs(est_c))))
@@ -111,5 +117,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
