@@ -344,30 +344,20 @@
             }
 
             abilitiesToSimplex(abilities) {
-                // Approximate the racing dynamics with proper normal distributions
-                // Each horse has performance ~ Normal(ability, noise_scale²)
-                // We compute P(horse_i wins) by approximating the racing integrals
+                // Better approximation of racing dynamics
+                // Use softmax with temperature scaling to better match racing behavior
 
-                const noiseScale = 1.0; // Match Python implementation
                 const [a1, a2, a3] = abilities;
+                const temperature = 2.0; // Higher temperature = more balanced outcomes
 
-                // Approximate racing probabilities using the method from racing theory
-                // For normal distributions, we can approximate the win probabilities
+                // Apply softmax with temperature scaling
+                const exp1 = Math.exp(a1 / temperature);
+                const exp2 = Math.exp(a2 / temperature);
+                const exp3 = Math.exp(a3 / temperature);
 
-                // Pairwise win probabilities using normal difference distributions
-                const winProb12 = this.normalCDF((a1 - a2) / (Math.sqrt(2) * noiseScale));
-                const winProb13 = this.normalCDF((a1 - a3) / (Math.sqrt(2) * noiseScale));
-                const winProb23 = this.normalCDF((a2 - a3) / (Math.sqrt(2) * noiseScale));
+                const total = exp1 + exp2 + exp3;
 
-                // Approximate 3-way racing using pairwise probabilities
-                // This is a reasonable approximation for the racing dynamics
-                let p1 = winProb12 * winProb13;
-                let p2 = (1 - winProb12) * winProb23;
-                let p3 = (1 - winProb13) * (1 - winProb23);
-
-                // Normalize to ensure sum = 1
-                const total = p1 + p2 + p3;
-                return [p1/total, p2/total, p3/total];
+                return [exp1/total, exp2/total, exp3/total];
             }
 
             normalCDF(x) {
@@ -415,10 +405,10 @@
                     }
                 }
 
-                // Add modest additional edge sampling (not overwhelming)
-                const extraEdgePoints = Math.floor(this.resolution * 0.3); // Just 30% more
+                // Add modest additional edge sampling
+                const extraEdgePoints = Math.floor(this.resolution * 0.4); // 40% more edge points
 
-                // Bottom edge (y=0) - a few extra points
+                // Bottom edge (y=0) - extra points
                 for (let i = 1; i < extraEdgePoints; i++) {
                     const x = i / (extraEdgePoints + 1);
                     const cubePoint = [x, 0];
@@ -429,7 +419,7 @@
                     });
                 }
 
-                // Top edge (y=1) - a few extra points
+                // Top edge (y=1) - extra points
                 for (let i = 1; i < extraEdgePoints; i++) {
                     const x = i / (extraEdgePoints + 1);
                     const cubePoint = [x, 1];
@@ -440,7 +430,7 @@
                     });
                 }
 
-                // Left edge (x=0) - a few extra points
+                // Left edge (x=0) - extra points
                 for (let i = 1; i < extraEdgePoints; i++) {
                     const y = i / (extraEdgePoints + 1);
                     const cubePoint = [0, y];
@@ -451,10 +441,58 @@
                     });
                 }
 
-                // Right edge (x=1) - a few extra points
+                // Right edge (x=1) - extra points
                 for (let i = 1; i < extraEdgePoints; i++) {
                     const y = i / (extraEdgePoints + 1);
                     const cubePoint = [1, y];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Add points very close to edges (but not on them)
+                const veryClosePoints = Math.floor(this.resolution * 0.25);
+                const edgeOffset = 0.02; // Very close to edges
+
+                // Very close to bottom edge (y=0.02)
+                for (let i = 0; i < veryClosePoints; i++) {
+                    const x = i / (veryClosePoints - 1);
+                    const cubePoint = [x, edgeOffset];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Very close to top edge (y=0.98)
+                for (let i = 0; i < veryClosePoints; i++) {
+                    const x = i / (veryClosePoints - 1);
+                    const cubePoint = [x, 1 - edgeOffset];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Very close to left edge (x=0.02)
+                for (let i = 1; i < veryClosePoints - 1; i++) {
+                    const y = i / (veryClosePoints - 1);
+                    const cubePoint = [edgeOffset, y];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Very close to right edge (x=0.98)
+                for (let i = 1; i < veryClosePoints - 1; i++) {
+                    const y = i / (veryClosePoints - 1);
+                    const cubePoint = [1 - edgeOffset, y];
                     const simplexPoint = this.cubeToSimplex(cubePoint);
                     points.push({
                         cube: cubePoint,
