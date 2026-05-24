@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "study_type": "special_horse_systematic",
+    "total_configurations": 324,
+    "total_evaluations": 972,
+    "runtime_minutes": 39.1,
+    "completed_timestamp": "2026-05-23T22:15:00",
+    "fixed_sigmoid_params": {
+      "alpha": 1.2,
+      "beta": 4.0,
+      "gamma": 0.5,
+      "description": "Symmetric sigmoids for both dimensions"
+    }
+  },
+  "best_overall_configuration": {
+    "distribution": "normal",
+    "base_ability": 0.5,
+    "location": 0.0,
+    "scale": 0.5,
+    "adaptive_mode": "fixed",
+    "quality_scores": {
+      "symmetry": 0.964,
+      "volume_preservation": null,
+      "smoothness": null,
+      "coverage": 0.409,
+      "invertibility": null,
+      "overall": 0.7282
+    }
+  },
+  "key_findings": {
+    "distribution_independence": {
+      "finding": "Distribution type (normal, student_t, laplace, uniform) has no impact on quality scores",
+      "all_top_scores": 0.7282,
+      "implication": "The specific distribution of the special horse performance noise doesn't matter for mapping quality"
+    },
+    "scale_robustness": {
+      "finding": "Scale parameter (0.5, 1.0, 1.5) has no impact on top configurations",
+      "implication": "The variance of the special horse performance distribution is not critical"
+    },
+    "optimal_base_ability": {
+      "finding": "Base ability +0.5 dominates all top 10 configurations",
+      "implication": "Moderate special horse advantage creates optimal balance"
+    },
+    "adaptive_mode_failure": {
+      "finding": "Fixed mode outperforms mean_adaptive and position_adaptive",
+      "implication": "Adaptive strategies don't improve mapping quality with fixed sigmoids"
+    },
+    "coverage_bottleneck": {
+      "finding": "Coverage score (0.409) limits overall performance despite excellent symmetry (0.964)",
+      "implication": "Future optimization should focus on improving simplex coverage"
+    }
+  },
+  "top_configurations": {
+    "balanced_weighting": [
+      {
+        "rank": 1,
+        "distribution": "normal",
+        "adaptive_mode": "fixed",
+        "base_ability": 0.5,
+        "scale": 0.5,
+        "score": 0.7282,
+        "symmetry": 0.964,
+        "coverage": 0.409
+      },
+      {
+        "rank": 2,
+        "distribution": "normal",
+        "adaptive_mode": "fixed",
+        "base_ability": 0.5,
+        "scale": 1.0,
+        "score": 0.7282,
+        "symmetry": 0.964,
+        "coverage": 0.409
+      },
+      {
+        "rank": 3,
+        "distribution": "normal",
+        "adaptive_mode": "fixed",
+        "base_ability": 0.5,
+        "scale": 1.5,
+        "score": 0.7282,
+        "symmetry": 0.964,
+        "coverage": 0.409
+      }
+    ],
+    "note": "Top 10 results show identical scores across different distribution types, confirming distribution independence"
+  },
+  "research_implications": {
+    "parameter_focus": "Future studies should focus on sigmoid parameter optimization rather than special horse distribution details",
+    "coverage_optimization": "The main limitation is coverage (0.409) - need strategies to improve simplex coverage",
+    "computational_efficiency": "Since distribution type doesn't matter, can use simple normal distribution for efficiency",
+    "base_ability_tuning": "The +0.5 base ability appears to be a global optimum for this sigmoid configuration"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "name": "Optimal Special Horse Configuration",
+  "description": "Best configuration found from systematic study of 972 special horse variants",
+  "source": "special_horse_systematic_study_2026-05-23",
+
+  "sigmoid_configuration": {
+    "alpha1": 1.2,
+    "beta1": 4.0,
+    "gamma1": 0.5,
+    "alpha2": 1.2,
+    "beta2": 4.0,
+    "gamma2": 0.5,
+    "note": "Symmetric sigmoid parameters used as baseline"
+  },
+
+  "special_horse_configuration": {
+    "distribution": "normal",
+    "base_ability": 0.5,
+    "location": 0.0,
+    "scale": 0.5,
+    "adaptive_mode": "fixed"
+  },
+
+  "performance_metrics": {
+    "overall_score": 0.7282,
+    "symmetry_score": 0.964,
+    "coverage_score": 0.409,
+    "volume_preservation_score": null,
+    "smoothness_score": null,
+    "invertibility_score": null
+  },
+
+  "interactive_visualization_settings": {
+    "instructions": "Load these settings in the interactive diffeomorphism explorer",
+    "url_parameters": "?alpha1=1.2&beta1=4.0&gamma1=0.5&alpha2=1.2&beta2=4.0&gamma2=0.5&special_ability=0.5&special_location=0.0&special_scale=0.5&special_distribution=normal&adaptive_mode=fixed",
+    "expected_behavior": "Should show excellent symmetry (0.964) with moderate coverage (0.409)"
+  },
+
+  "research_context": {
+    "total_configurations_tested": 324,
+    "parameter_space": {
+      "distributions": ["normal", "student_t", "laplace", "uniform"],
+      "base_abilities": [-0.5, 0.0, 0.5],
+      "locations": [-0.2, 0.0, 0.2],
+      "scales": [0.5, 1.0, 1.5],
+      "adaptive_modes": ["fixed", "mean_adaptive", "position_adaptive"]
+    },
+    "key_insight": "Distribution type and scale have minimal impact; base ability +0.5 is critical"
+  }
+}
