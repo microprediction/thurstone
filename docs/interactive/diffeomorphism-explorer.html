@@ -400,10 +400,13 @@
 
             generateGrid() {
                 const points = [];
-                for (let i = 0; i < this.resolution; i++) {
-                    for (let j = 0; j < this.resolution; j++) {
-                        const x = i / (this.resolution - 1);
-                        const y = j / (this.resolution - 1);
+
+                // Regular grid (reduced density in center)
+                const innerRes = Math.floor(this.resolution * 0.7);
+                for (let i = 0; i < innerRes; i++) {
+                    for (let j = 0; j < innerRes; j++) {
+                        const x = 0.15 + (i / (innerRes - 1)) * 0.7; // Focus on [0.15, 0.85]
+                        const y = 0.15 + (j / (innerRes - 1)) * 0.7;
                         const cubePoint = [x, y];
                         const simplexPoint = this.cubeToSimplex(cubePoint);
                         points.push({
@@ -412,6 +415,64 @@
                         });
                     }
                 }
+
+                // Add dense edge sampling
+                const edgePoints = Math.floor(this.resolution * 1.5);
+
+                // Bottom edge (y=0)
+                for (let i = 0; i < edgePoints; i++) {
+                    const x = i / (edgePoints - 1);
+                    const cubePoint = [x, 0];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Top edge (y=1)
+                for (let i = 0; i < edgePoints; i++) {
+                    const x = i / (edgePoints - 1);
+                    const cubePoint = [x, 1];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Left edge (x=0)
+                for (let i = 1; i < edgePoints - 1; i++) { // Skip corners already added
+                    const y = i / (edgePoints - 1);
+                    const cubePoint = [0, y];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Right edge (x=1)
+                for (let i = 1; i < edgePoints - 1; i++) { // Skip corners already added
+                    const y = i / (edgePoints - 1);
+                    const cubePoint = [1, y];
+                    const simplexPoint = this.cubeToSimplex(cubePoint);
+                    points.push({
+                        cube: cubePoint,
+                        simplex: simplexPoint
+                    });
+                }
+
+                // Add corner emphasis
+                const corners = [[0,0], [0,1], [1,0], [1,1]];
+                corners.forEach(corner => {
+                    const simplexPoint = this.cubeToSimplex(corner);
+                    points.push({
+                        cube: corner,
+                        simplex: simplexPoint
+                    });
+                });
+
                 return points;
             }
 
