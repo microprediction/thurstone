@@ -168,46 +168,30 @@
 
         <div class="controls">
             <div class="control-group">
-                <h3>📊 Sigmoid Parameters</h3>
+                <h3>📊 Symmetric Inverse Normal Mapping</h3>
                 <div class="slider-group">
-                    <label>α₁ (Scale): <span class="slider-value" id="alpha1-value">1.20</span></label>
-                    <input type="range" class="slider" id="alpha1" min="0.5" max="2.5" step="0.05" value="1.2">
+                    <label>Scale: <span class="slider-value" id="alpha1-value">1.60</span></label>
+                    <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.1" value="1.6">
                 </div>
                 <div class="slider-group">
-                    <label>β₁ (Steepness): <span class="slider-value" id="beta1-value">4.00</span></label>
-                    <input type="range" class="slider" id="beta1" min="2.0" max="8.0" step="0.1" value="4.0">
-                </div>
-                <div class="slider-group">
-                    <label>γ₁ (Shift): <span class="slider-value" id="gamma1-value">0.50</span></label>
-                    <input type="range" class="slider" id="gamma1" min="0.2" max="0.8" step="0.01" value="0.5">
-                </div>
-                <div class="slider-group">
-                    <label>α₂ (Scale): <span class="slider-value" id="alpha2-value">1.20</span></label>
-                    <input type="range" class="slider" id="alpha2" min="0.5" max="2.5" step="0.05" value="1.2">
-                </div>
-                <div class="slider-group">
-                    <label>β₂ (Steepness): <span class="slider-value" id="beta2-value">4.00</span></label>
-                    <input type="range" class="slider" id="beta2" min="2.0" max="8.0" step="0.1" value="4.0">
-                </div>
-                <div class="slider-group">
-                    <label>γ₂ (Shift): <span class="slider-value" id="gamma2-value">0.50</span></label>
-                    <input type="range" class="slider" id="gamma2" min="0.2" max="0.8" step="0.01" value="0.5">
+                    <label>Shift: <span class="slider-value" id="gamma1-value">-0.30</span></label>
+                    <input type="range" class="slider" id="gamma1" min="-2.0" max="2.0" step="0.1" value="-0.3">
                 </div>
             </div>
 
             <div class="control-group">
                 <h3>🐎 Special Horse Configuration</h3>
                 <div class="slider-group">
-                    <label>Base Ability: <span class="slider-value" id="special-ability-value">0.00</span></label>
-                    <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="0.0">
+                    <label>Base Ability: <span class="slider-value" id="special-ability-value">-0.10</span></label>
+                    <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="-0.1">
                 </div>
                 <div class="slider-group">
                     <label>Location: <span class="slider-value" id="special-location-value">0.00</span></label>
                     <input type="range" class="slider" id="special-location" min="-1.0" max="1.0" step="0.05" value="0.0">
                 </div>
                 <div class="slider-group">
-                    <label>Scale: <span class="slider-value" id="special-scale-value">1.00</span></label>
-                    <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="1.0">
+                    <label>Scale: <span class="slider-value" id="special-scale-value">0.10</span></label>
+                    <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="0.1">
                 </div>
                 <div class="slider-group">
                     <label>Distribution:</label>
@@ -223,7 +207,7 @@
                     <label>Adaptive Mode:</label>
                     <select id="adaptive-mode" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
                         <option value="fixed">Fixed</option>
-                        <option value="mean_adaptive">Mean Adaptive</option>
+                        <option value="mean_adaptive" selected>Mean Adaptive</option>
                         <option value="position_adaptive">Position Adaptive</option>
                     </select>
                 </div>
@@ -291,23 +275,51 @@
                 const getValue = (id) => parseFloat(document.getElementById(id).value);
 
                 document.getElementById('alpha1-value').textContent = getValue('alpha1').toFixed(2);
-                document.getElementById('beta1-value').textContent = getValue('beta1').toFixed(2);
                 document.getElementById('gamma1-value').textContent = getValue('gamma1').toFixed(2);
-                document.getElementById('alpha2-value').textContent = getValue('alpha2').toFixed(2);
-                document.getElementById('beta2-value').textContent = getValue('beta2').toFixed(2);
-                document.getElementById('gamma2-value').textContent = getValue('gamma2').toFixed(2);
                 document.getElementById('special-ability-value').textContent = getValue('special-ability').toFixed(2);
                 document.getElementById('special-location-value').textContent = getValue('special-location').toFixed(2);
                 document.getElementById('special-scale-value').textContent = getValue('special-scale').toFixed(2);
             }
 
             parametricSigmoid(x, alpha, beta, gamma) {
-                return alpha * (1 / (1 + Math.exp(-beta * (x - gamma))) - 0.5);
+                return alpha * (2 / (1 + Math.exp(-beta * (x - gamma))) - 1);
+            }
+
+            inverseNormalCDF(p) {
+                // Beasley-Springer-Moro algorithm for inverse normal CDF
+                // Maps [0,1] to normal distribution
+                if (p <= 0 || p >= 1) {
+                    return p <= 0 ? -6 : 6; // Clamp extremes
+                }
+
+                const a = [0, -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+                const b = [0, -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+                const c = [0, -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+                const d = [0, 7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+
+                const pLow = 0.02425;
+                const pHigh = 1 - pLow;
+
+                if (p < pLow) {
+                    const q = Math.sqrt(-2 * Math.log(p));
+                    return (((((c[1] * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) * q + c[6]) /
+                           ((((d[1] * q + d[2]) * q + d[3]) * q + d[4]) * q + 1);
+                } else if (p <= pHigh) {
+                    const q = p - 0.5;
+                    const r = q * q;
+                    return (((((a[1] * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * r + a[6]) * q /
+                           (((((b[1] * r + b[2]) * r + b[3]) * r + b[4]) * r + b[5]) * r + 1);
+                } else {
+                    const q = Math.sqrt(-2 * Math.log(1 - p));
+                    return -(((((c[1] * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) * q + c[6]) /
+                            ((((d[1] * q + d[2]) * q + d[3]) * q + d[4]) * q + 1);
+                }
             }
 
             computeSpecialHorseAbility(cubePoint, otherAbilities) {
                 const baseAbility = parseFloat(document.getElementById('special-ability').value);
                 const location = parseFloat(document.getElementById('special-location').value);
+                const scale = parseFloat(document.getElementById('special-scale').value);
                 const adaptiveMode = document.getElementById('adaptive-mode').value;
 
                 let ability = baseAbility;
@@ -320,22 +332,23 @@
                     ability = baseAbility + 0.5 * centerDistance;
                 }
 
-                return ability + location;
+                // Add deterministic pseudo-noise based on cube position
+                // This simulates the distribution effect while keeping mapping deterministic
+                const [x, y] = cubePoint;
+                const pseudoNoise = scale * Math.sin(7.1 * x + 11.3 * y + 3.7) * Math.cos(5.9 * x - 8.1 * y + 2.1);
+
+                return ability + location + pseudoNoise;
             }
 
             cubeToAbilities(cubePoint) {
                 const [x, y] = cubePoint;
 
-                const alpha1 = parseFloat(document.getElementById('alpha1').value);
-                const beta1 = parseFloat(document.getElementById('beta1').value);
-                const gamma1 = parseFloat(document.getElementById('gamma1').value);
+                // Use inverse normal CDF mapping for symmetric case
+                const scale = parseFloat(document.getElementById('alpha1').value) || 1.0;
+                const shift = parseFloat(document.getElementById('gamma1').value) || 0.0;
 
-                const alpha2 = parseFloat(document.getElementById('alpha2').value);
-                const beta2 = parseFloat(document.getElementById('beta2').value);
-                const gamma2 = parseFloat(document.getElementById('gamma2').value);
-
-                const ability1 = this.parametricSigmoid(x, alpha1, beta1, gamma1);
-                const ability2 = this.parametricSigmoid(y, alpha2, beta2, gamma2);
+                const ability1 = scale * this.inverseNormalCDF(x) + shift;
+                const ability2 = scale * this.inverseNormalCDF(y) + shift;
 
                 const regularAbilities = [ability1, ability2];
                 const specialAbility = this.computeSpecialHorseAbility(cubePoint, regularAbilities);
@@ -391,11 +404,17 @@
             generateGrid() {
                 const points = [];
 
-                // Main regular grid - covers most of the cube
+                // Sample in inverse normal space to get more points near cube edges
+                const normalRange = 3.0; // Sample from -3 to +3 in normal space
                 for (let i = 0; i < this.resolution; i++) {
                     for (let j = 0; j < this.resolution; j++) {
-                        const x = i / (this.resolution - 1);
-                        const y = j / (this.resolution - 1);
+                        // Uniform grid in normal space
+                        const normalX = -normalRange + (2 * normalRange * i) / (this.resolution - 1);
+                        const normalY = -normalRange + (2 * normalRange * j) / (this.resolution - 1);
+
+                        // Convert back to [0,1] cube coordinates using normal CDF
+                        const x = this.normalCDF(normalX);
+                        const y = this.normalCDF(normalY);
                         const cubePoint = [x, y];
                         const simplexPoint = this.cubeToSimplex(cubePoint);
                         points.push({
@@ -592,8 +611,12 @@
                 // Convert barycentric coordinates to cartesian for visualization
                 const barycentricToCartesian = (bary) => {
                     const [w1, w2, w3] = bary;
-                    const x = 0.5 * w2 + w3;
-                    const y = (Math.sqrt(3) / 2) * w2;
+                    // Standard equilateral triangle vertices:
+                    // [1,0,0] -> (0, 0) bottom left
+                    // [0,1,0] -> (1, 0) bottom right
+                    // [0,0,1] -> (0.5, sqrt(3)/2) top
+                    const x = w2 + 0.5 * w3;
+                    const y = w3 * (Math.sqrt(3) / 2);
                     return [x, y];
                 };
 
