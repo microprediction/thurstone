@@ -18,10 +18,12 @@ import numpy as np
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone.cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from thurstone.optimization import ParameterBounds, optimize_diffeomorphism
-from thurstone.quality_assessment import (QualityMetrics,
-                                          comprehensive_quality_assessment)
+from thurstone.cube_to_simplex import (CubeToSimplexMapping,  # noqa: E402
+                                       SigmoidParams)
+from thurstone.optimization import (ParameterBounds,  # noqa: E402
+                                    optimize_diffeomorphism)
+from thurstone.quality_assessment import QualityMetrics  # noqa: E402
+from thurstone.quality_assessment import comprehensive_quality_assessment
 
 
 def create_example_mappings() -> dict:

@@ -18,8 +18,8 @@ from mpl_toolkits.mplot3d import Axes3D
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import (CubeToSimplexMapping, SigmoidParams,
-                       comprehensive_quality_assessment,
+from thurstone import SigmoidParams  # noqa: E402
+from thurstone import (CubeToSimplexMapping, comprehensive_quality_assessment,
                        optimize_diffeomorphism)
 
 # Set publication-quality matplotlib parameters
