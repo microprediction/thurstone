@@ -401,12 +401,11 @@
             generateGrid() {
                 const points = [];
 
-                // Sparse center grid - less density in middle of cube
-                const centerRes = Math.floor(this.resolution * 0.4);
-                for (let i = 0; i < centerRes; i++) {
-                    for (let j = 0; j < centerRes; j++) {
-                        const x = 0.3 + (i / (centerRes - 1)) * 0.4; // Only middle region [0.3, 0.7]
-                        const y = 0.3 + (j / (centerRes - 1)) * 0.4;
+                // Main regular grid - covers most of the cube
+                for (let i = 0; i < this.resolution; i++) {
+                    for (let j = 0; j < this.resolution; j++) {
+                        const x = i / (this.resolution - 1);
+                        const y = j / (this.resolution - 1);
                         const cubePoint = [x, y];
                         const simplexPoint = this.cubeToSimplex(cubePoint);
                         points.push({
@@ -416,12 +415,12 @@
                     }
                 }
 
-                // DENSE edge sampling - lots of points near cube boundaries
-                const edgePoints = Math.floor(this.resolution * 2.5); // Much denser!
+                // Add modest additional edge sampling (not overwhelming)
+                const extraEdgePoints = Math.floor(this.resolution * 0.3); // Just 30% more
 
-                // Bottom edge (y=0) - DENSE sampling
-                for (let i = 0; i < edgePoints; i++) {
-                    const x = i / (edgePoints - 1);
+                // Bottom edge (y=0) - a few extra points
+                for (let i = 1; i < extraEdgePoints; i++) {
+                    const x = i / (extraEdgePoints + 1);
                     const cubePoint = [x, 0];
                     const simplexPoint = this.cubeToSimplex(cubePoint);
                     points.push({
@@ -430,9 +429,9 @@
                     });
                 }
 
-                // Top edge (y=1) - DENSE sampling
-                for (let i = 0; i < edgePoints; i++) {
-                    const x = i / (edgePoints - 1);
+                // Top edge (y=1) - a few extra points
+                for (let i = 1; i < extraEdgePoints; i++) {
+                    const x = i / (extraEdgePoints + 1);
                     const cubePoint = [x, 1];
                     const simplexPoint = this.cubeToSimplex(cubePoint);
                     points.push({
@@ -441,9 +440,9 @@
                     });
                 }
 
-                // Left edge (x=0) - DENSE sampling
-                for (let i = 1; i < edgePoints - 1; i++) {
-                    const y = i / (edgePoints - 1);
+                // Left edge (x=0) - a few extra points
+                for (let i = 1; i < extraEdgePoints; i++) {
+                    const y = i / (extraEdgePoints + 1);
                     const cubePoint = [0, y];
                     const simplexPoint = this.cubeToSimplex(cubePoint);
                     points.push({
@@ -452,9 +451,9 @@
                     });
                 }
 
-                // Right edge (x=1) - DENSE sampling
-                for (let i = 1; i < edgePoints - 1; i++) {
-                    const y = i / (edgePoints - 1);
+                // Right edge (x=1) - a few extra points
+                for (let i = 1; i < extraEdgePoints; i++) {
+                    const y = i / (extraEdgePoints + 1);
                     const cubePoint = [1, y];
                     const simplexPoint = this.cubeToSimplex(cubePoint);
                     points.push({
@@ -462,79 +461,6 @@
                         simplex: simplexPoint
                     });
                 }
-
-                // Extra dense near-edge regions
-                const nearEdgePoints = Math.floor(this.resolution * 1.0);
-                const edgeDistance = 0.05; // Very close to edges
-
-                // Near bottom edge (y=0.05)
-                for (let i = 0; i < nearEdgePoints; i++) {
-                    const x = i / (nearEdgePoints - 1);
-                    const cubePoint = [x, edgeDistance];
-                    const simplexPoint = this.cubeToSimplex(cubePoint);
-                    points.push({
-                        cube: cubePoint,
-                        simplex: simplexPoint
-                    });
-                }
-
-                // Near top edge (y=0.95)
-                for (let i = 0; i < nearEdgePoints; i++) {
-                    const x = i / (nearEdgePoints - 1);
-                    const cubePoint = [x, 1 - edgeDistance];
-                    const simplexPoint = this.cubeToSimplex(cubePoint);
-                    points.push({
-                        cube: cubePoint,
-                        simplex: simplexPoint
-                    });
-                }
-
-                // Near left edge (x=0.05)
-                for (let i = 1; i < nearEdgePoints - 1; i++) {
-                    const y = i / (nearEdgePoints - 1);
-                    const cubePoint = [edgeDistance, y];
-                    const simplexPoint = this.cubeToSimplex(cubePoint);
-                    points.push({
-                        cube: cubePoint,
-                        simplex: simplexPoint
-                    });
-                }
-
-                // Near right edge (x=0.95)
-                for (let i = 1; i < nearEdgePoints - 1; i++) {
-                    const y = i / (nearEdgePoints - 1);
-                    const cubePoint = [1 - edgeDistance, y];
-                    const simplexPoint = this.cubeToSimplex(cubePoint);
-                    points.push({
-                        cube: cubePoint,
-                        simplex: simplexPoint
-                    });
-                }
-
-                // Corner emphasis - multiple points near each corner
-                const corners = [[0,0], [0,1], [1,0], [1,1]];
-                corners.forEach(corner => {
-                    // Add the exact corner
-                    const simplexPoint = this.cubeToSimplex(corner);
-                    points.push({
-                        cube: corner,
-                        simplex: simplexPoint
-                    });
-
-                    // Add points very close to corner
-                    for (let i = 0; i < 3; i++) {
-                        const offset = (i + 1) * 0.02;
-                        const nearCorner = [
-                            Math.max(0, Math.min(1, corner[0] + (Math.random() - 0.5) * offset)),
-                            Math.max(0, Math.min(1, corner[1] + (Math.random() - 0.5) * offset))
-                        ];
-                        const nearSimplex = this.cubeToSimplex(nearCorner);
-                        points.push({
-                            cube: nearCorner,
-                            simplex: nearSimplex
-                        });
-                    }
-                });
 
                 return points;
             }
