@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test]"
+
+    - name: Run pytest
+      run: |
+        pytest --tb=short
+
+    - name: Run integration tests
+      run: |
+        python test_integration.py
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+        pip install -e .
+
+    - name: Check code formatting with black
+      run: |
+        black --check --diff .
+      continue-on-error: true
+
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only --diff .
+      continue-on-error: true
+
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+  diffeomorphism-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[test]"
+
+    - name: Test enhanced diffeomorphism framework
+      run: |
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+
+        print('Testing enhanced diffeomorphism framework...')
+
+        # Test imports
+        from thurstone import SigmoidParams, comprehensive_quality_assessment
+        from thurstone.enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
+        from thurstone.adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig, DistributionType
+        from thurstone.enhanced_optimization import enhanced_optimize_diffeomorphism
+        from thurstone.pure_optimizers import pure_optimize
+
+        print('✅ All imports successful')
+
+        # Test basic functionality
+        sigmoid_params = [SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5) for _ in range(2)]
+        config = SpecialHorseConfig(distribution=DistributionType.NORMAL, base_ability=0.0)
+        special_horse = AdaptiveSpecialHorse(config)
+        mapping = EnhancedCubeToSimplexMapping(sigmoid_params=sigmoid_params, special_horse=special_horse)
+
+        # Test mapping
+        import numpy as np
+        test_point = np.array([0.3, 0.7])
+        result = mapping(test_point)
+        assert abs(np.sum(result) - 1.0) < 1e-10, f'Simplex constraint violated: sum = {np.sum(result)}'
+
+        print('✅ Basic mapping test passed')
+
+        # Test quality assessment (minimal samples for speed)
+        metrics = comprehensive_quality_assessment(mapping,
+                                                 symmetry_samples=20,
+                                                 volume_samples=5,
+                                                 smoothness_samples=5,
+                                                 coverage_samples=20,
+                                                 invertibility_samples=3,
+                                                 random_seed=42)
+
+        assert metrics.symmetry_score is not None, 'Symmetry assessment failed'
+        print('✅ Quality assessment test passed')
+
+        # Test pure optimization (very minimal)
+        def simple_objective(x):
+            return np.sum((x - 0.5)**2)
+
+        best_val, best_x = pure_optimize(simple_objective, 'HarmonySearch', n_trials=5, n_dim=2)
+        assert best_val is not None, 'Optimization failed'
+
+        print('✅ All enhanced framework tests passed!')
+        "
