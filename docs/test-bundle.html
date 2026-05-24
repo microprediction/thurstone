@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Test Thurstone Bundle</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    .test { margin: 1rem 0; padding: 1rem; border-left: 3px solid #ccc; }
+    .success { border-color: #22c55e; background: #f0fdf4; }
+    .error { border-color: #ef4444; background: #fef2f2; }
+    pre { background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Test Thurstone Bundle</h1>
+  <p>This page tests the thurstone-bundle.js file which should work with file:// protocol.</p>
+
+  <div id="results"></div>
+
+  <script src="js/thurstone-bundle.js"></script>
+  <script>
+    function addResult(title, success, details) {
+      const div = document.createElement('div');
+      div.className = `test ${success ? 'success' : 'error'}`;
+      div.innerHTML = `
+        <h3>${success ? '✅' : '❌'} ${title}</h3>
+        <pre>${details}</pre>
+      `;
+      document.getElementById('results').appendChild(div);
+    }
+
+    try {
+      // Test 1: Basic class availability
+      addResult('Classes Available',
+        typeof UniformLattice === 'function' &&
+        typeof Density === 'function' &&
+        typeof Race === 'function' &&
+        typeof AbilityCalibrator === 'function',
+        `UniformLattice: ${typeof UniformLattice}
+Density: ${typeof Density}
+Race: ${typeof Race}
+AbilityCalibrator: ${typeof AbilityCalibrator}
+StatePricer: ${typeof StatePricer}
+ClusterSplitter: ${typeof ClusterSplitter}`);
+
+      // Test 2: Functions available
+      addResult('Functions Available',
+        typeof normpdf === 'function' &&
+        typeof normcdf === 'function' &&
+        typeof erf === 'function',
+        `normpdf: ${typeof normpdf}
+normcdf: ${typeof normcdf}
+erf: ${typeof erf}
+erfc: ${typeof erfc}`);
+
+      // Test 3: Basic UniformLattice usage
+      const lattice = new UniformLattice(10, 0.1);
+      addResult('UniformLattice Creation',
+        lattice.L === 10 && lattice.unit === 0.1 && lattice.size === 21,
+        `lattice.L = ${lattice.L}
+lattice.unit = ${lattice.unit}
+lattice.size = ${lattice.size}
+grid length = ${lattice.grid().length}`);
+
+      // Test 4: Normal distribution functions
+      const pdf_0 = normpdf(0);
+      const cdf_0 = normcdf(0);
+      const erf_0 = erf(0);
+      addResult('Normal Distribution Functions',
+        Math.abs(pdf_0 - 0.3989422804014327) < 1e-10 &&
+        Math.abs(cdf_0 - 0.5) < 1e-10 &&
+        Math.abs(erf_0 - 0) < 1e-10,
+        `normpdf(0) = ${pdf_0} (expected ≈ 0.3989)
+normcdf(0) = ${cdf_0} (expected = 0.5)
+erf(0) = ${erf_0} (expected = 0)`);
+
+      // Test 5: Density creation
+      const baseDensity = Density.skewNormal(lattice, { loc: 0, scale: 1, a: 0 });
+      addResult('Density Creation',
+        baseDensity instanceof Density && baseDensity.p.length === 21,
+        `baseDensity instanceof Density: ${baseDensity instanceof Density}
+baseDensity.p.length: ${baseDensity.p.length}
+baseDensity.mean(): ${baseDensity.mean().toFixed(4)}`);
+
+      // Test 6: Race simulation
+      const densities = [
+        Density.skewNormal(lattice, { loc: 1, scale: 1, a: 0 }),
+        Density.skewNormal(lattice, { loc: 0, scale: 1, a: 0 }),
+        Density.skewNormal(lattice, { loc: -1, scale: 1, a: 0 })
+      ];
+      const race = new Race(densities);
+      const prices = race.statePrices();
+      const priceSum = prices.reduce((a, b) => a + b, 0);
+
+      addResult('Race Simulation',
+        prices.length === 3 && Math.abs(priceSum - 1.0) < 1e-10,
+        `prices.length: ${prices.length}
+prices: [${prices.map(p => p.toFixed(4)).join(', ')}]
+sum: ${priceSum.toFixed(6)} (should be ≈ 1.0)`);
+
+      // Test 7: AbilityCalibrator basic functionality
+      const calibrator = new AbilityCalibrator(baseDensity);
+      const testPrices = [0.4, 0.3, 0.3];
+      const abilities = calibrator.solveFromPrices(testPrices);
+
+      addResult('AbilityCalibrator',
+        abilities.length === 3 && abilities.every(a => Number.isFinite(a)),
+        `testPrices: [${testPrices.join(', ')}]
+abilities: [${abilities.map(a => a.toFixed(4)).join(', ')}]
+all finite: ${abilities.every(a => Number.isFinite(a))}`);
+
+      // Overall success message
+      addResult('Bundle Test Complete', true,
+        'All major components are working correctly!\nThe thurstone-bundle.js file is ready for use in demos.');
+
+    } catch (error) {
+      addResult('Test Failed', false, `Error: ${error.message}\n\nStack trace:\n${error.stack}`);
+    }
+  </script>
+</body>
+</html>

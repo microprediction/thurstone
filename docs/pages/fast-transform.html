@@ -110,7 +110,7 @@
       approximation is replacing $\mathbb{E}[1/M\,|\,j]$ by $1/\mathbb{E}[M\,|\,j]$ in the tie
       term, and that bias is negligible because $M \ge 2$ on the tie event.
     </p>
-    <pre><code>import { Race } from "../js/thurstone/index.js";
+    <pre><code>// Using the thurstone bundle (no imports needed)
 const prices = new Race(densities).statePrices();
 // Internally: winnerOfMany() builds (f, S, m) for the whole field once via Operation 1,
 // then expectedPayoffWithMultiplicity() peels off each runner via Operations 2 + 3.</code></pre>
@@ -130,7 +130,7 @@ const prices = new Race(densities).statePrices();
         interpolation. Read off $\mu_i = g \cdot u$.</li>
       <li>Rebuild the field with the new $\mu_i$ and repeat. Three iterations usually suffice.</li>
     </ol>
-    <pre><code>import { AbilityCalibrator } from "../js/thurstone/index.js";
+    <pre><code>// Using the thurstone bundle (no imports needed)
 const cal     = new AbilityCalibrator(base, { nIter: 3 });
 const ability = cal.solveFromDividends([3.2, 4.8, 12.0, 7.5, 20.0]);</code></pre>
 

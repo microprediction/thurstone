@@ -65,8 +65,8 @@
     </ul>
   </main>
 
-  <script type="module">
-    import { UniformLattice, Density, AbilityCalibrator } from "../js/thurstone/index.js";
+  <script src="../js/thurstone-bundle.js"></script>
+  <script>
 
     const lat = new UniformLattice(1000, 0.05);
     const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });

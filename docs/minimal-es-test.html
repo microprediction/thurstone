@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head><title>Minimal ES Module Test</title></head>
+<body>
+<h1>Minimal ES Module Test</h1>
+<div id="log"></div>
+
+<script type="module">
+function log(msg) {
+    const div = document.getElementById('log');
+    div.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + msg + '</div>';
+    console.log(msg);
+}
+
+try {
+    log("Starting test...");
+
+    // Test 1: Can we import a simple module?
+    log("About to import lattice.js...");
+    const latticeModule = await import('./js/thurstone/lattice.js');
+    log("✅ lattice.js imported successfully");
+
+    // Test 2: Can we get the export?
+    const { UniformLattice } = latticeModule;
+    log("✅ UniformLattice extracted: " + typeof UniformLattice);
+
+    // Test 3: Can we use it?
+    const lat = new UniformLattice(100, 0.1);
+    log("✅ UniformLattice instance created: L=" + lat.L + ", unit=" + lat.unit);
+
+    log("🎉 ALL TESTS PASSED - ES modules work with file:// protocol!");
+
+} catch (error) {
+    log("❌ ERROR: " + error.message);
+    log("Stack: " + error.stack);
+}
+</script>
+</body>
+</html>

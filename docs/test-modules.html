@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Loading Test</title>
+</head>
+<body>
+    <h1>Testing Thurstone Module Loading</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        try {
+            console.log("Starting module import test...");
+            const { UniformLattice, Density, AbilityCalibrator } = await import('./js/thurstone/index.js');
+            
+            console.log("✅ Modules imported successfully");
+            console.log("UniformLattice:", typeof UniformLattice);
+            console.log("Density:", typeof Density);
+            console.log("AbilityCalibrator:", typeof AbilityCalibrator);
+            
+            // Test instantiation
+            const lattice = new UniformLattice(21, 0.1);
+            console.log("✅ UniformLattice created:", lattice);
+            
+            document.getElementById('output').innerHTML = `
+                <p>✅ Module loading successful!</p>
+                <p>UniformLattice: ${typeof UniformLattice}</p>
+                <p>Density: ${typeof Density}</p>
+                <p>AbilityCalibrator: ${typeof AbilityCalibrator}</p>
+                <p>Test lattice size: ${lattice.size}</p>
+            `;
+            
+        } catch (error) {
+            console.error("❌ Module loading failed:", error);
+            document.getElementById('output').innerHTML = `
+                <p>❌ Module loading failed!</p>
+                <p>Error: ${error.message}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
