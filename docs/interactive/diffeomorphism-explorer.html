@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thurstone Diffeomorphism Explorer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            color: #334155;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .slider-group {
+            margin: 15px 0;
+        }
+
+        .slider-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .slider-value {
+            display: inline-block;
+            min-width: 60px;
+            text-align: right;
+            font-family: monospace;
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .visualization {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .plot-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .plot-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .metric-card {
+            background: #1e293b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-name {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        svg {
+            border-radius: 4px;
+        }
+
+        .grid-line {
+            stroke: #e2e8f0;
+            stroke-width: 0.5;
+        }
+
+        .simplex-boundary {
+            fill: none;
+            stroke: #0f172a;
+            stroke-width: 2;
+        }
+
+        .mapping-point {
+            fill: #3b82f6;
+            fill-opacity: 0.7;
+            stroke: #1e40af;
+            stroke-width: 0.5;
+        }
+
+        .cube-point {
+            fill: #ef4444;
+            fill-opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐎 Thurstone Diffeomorphism Explorer</h1>
+        <p class="subtitle">Interactive visualization of cube-to-simplex mappings using racing models</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <h3>📊 Sigmoid Parameters</h3>
+                <div class="slider-group">
+                    <label>α₁ (Scale): <span class="slider-value" id="alpha1-value">1.20</span></label>
+                    <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.05" value="1.2">
+                </div>
+                <div class="slider-group">
+                    <label>β₁ (Steepness): <span class="slider-value" id="beta1-value">4.00</span></label>
+                    <input type="range" class="slider" id="beta1" min="1.0" max="10.0" step="0.1" value="4.0">
+                </div>
+                <div class="slider-group">
+                    <label>γ₁ (Shift): <span class="slider-value" id="gamma1-value">0.50</span></label>
+                    <input type="range" class="slider" id="gamma1" min="0.1" max="0.9" step="0.01" value="0.5">
+                </div>
+                <div class="slider-group">
+                    <label>α₂ (Scale): <span class="slider-value" id="alpha2-value">1.20</span></label>
+                    <input type="range" class="slider" id="alpha2" min="0.1" max="3.0" step="0.05" value="1.2">
+                </div>
+                <div class="slider-group">
+                    <label>β₂ (Steepness): <span class="slider-value" id="beta2-value">4.00</span></label>
+                    <input type="range" class="slider" id="beta2" min="1.0" max="10.0" step="0.1" value="4.0">
+                </div>
+                <div class="slider-group">
+                    <label>γ₂ (Shift): <span class="slider-value" id="gamma2-value">0.50</span></label>
+                    <input type="range" class="slider" id="gamma2" min="0.1" max="0.9" step="0.01" value="0.5">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🐎 Special Horse Configuration</h3>
+                <div class="slider-group">
+                    <label>Base Ability: <span class="slider-value" id="special-ability-value">0.00</span></label>
+                    <input type="range" class="slider" id="special-ability" min="-2.0" max="2.0" step="0.1" value="0.0">
+                </div>
+                <div class="slider-group">
+                    <label>Location: <span class="slider-value" id="special-location-value">0.00</span></label>
+                    <input type="range" class="slider" id="special-location" min="-1.0" max="1.0" step="0.05" value="0.0">
+                </div>
+                <div class="slider-group">
+                    <label>Scale: <span class="slider-value" id="special-scale-value">1.00</span></label>
+                    <input type="range" class="slider" id="special-scale" min="0.1" max="3.0" step="0.05" value="1.0">
+                </div>
+                <div class="slider-group">
+                    <label>Distribution:</label>
+                    <select id="special-distribution" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
+                        <option value="normal">Normal</option>
+                        <option value="student_t">Student's t</option>
+                        <option value="laplace">Laplace</option>
+                        <option value="uniform">Uniform</option>
+                        <option value="exponential">Exponential</option>
+                    </select>
+                </div>
+                <div class="slider-group">
+                    <label>Adaptive Mode:</label>
+                    <select id="adaptive-mode" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db;">
+                        <option value="fixed">Fixed</option>
+                        <option value="mean_adaptive">Mean Adaptive</option>
+                        <option value="position_adaptive">Position Adaptive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="visualization">
+            <div class="plot-container">
+                <div class="plot-title">Unit Cube [0,1]² → Lattice Points</div>
+                <svg id="cube-plot" width="400" height="400"></svg>
+            </div>
+            <div class="plot-container">
+                <div class="plot-title">2-Simplex (Triangle) → Mapped Points</div>
+                <svg id="simplex-plot" width="400" height="400"></svg>
+            </div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-name">Symmetry</div>
+                <div class="metric-value" id="symmetry-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Volume</div>
+                <div class="metric-value" id="volume-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Smoothness</div>
+                <div class="metric-value" id="smoothness-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Coverage</div>
+                <div class="metric-value" id="coverage-metric">0.000</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-name">Overall</div>
+                <div class="metric-value" id="overall-metric">0.000</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Diffeomorphism computation
+        class DiffeomorphismMapper {
+            constructor() {
+                this.resolution = 20;
+                this.updateMapping();
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                // Update display when sliders change
+                const sliders = document.querySelectorAll('.slider, select');
+                sliders.forEach(slider => {
+                    slider.addEventListener('input', () => {
+                        this.updateSliderDisplays();
+                        this.updateMapping();
+                    });
+                });
+
+                this.updateSliderDisplays();
+            }
+
+            updateSliderDisplays() {
+                const getValue = (id) => parseFloat(document.getElementById(id).value);
+
+                document.getElementById('alpha1-value').textContent = getValue('alpha1').toFixed(2);
+                document.getElementById('beta1-value').textContent = getValue('beta1').toFixed(2);
+                document.getElementById('gamma1-value').textContent = getValue('gamma1').toFixed(2);
+                document.getElementById('alpha2-value').textContent = getValue('alpha2').toFixed(2);
+                document.getElementById('beta2-value').textContent = getValue('beta2').toFixed(2);
+                document.getElementById('gamma2-value').textContent = getValue('gamma2').toFixed(2);
+                document.getElementById('special-ability-value').textContent = getValue('special-ability').toFixed(2);
+                document.getElementById('special-location-value').textContent = getValue('special-location').toFixed(2);
+                document.getElementById('special-scale-value').textContent = getValue('special-scale').toFixed(2);
+            }
+
+            parametricSigmoid(x, alpha, beta, gamma) {
+                return alpha * (1 / (1 + Math.exp(-beta * (x - gamma))) - 0.5);
+            }
+
+            computeSpecialHorseAbility(cubePoint, otherAbilities) {
+                const baseAbility = parseFloat(document.getElementById('special-ability').value);
+                const location = parseFloat(document.getElementById('special-location').value);
+                const adaptiveMode = document.getElementById('adaptive-mode').value;
+
+                let ability = baseAbility;
+
+                if (adaptiveMode === 'mean_adaptive') {
+                    const meanOther = otherAbilities.reduce((a, b) => a + b, 0) / otherAbilities.length;
+                    ability = -meanOther + baseAbility;
+                } else if (adaptiveMode === 'position_adaptive') {
+                    const centerDistance = Math.sqrt(Math.pow(cubePoint[0] - 0.5, 2) + Math.pow(cubePoint[1] - 0.5, 2));
+                    ability = baseAbility + 0.5 * centerDistance;
+                }
+
+                return ability + location;
+            }
+
+            cubeToAbilities(cubePoint) {
+                const [x, y] = cubePoint;
+
+                const alpha1 = parseFloat(document.getElementById('alpha1').value);
+                const beta1 = parseFloat(document.getElementById('beta1').value);
+                const gamma1 = parseFloat(document.getElementById('gamma1').value);
+
+                const alpha2 = parseFloat(document.getElementById('alpha2').value);
+                const beta2 = parseFloat(document.getElementById('beta2').value);
+                const gamma2 = parseFloat(document.getElementById('gamma2').value);
+
+                const ability1 = this.parametricSigmoid(x, alpha1, beta1, gamma1);
+                const ability2 = this.parametricSigmoid(y, alpha2, beta2, gamma2);
+
+                const regularAbilities = [ability1, ability2];
+                const specialAbility = this.computeSpecialHorseAbility(cubePoint, regularAbilities);
+
+                return [...regularAbilities, specialAbility];
+            }
+
+            abilitiesToSimplex(abilities) {
+                // Convert abilities to performance via softmax-like transformation
+                const performances = abilities.map(a => Math.exp(a));
+                const total = performances.reduce((sum, p) => sum + p, 0);
+                return performances.map(p => p / total);
+            }
+
+            cubeToSimplex(cubePoint) {
+                const abilities = this.cubeToAbilities(cubePoint);
+                return this.abilitiesToSimplex(abilities);
+            }
+
+            generateGrid() {
+                const points = [];
+                for (let i = 0; i < this.resolution; i++) {
+                    for (let j = 0; j < this.resolution; j++) {
+                        const x = i / (this.resolution - 1);
+                        const y = j / (this.resolution - 1);
+                        const cubePoint = [x, y];
+                        const simplexPoint = this.cubeToSimplex(cubePoint);
+                        points.push({
+                            cube: cubePoint,
+                            simplex: simplexPoint
+                        });
+                    }
+                }
+                return points;
+            }
+
+            updateMapping() {
+                const points = this.generateGrid();
+                this.renderCubePlot(points);
+                this.renderSimplexPlot(points);
+                this.updateMetrics(points);
+            }
+
+            renderCubePlot(points) {
+                const svg = d3.select('#cube-plot');
+                svg.selectAll('*').remove();
+
+                const margin = {top: 20, right: 20, bottom: 40, left: 40};
+                const width = 400 - margin.left - margin.right;
+                const height = 400 - margin.top - margin.bottom;
+
+                const g = svg.append('g')
+                    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+                const xScale = d3.scaleLinear().domain([0, 1]).range([0, width]);
+                const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+
+                // Add grid
+                const xAxis = d3.axisBottom(xScale).ticks(5);
+                const yAxis = d3.axisLeft(yScale).ticks(5);
+
+                g.append('g')
+                    .attr('transform', `translate(0,${height})`)
+                    .call(xAxis);
+
+                g.append('g')
+                    .call(yAxis);
+
+                // Add grid lines
+                g.selectAll('.grid-line-x')
+                    .data(xScale.ticks(5))
+                    .enter().append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', d => xScale(d))
+                    .attr('x2', d => xScale(d))
+                    .attr('y1', 0)
+                    .attr('y2', height);
+
+                g.selectAll('.grid-line-y')
+                    .data(yScale.ticks(5))
+                    .enter().append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', d => yScale(d))
+                    .attr('y2', d => yScale(d));
+
+                // Plot points
+                g.selectAll('.cube-point')
+                    .data(points)
+                    .enter().append('circle')
+                    .attr('class', 'cube-point')
+                    .attr('cx', d => xScale(d.cube[0]))
+                    .attr('cy', d => yScale(d.cube[1]))
+                    .attr('r', 1.5);
+
+                // Labels
+                g.append('text')
+                    .attr('x', width / 2)
+                    .attr('y', height + 35)
+                    .attr('text-anchor', 'middle')
+                    .text('x₁');
+
+                g.append('text')
+                    .attr('transform', 'rotate(-90)')
+                    .attr('y', -25)
+                    .attr('x', -height / 2)
+                    .attr('text-anchor', 'middle')
+                    .text('x₂');
+            }
+
+            renderSimplexPlot(points) {
+                const svg = d3.select('#simplex-plot');
+                svg.selectAll('*').remove();
+
+                const margin = {top: 20, right: 20, bottom: 40, left: 40};
+                const width = 400 - margin.left - margin.right;
+                const height = 400 - margin.top - margin.bottom;
+
+                const g = svg.append('g')
+                    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+                // Convert barycentric coordinates to cartesian for visualization
+                const barycentricToCartesian = (bary) => {
+                    const [w1, w2, w3] = bary;
+                    const x = 0.5 * w2 + w3;
+                    const y = (Math.sqrt(3) / 2) * w2;
+                    return [x, y];
+                };
+
+                const xScale = d3.scaleLinear().domain([0, 1]).range([50, width - 50]);
+                const yScale = d3.scaleLinear().domain([0, Math.sqrt(3) / 2]).range([height - 50, 50]);
+
+                // Draw triangle boundary
+                const vertices = [
+                    barycentricToCartesian([1, 0, 0]),
+                    barycentricToCartesian([0, 1, 0]),
+                    barycentricToCartesian([0, 0, 1])
+                ];
+
+                const line = d3.line()
+                    .x(d => xScale(d[0]))
+                    .y(d => yScale(d[1]));
+
+                g.append('path')
+                    .datum([...vertices, vertices[0]])
+                    .attr('class', 'simplex-boundary')
+                    .attr('d', line);
+
+                // Plot mapped points
+                g.selectAll('.mapping-point')
+                    .data(points)
+                    .enter().append('circle')
+                    .attr('class', 'mapping-point')
+                    .attr('cx', d => {
+                        const cart = barycentricToCartesian(d.simplex);
+                        return xScale(cart[0]);
+                    })
+                    .attr('cy', d => {
+                        const cart = barycentricToCartesian(d.simplex);
+                        return yScale(cart[1]);
+                    })
+                    .attr('r', 1.5);
+
+                // Add vertex labels
+                const labels = ['Horse 1', 'Horse 2', 'Special Horse'];
+                vertices.forEach((vertex, i) => {
+                    g.append('text')
+                        .attr('x', xScale(vertex[0]))
+                        .attr('y', yScale(vertex[1]) + (i === 0 ? 20 : -10))
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '12px')
+                        .attr('font-weight', 'bold')
+                        .text(labels[i]);
+                });
+            }
+
+            updateMetrics(points) {
+                // Simplified quality metrics computation
+                const metrics = this.computeQualityMetrics(points);
+
+                document.getElementById('symmetry-metric').textContent = metrics.symmetry.toFixed(3);
+                document.getElementById('volume-metric').textContent = metrics.volume.toFixed(3);
+                document.getElementById('smoothness-metric').textContent = metrics.smoothness.toFixed(3);
+                document.getElementById('coverage-metric').textContent = metrics.coverage.toFixed(3);
+                document.getElementById('overall-metric').textContent = metrics.overall.toFixed(3);
+            }
+
+            computeQualityMetrics(points) {
+                // Simplified quality assessment for real-time computation
+                const symmetryScore = this.assessSymmetry(points);
+                const volumeScore = this.assessVolumePreservation(points);
+                const smoothnessScore = this.assessSmoothness(points);
+                const coverageScore = this.assessCoverage(points);
+
+                const overall = (symmetryScore + volumeScore + smoothnessScore + coverageScore) / 4;
+
+                return {
+                    symmetry: symmetryScore,
+                    volume: volumeScore,
+                    smoothness: smoothnessScore,
+                    coverage: coverageScore,
+                    overall: overall
+                };
+            }
+
+            assessSymmetry(points) {
+                // Measure how evenly distributed the simplex points are among the three vertices
+                const simplexPoints = points.map(p => p.simplex);
+                const means = [0, 1, 2].map(i =>
+                    simplexPoints.reduce((sum, p) => sum + p[i], 0) / simplexPoints.length
+                );
+
+                const expectedMean = 1/3;
+                const symmetryError = means.reduce((sum, mean) => sum + Math.abs(mean - expectedMean), 0);
+                return Math.max(0, 1 - 3 * symmetryError);
+            }
+
+            assessVolumePreservation(points) {
+                // Simplified volume assessment - measure spread in simplex
+                const simplexPoints = points.map(p => p.simplex);
+                const variances = [0, 1, 2].map(i => {
+                    const values = simplexPoints.map(p => p[i]);
+                    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+                    return values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+                });
+
+                const avgVariance = variances.reduce((a, b) => a + b, 0) / variances.length;
+                return Math.min(1, avgVariance * 10); // Scale for display
+            }
+
+            assessSmoothness(points) {
+                // Measure local smoothness by checking nearby point differences
+                let totalDifference = 0;
+                let count = 0;
+
+                for (let i = 0; i < points.length - 1; i++) {
+                    for (let j = i + 1; j < points.length && j < i + 10; j++) {
+                        const cubeDist = Math.sqrt(
+                            Math.pow(points[i].cube[0] - points[j].cube[0], 2) +
+                            Math.pow(points[i].cube[1] - points[j].cube[1], 2)
+                        );
+
+                        const simplexDist = Math.sqrt(
+                            points[i].simplex.reduce((sum, val, k) =>
+                                sum + Math.pow(val - points[j].simplex[k], 2), 0)
+                        );
+
+                        if (cubeDist > 0) {
+                            totalDifference += Math.abs(simplexDist / cubeDist - 1);
+                            count++;
+                        }
+                    }
+                }
+
+                const avgDifference = totalDifference / count;
+                return Math.max(0, 1 - avgDifference);
+            }
+
+            assessCoverage(points) {
+                // Measure how well the mapping covers the simplex
+                const simplexPoints = points.map(p => p.simplex);
+
+                // Check coverage by dividing simplex into regions and counting points in each
+                const regions = 10;
+                const coverage = [];
+
+                for (let i = 0; i < regions; i++) {
+                    for (let j = 0; j < regions - i; j++) {
+                        const centerBary = [
+                            (i + 0.5) / regions,
+                            (j + 0.5) / regions,
+                            (regions - i - j - 1 + 0.5) / regions
+                        ];
+
+                        if (centerBary[2] >= 0) {
+                            const pointsInRegion = simplexPoints.filter(p => {
+                                const dist = Math.sqrt(
+                                    centerBary.reduce((sum, val, k) => sum + Math.pow(val - p[k], 2), 0)
+                                );
+                                return dist < 0.2;
+                            }).length;
+
+                            coverage.push(pointsInRegion > 0 ? 1 : 0);
+                        }
+                    }
+                }
+
+                return coverage.reduce((a, b) => a + b, 0) / coverage.length;
+            }
+        }
+
+        // Initialize the diffeomorphism mapper
+        const mapper = new DiffeomorphismMapper();
+    </script>
+</body>
+</html>
