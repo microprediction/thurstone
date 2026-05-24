@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .density import Density, _cdf_from_pdf, _pdf_from_cdf
+from .density import Density, _pdf_from_cdf
 
 EPS = 1e-18
 DEL = 1e-12
@@ -67,7 +67,6 @@ def get_the_rest(
             raise ValueError("Need densityAll or cdfAll.")
         cdfAll = densityAll.cdf()
     pdf = _pdf_from_cdf(cdf)
-    pdfAll = _pdf_from_cdf(cdfAll)
 
     S_all = 1.0 - cdfAll
     S_self = 1.0 - cdf

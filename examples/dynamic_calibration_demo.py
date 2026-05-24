@@ -212,7 +212,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
-        bookmaker_sigma=BOOKMAKER_TAU,
+        bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
     dyn_sigma.fit_abilities(sigma_function=None)
     # Parametric model: Var(Δθ) ≈ 2*τ^2 + α*Δt  ⇒  τ̂^2 = intercept/2,  α̂ = slope

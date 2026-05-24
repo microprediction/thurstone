@@ -7,24 +7,22 @@ lattice point transformations, and quality measures.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
 # Optional matplotlib import with graceful fallback
 try:
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
-    from mpl_toolkits.mplot3d import Axes3D
 
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
     plt = None
 
-from .cube_to_simplex import CubeToSimplexMapping
-from .quality_assessment import (assess_invertibility, assess_smoothness,
-                                 assess_symmetry, assess_uniform_coverage,
+from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
+from .quality_assessment import (assess_smoothness, assess_symmetry,
+                                 assess_uniform_coverage,
                                  assess_volume_preservation)
 
 
@@ -166,9 +164,7 @@ def plot_cube_to_simplex_3d(
     # Plot 2: Simplex points in 3D (barycentric coordinates)
     ax2 = fig.add_subplot(132, projection="3d")
     p1, p2, p3 = simplex_points[:, 0], simplex_points[:, 1], simplex_points[:, 2]
-    scatter = ax2.scatter(
-        p1, p2, p3, c=np.arange(len(p1)), cmap="plasma", alpha=0.7, s=20
-    )
+    ax2.scatter(p1, p2, p3, c=np.arange(len(p1)), cmap="plasma", alpha=0.7, s=20)
 
     # Draw simplex vertices and edges
     vertices = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -262,8 +258,6 @@ def plot_jacobian_heatmap(
 
             # Compute Jacobian using finite differences
             jacobian = np.zeros((3, 2))  # 3 outputs, 2 inputs
-
-            base_output = mapping(point)
 
             # Partial derivatives w.r.t. x₁
             point_x_plus = point + np.array([epsilon, 0])
@@ -538,7 +532,6 @@ def visualize_mapping_comprehensive(
 
 # Example usage
 if __name__ == "__main__":
-    from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
     print("Creating example mapping for visualization...")
 

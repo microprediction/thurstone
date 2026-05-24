@@ -7,18 +7,16 @@ framework to find optimal parameter configurations.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
 from .adaptive_special_horse import (AdaptiveSpecialHorse, DistributionType,
                                      SpecialHorseConfig)
-from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
+from .cube_to_simplex import SigmoidParams
 from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
-from .pure_optimizers import PURE_OPTIMIZERS, pure_optimize, suggest_pure
+from .pure_optimizers import pure_optimize
 from .quality_assessment import (QualityMetrics,
                                  comprehensive_quality_assessment)
 
@@ -242,7 +240,7 @@ def enhanced_optimize_diffeomorphism(
     """
     import time
 
-    print(f"🎯 ENHANCED DIFFEOMORPHISM OPTIMIZATION")
+    print("ENHANCED DIFFEOMORPHISM OPTIMIZATION")
     print(f"   Algorithm: {algorithm}")
     print(f"   Dimension: k={k}")
     print(f"   Max evaluations: {max_evaluations}")
@@ -291,7 +289,7 @@ def enhanced_optimize_diffeomorphism(
     )
 
     # Final quality assessment
-    print(f"   Computing final quality assessment...")
+    print("   Computing final quality assessment...")
     best_metrics = comprehensive_quality_assessment(
         best_mapping, random_seed=random_seed, **objective.assessment_samples
     )
@@ -324,7 +322,7 @@ def enhanced_optimize_diffeomorphism(
         },
     )
 
-    print(f"\n✅ OPTIMIZATION COMPLETE!")
+    print("\nOPTIMIZATION COMPLETE!")
     print(f"   Best score: {result.best_score:.4f}")
     print(f"   Total evaluations: {result.total_evaluations}")
     print(f"   Runtime: {result.optimization_time:.1f}s")
@@ -355,7 +353,7 @@ def compare_optimization_algorithms(
     if algorithms is None:
         algorithms = ["HarmonySearch", "DifferentialEvolution", "ParticleSwarm"]
 
-    print(f"🏁 ALGORITHM COMPARISON")
+    print(" ALGORITHM COMPARISON")
     print(f"   Algorithms: {', '.join(algorithms)}")
     print(f"   Runs per algorithm: {n_runs}")
     print(f"   Evaluations per run: {max_evaluations}")
@@ -363,7 +361,7 @@ def compare_optimization_algorithms(
     results = {}
 
     for algorithm in algorithms:
-        print(f"\n🔄 Testing {algorithm}...")
+        print(f"\n Testing {algorithm}...")
         results[algorithm] = []
 
         for run in range(n_runs):
@@ -389,7 +387,7 @@ def compare_optimization_algorithms(
 
 # Example usage
 if __name__ == "__main__":
-    print("🎯 ENHANCED DIFFEOMORPHISM OPTIMIZATION TEST")
+    print(" ENHANCED DIFFEOMORPHISM OPTIMIZATION TEST")
     print("=" * 60)
 
     # Test single optimization
@@ -402,18 +400,18 @@ if __name__ == "__main__":
         random_seed=42,
     )
 
-    print(f"\n📊 OPTIMIZATION RESULTS:")
+    print("\n OPTIMIZATION RESULTS:")
     print(f"   Best score: {result.best_score:.4f}")
     print(f"   Algorithm: {result.algorithm_used}")
     print(f"   Evaluations: {result.total_evaluations}")
 
-    print(f"\n🐎 Special horse configuration:")
+    print("\n Special horse configuration:")
     special_config = result.best_mapping.special_horse.config
     print(f"   Distribution: {special_config.distribution.value}")
     print(f"   Base ability: {special_config.base_ability:.3f}")
     print(f"   Scale: {special_config.scale:.3f}")
 
-    print(f"\n📈 Quality breakdown:")
+    print("\n Quality breakdown:")
     metrics = result.best_metrics
     print(f"   Symmetry: {metrics.symmetry_score:.4f}")
     print(f"   Volume preservation: {(metrics.volume_preservation_score or 0):.4f}")
@@ -421,4 +419,4 @@ if __name__ == "__main__":
     print(f"   Coverage: {(metrics.coverage_score or 0):.4f}")
     print(f"   Invertibility: {(metrics.invertibility_score or 0):.4f}")
 
-    print(f"\n✅ Enhanced optimization framework ready!")
+    print("\n Enhanced optimization framework ready!")

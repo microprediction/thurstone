@@ -7,7 +7,6 @@ import numpy as np
 
 from .clustering import ClusterSplitter
 from .density import Density
-from .lattice import UniformLattice
 from .order_stats import expected_payoff_with_multiplicity, winner_of_many
 from .pricing import Race, StatePricer
 

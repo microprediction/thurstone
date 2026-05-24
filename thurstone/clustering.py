@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 import numpy as np
 
 from .density import Density
-from .lattice import UniformLattice
 from .order_stats import winner_of_many
 from .pricing import Race
 

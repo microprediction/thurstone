@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
 
-from .cube_to_simplex import CubeToSimplexMapping
+from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
 
 @dataclass
@@ -146,8 +146,6 @@ def assess_volume_preservation(
         # Compute Jacobian matrix using finite differences
         jacobian = np.zeros((k + 1, k))  # (k+1) outputs, k inputs
 
-        base_output = mapping(point)
-
         for j in range(k):
             # Perturb j-th input coordinate
             point_plus = point.copy()
@@ -232,8 +230,6 @@ def assess_smoothness(
 
     for point in cube_samples:
         gradients = []
-
-        base_output = mapping(point)
 
         # Compute gradient for each output component
         for i in range(k + 1):
@@ -363,9 +359,6 @@ def assess_uniform_coverage(
     # Compute coverage uniformity
     if len(valid_hist) == 0 or n_valid_bins == 0:
         return 0.0, {"error": "No valid bins"}
-
-    # Expected count per bin for uniform distribution
-    expected_count = n_samples / n_valid_bins
 
     # Chi-squared like measure of uniformity
     observed_counts = valid_hist[valid_hist > 0]  # Only non-empty bins
@@ -605,7 +598,6 @@ def comprehensive_quality_assessment(
 
 # Example usage
 if __name__ == "__main__":
-    from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
     print("Testing quality assessment with k=2...")
 

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import List, Sequence
 
 import numpy as np
 
-from .density import Density, _cdf_from_pdf, _pdf_from_cdf
-from .lattice import UniformLattice
+from .density import Density, _pdf_from_cdf
 from .order_stats import expected_payoff_with_multiplicity
 from .order_stats import winner_of_many as os_winner_of_many
 

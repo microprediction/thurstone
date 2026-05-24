@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -71,7 +71,7 @@ class Density:
         if k <= -K:
             c2 = np.ones_like(c)
         elif -K < k < 0:
-            c2 = np.concatenate([c[abs(k) :], np.full(abs(k), c[-1])])
+            c2 = np.concatenate([c[abs(k):], np.full(abs(k), c[-1])])
         elif 0 < k < K:
             c2 = np.concatenate([np.zeros(k), c[:-k]])
         elif k >= K:
@@ -86,15 +86,15 @@ class Density:
         L = self.lattice.L
         # represent x as convex combo of floor and ceil, but clamp to lattice
         if -L + 2 < x < L - 2:
-            l = int(np.floor(x))
+            lower = int(np.floor(x))
             u = int(np.ceil(x))
-            r = x - l
+            r = x - lower
             lc, uc = 1.0 - r, r
         elif x >= L - 2:
-            l, u, lc, uc = L - 2, L - 1, 1.0, 0.0
+            lower, u, lc, uc = L - 2, L - 1, 1.0, 0.0
         else:  # x <= -L+2
-            l, u, lc, uc = -L + 1, -L + 2, 0.0, 1.0
-        c2 = lc * self.shift_integer(l).cdf() + uc * self.shift_integer(u).cdf()
+            lower, u, lc, uc = -L + 1, -L + 2, 0.0, 1.0
+        c2 = lc * self.shift_integer(lower).cdf() + uc * self.shift_integer(u).cdf()
         p2 = _pdf_from_cdf(c2)
         return Density(self.lattice, p2)
 
@@ -151,15 +151,15 @@ class Density:
             x = idx / unit_ratio
             # fractional placement between floor/ceil
             if -L + 2 < x < L - 2:
-                l = int(np.floor(x))
+                lower = int(np.floor(x))
                 u = int(np.ceil(x))
-                r = x - l
+                r = x - lower
                 lc, uc = 1.0 - r, r
             elif x >= L - 2:
-                l, u, lc, uc = L - 2, L - 1, 1.0, 0.0
+                lower, u, lc, uc = L - 2, L - 1, 1.0, 0.0
             else:
-                l, u, lc, uc = -L + 1, -L + 2, 0.0, 1.0
-            li = min(2 * L, max(l + L, 0))
+                lower, u, lc, uc = -L + 1, -L + 2, 0.0, 1.0
+            li = min(2 * L, max(lower + L, 0))
             ui = min(2 * L, max(u + L, 0))
             out[li] += prob * lc
             out[ui] += prob * uc

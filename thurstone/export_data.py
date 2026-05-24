@@ -8,7 +8,6 @@ and configuration parameters in JSON format for interactive web visualizations.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -17,7 +16,7 @@ from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
 try:
     from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                         SpecialHorseConfig)
+                                         DistributionType, SpecialHorseConfig)
     from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
     from .quality_assessment import comprehensive_quality_assessment
 
@@ -210,9 +209,6 @@ def export_parameter_study_data(
 
         if ENHANCED_AVAILABLE and "special_horse" in config:
             # Enhanced mapping
-            from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                                 DistributionType,
-                                                 SpecialHorseConfig)
 
             special_config_dict = config["special_horse"].copy()
             if "distribution" in special_config_dict and isinstance(
@@ -290,9 +286,6 @@ def create_example_exports():
 
     if ENHANCED_AVAILABLE:
         # Example 3: Enhanced mapping with adaptive special horse
-        from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                             DistributionType,
-                                             SpecialHorseConfig)
 
         enhanced_config = SpecialHorseConfig(
             distribution=DistributionType.NORMAL,

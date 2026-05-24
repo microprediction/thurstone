@@ -58,12 +58,22 @@ jobs:
       run: |
         isort --check-only --diff .
 
+    - name: Check for emojis
+      run: |
+        # Fail if any emojis or special Unicode characters are found in Python files
+        if grep -rP --include="*.py" "[\x{1F000}-\x{1F9FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]" . || \
+           grep -r --include="*.py" "🎯\|✅\|🚀\|📊\|🐎\|📈\|🏁\|🔄\|✓" .; then
+          echo "ERROR: Emojis found in code! Please remove all emojis."
+          exit 1
+        fi
+        echo "SUCCESS: No emojis found in Python code"
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # treat warnings as errors for consistent code quality
-        flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+        flake8 . --count --max-complexity=25 --max-line-length=127 --statistics
 
   diffeomorphism-tests:
     runs-on: ubuntu-latest

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -452,7 +452,6 @@ class EvolutionaryOptimizer(Optimizer):
 
     def _mutate(self, individual: np.ndarray, bounds: ParameterBounds) -> np.ndarray:
         """Gaussian mutation."""
-        k = (len(individual) - 1) // 3
         mutated = individual.copy()
 
         # Mutate each parameter with some probability
@@ -539,7 +538,7 @@ def optimize_diffeomorphism(
     print(f"Optimizing {k}-dimensional diffeomorphism using {optimizer} search...")
     result = opt.optimize(objective, bounds, max_evaluations)
 
-    print(f"\nOptimization complete!")
+    print("\nOptimization complete!")
     print(f"Best score: {result.best_score:.4f}")
     print(f"Best parameters: {result.best_params}")
 
@@ -559,16 +558,16 @@ if __name__ == "__main__":
         random_seed=42,
     )
 
-    print(f"\nFinal Results:")
+    print("\nFinal Results:")
     print(f"Best overall score: {result.best_score:.4f}")
-    print(f"Quality breakdown:")
+    print("Quality breakdown:")
     print(f"  Symmetry: {result.best_metrics.symmetry_score:.4f}")
     print(f"  Volume preservation: {result.best_metrics.volume_preservation_score:.4f}")
     print(f"  Smoothness: {result.best_metrics.smoothness_score:.4f}")
     print(f"  Coverage: {result.best_metrics.coverage_score:.4f}")
     print(f"  Invertibility: {result.best_metrics.invertibility_score:.4f}")
 
-    print(f"\nBest sigmoid parameters:")
+    print("\nBest sigmoid parameters:")
     for i, param in enumerate(result.best_mapping.sigmoid_params):
         print(f"  Dimension {i}: {param}")
     print(f"Special horse ability: {result.best_mapping.special_horse_ability:.4f}")
