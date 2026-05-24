@@ -61,6 +61,14 @@ prices = cal.state_prices_from_ability(ability)   # forward map (prices sum to 1
 - 2D calibration with per‑runner scales (150 runners, scales 15→20):
   - Run: `python examples/calibrate_with_scales_150.py`
 
+## Interactive Visualizations
+Explore Thurstone models interactively in your browser:
+
+- **[Diffeomorphism Explorer](docs/interactive/diffeomorphism-explorer.html)**: Interactive visualization of cube-to-simplex mappings using racing dynamics with real-time parameter controls
+- **[All Interactive Demos](docs/interactive/)**: Collection of browser-based visualizations and educational tools
+
+Run locally: `python -m http.server 8000 --directory docs` then visit `http://localhost:8000`
+
 ## Cite
 See 
 
