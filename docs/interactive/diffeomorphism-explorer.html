@@ -171,27 +171,27 @@
                 <h3>📊 Sigmoid Parameters</h3>
                 <div class="slider-group">
                     <label>α₁ (Scale): <span class="slider-value" id="alpha1-value">1.20</span></label>
-                    <input type="range" class="slider" id="alpha1" min="0.1" max="3.0" step="0.05" value="1.2">
+                    <input type="range" class="slider" id="alpha1" min="0.5" max="2.5" step="0.05" value="1.2">
                 </div>
                 <div class="slider-group">
                     <label>β₁ (Steepness): <span class="slider-value" id="beta1-value">4.00</span></label>
-                    <input type="range" class="slider" id="beta1" min="1.0" max="10.0" step="0.1" value="4.0">
+                    <input type="range" class="slider" id="beta1" min="2.0" max="8.0" step="0.1" value="4.0">
                 </div>
                 <div class="slider-group">
                     <label>γ₁ (Shift): <span class="slider-value" id="gamma1-value">0.50</span></label>
-                    <input type="range" class="slider" id="gamma1" min="0.1" max="0.9" step="0.01" value="0.5">
+                    <input type="range" class="slider" id="gamma1" min="0.2" max="0.8" step="0.01" value="0.5">
                 </div>
                 <div class="slider-group">
                     <label>α₂ (Scale): <span class="slider-value" id="alpha2-value">1.20</span></label>
-                    <input type="range" class="slider" id="alpha2" min="0.1" max="3.0" step="0.05" value="1.2">
+                    <input type="range" class="slider" id="alpha2" min="0.5" max="2.5" step="0.05" value="1.2">
                 </div>
                 <div class="slider-group">
                     <label>β₂ (Steepness): <span class="slider-value" id="beta2-value">4.00</span></label>
-                    <input type="range" class="slider" id="beta2" min="1.0" max="10.0" step="0.1" value="4.0">
+                    <input type="range" class="slider" id="beta2" min="2.0" max="8.0" step="0.1" value="4.0">
                 </div>
                 <div class="slider-group">
                     <label>γ₂ (Shift): <span class="slider-value" id="gamma2-value">0.50</span></label>
-                    <input type="range" class="slider" id="gamma2" min="0.1" max="0.9" step="0.01" value="0.5">
+                    <input type="range" class="slider" id="gamma2" min="0.2" max="0.8" step="0.01" value="0.5">
                 </div>
             </div>
 
@@ -344,10 +344,53 @@
             }
 
             abilitiesToSimplex(abilities) {
-                // Convert abilities to performance via softmax-like transformation
-                const performances = abilities.map(a => Math.exp(a));
-                const total = performances.reduce((sum, p) => sum + p, 0);
-                return performances.map(p => p / total);
+                // Approximate the racing dynamics with proper normal distributions
+                // Each horse has performance ~ Normal(ability, noise_scale²)
+                // We compute P(horse_i wins) by approximating the racing integrals
+
+                const noiseScale = 1.0; // Match Python implementation
+                const [a1, a2, a3] = abilities;
+
+                // Approximate racing probabilities using the method from racing theory
+                // For normal distributions, we can approximate the win probabilities
+
+                // Pairwise win probabilities using normal difference distributions
+                const winProb12 = this.normalCDF((a1 - a2) / (Math.sqrt(2) * noiseScale));
+                const winProb13 = this.normalCDF((a1 - a3) / (Math.sqrt(2) * noiseScale));
+                const winProb23 = this.normalCDF((a2 - a3) / (Math.sqrt(2) * noiseScale));
+
+                // Approximate 3-way racing using pairwise probabilities
+                // This is a reasonable approximation for the racing dynamics
+                let p1 = winProb12 * winProb13;
+                let p2 = (1 - winProb12) * winProb23;
+                let p3 = (1 - winProb13) * (1 - winProb23);
+
+                // Normalize to ensure sum = 1
+                const total = p1 + p2 + p3;
+                return [p1/total, p2/total, p3/total];
+            }
+
+            normalCDF(x) {
+                // Approximate normal CDF using error function approximation
+                return 0.5 * (1 + this.erf(x / Math.sqrt(2)));
+            }
+
+            erf(x) {
+                // Approximation of error function (good enough for visualization)
+                const a1 =  0.254829592;
+                const a2 = -0.284496736;
+                const a3 =  1.421413741;
+                const a4 = -1.453152027;
+                const a5 =  1.061405429;
+                const p  =  0.3275911;
+
+                const sign = x >= 0 ? 1 : -1;
+                x = Math.abs(x);
+
+                const t = 1.0 / (1.0 + p * x);
+                const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+                return sign * y;
             }
 
             cubeToSimplex(cubePoint) {
