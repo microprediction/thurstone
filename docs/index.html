@@ -34,13 +34,14 @@
 <body>
   <header class="site-header">
     <div class="nav-inner">
-      <a class="brand" href="./">thurstone</a>
+      <a class="brand" href="./index.html">thurstone</a>
       <nav>
         <a href="pages/thurstone.html">Thurstone models</a>
         <a href="pages/fast-transform.html">Fast ability transform</a>
         <a href="pages/rating-systems.html">Rating systems</a>
         <a href="pages/multi-dimensional.html">Multi-dimensional</a>
-        <a href="demos/">Demos</a>
+        <a href="pages/api-reference.html">API Reference</a>
+        <a href="demos/index.html">Demos</a>
         <a href="https://github.com/microprediction/thurstone">GitHub</a>
       </nav>
     </div>
@@ -143,15 +144,18 @@
     </div>
 
     <script type="module">
-      import { UniformLattice, Density, Race } from "./js/thurstone/index.js";
+      // Note: This demo requires serving from a web server (not file://) due to ES module imports
+      // Run: python -m http.server 8000 --directory docs
+      try {
+        const { UniformLattice, Density, Race } = await import("./js/thurstone/index.js");
 
-      const NAMES = ["H1", "H2", "H3", "H4", "H5"];
-      const COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"];
-      const DEFAULT = [-1.0, -0.4, 0.0, 0.3, 0.9];
-      const abilities = DEFAULT.slice();
+        const NAMES = ["H1", "H2", "H3", "H4", "H5"];
+        const COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"];
+        const DEFAULT = [-1.0, -0.4, 0.0, 0.3, 0.9];
+        const abilities = DEFAULT.slice();
 
-      const lat = new UniformLattice(200, 0.05);
-      const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
+        const lat = new UniformLattice(200, 0.05);
+        const base = Density.skewNormal(lat, { loc: 0, scale: 1, a: 0 });
 
       const controls = document.getElementById("pricer-controls");
       controls.innerHTML = NAMES.map((n, i) => `
@@ -189,8 +193,19 @@
           abilities[i] = +e.target.value;
           recompute();
         });
+        }
+        recompute();
+      } catch (error) {
+        // Fallback when ES modules can't load (e.g., file:// protocol)
+        console.error("Demo requires web server:", error);
+        document.querySelector('.hero-pricer').innerHTML =
+          '<div style="padding: 40px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">' +
+          '<strong>Interactive Demo requires web server</strong><br><br>' +
+          'This demo uses ES modules which require serving from a web server.<br>' +
+          'Run: <code>python -m http.server 8000 --directory docs</code><br>' +
+          'Then visit: <a href="http://localhost:8000/">http://localhost:8000/</a>' +
+          '</div>';
       }
-      recompute();
     </script>
 
     <h2>Cite</h2>
