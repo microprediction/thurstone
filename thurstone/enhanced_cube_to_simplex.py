@@ -6,16 +6,18 @@ configurations for optimal diffeomorphism properties.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List, Optional
+
 import numpy as np
 
-from .lattice import UniformLattice
-from .density import Density
-from .pricing import Race
+from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
 from .conventions import STD_L, STD_UNIT
 from .cube_to_simplex import SigmoidParams, parametric_sigmoid
-from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
+from .density import Density
+from .lattice import UniformLattice
+from .pricing import Race
 
 
 @dataclass

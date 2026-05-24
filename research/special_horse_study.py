@@ -5,27 +5,26 @@ This study focuses specifically on optimizing the special horse while keeping
 sigmoid parameters fixed to symmetric configurations that we know work well.
 """
 
-import numpy as np
-import pandas as pd
+import itertools
 import json
 import os
-import time
-from datetime import datetime
-from typing import Dict, List, Tuple, Any
-import itertools
-from dataclasses import asdict
 import sys
+import time
+from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
+
+import numpy as np
+import pandas as pd
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone import SigmoidParams, comprehensive_quality_assessment
+from thurstone.adaptive_special_horse import (AdaptiveSpecialHorse,
+                                              DistributionType,
+                                              SpecialHorseConfig)
 from thurstone.enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
-from thurstone.adaptive_special_horse import (
-    AdaptiveSpecialHorse,
-    SpecialHorseConfig,
-    DistributionType,
-)
 
 
 class SpecialHorseStudyManager:

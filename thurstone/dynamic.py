@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Sequence, Callable, Optional, Tuple
 import math
+from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
+
 import numpy as np
 
 from .density import Density

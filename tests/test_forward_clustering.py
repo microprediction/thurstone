@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.testing import assert_allclose
+
 from thurstone import AbilityCalibrator
 
 ATOL = 1e-6

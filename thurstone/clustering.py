@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import List, Sequence, Tuple
+
 import numpy as np
+
 from .density import Density
 from .lattice import UniformLattice
-from .pricing import Race
 from .order_stats import winner_of_many
+from .pricing import Race
 
 
 def _int_centered(offsets: Sequence[float]) -> List[float]:
@@ -70,7 +73,8 @@ class ClusterSplitter:
         hang_left = [i for i, o in enumerate(centered) if o < lower_bound]
         hang_right = [i for i, o in enumerate(centered) if o > upper_bound]
         if (not hang_left) and (not hang_right):
-            from .inference import densities_from_offsets, state_prices_from_densities
+            from .inference import (densities_from_offsets,
+                                    state_prices_from_densities)
 
             dens = densities_from_offsets(base, centered)
             return state_prices_from_densities(dens)
@@ -96,7 +100,8 @@ class ClusterSplitter:
                 left_idx = [i for i in range(n) if i not in right_idx]
 
         # group representatives via first-order statistics (race between subgroup winners)
-        from .inference import densities_from_offsets, state_prices_from_densities
+        from .inference import (densities_from_offsets,
+                                state_prices_from_densities)
 
         dens_left = densities_from_offsets(base, [centered[i] for i in left_idx])
         dens_right = densities_from_offsets(base, [centered[i] for i in right_idx])

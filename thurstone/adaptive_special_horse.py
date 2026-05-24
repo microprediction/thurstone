@@ -6,10 +6,12 @@ distributions, variances, and adaptive strategies to optimize mapping properties
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
-import numpy as np
 from enum import Enum
+from typing import Any, Dict, Optional
+
+import numpy as np
 
 
 class DistributionType(Enum):

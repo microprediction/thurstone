@@ -1,12 +1,15 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import List, Sequence, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Sequence, Tuple
+
 import numpy as np
+
+from .clustering import ClusterSplitter
 from .density import Density
 from .lattice import UniformLattice
+from .order_stats import expected_payoff_with_multiplicity, winner_of_many
 from .pricing import Race, StatePricer
-from .order_stats import winner_of_many, expected_payoff_with_multiplicity
-from .clustering import ClusterSplitter
 
 # ---- Densities from offsets ----
 

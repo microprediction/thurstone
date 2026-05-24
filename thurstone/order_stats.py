@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import numpy as np
+
 from .density import Density, _cdf_from_pdf, _pdf_from_cdf
 
 EPS = 1e-18

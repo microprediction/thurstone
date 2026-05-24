@@ -6,9 +6,11 @@ diffeomorphisms created using the Thurstone racing framework.
 """
 
 from __future__ import annotations
-from typing import Tuple, Optional, Dict, Any
-import numpy as np
+
 from dataclasses import dataclass
+from typing import Any, Dict, Optional, Tuple
+
+import numpy as np
 
 from .cube_to_simplex import CubeToSimplexMapping
 

@@ -5,24 +5,22 @@ This script creates all the figures needed for the research paper,
 with publication-ready styling and clear visualizations.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
+import os
+import sys
+from typing import List, Tuple
+
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.mplot3d import Axes3D
-import sys
-import os
-from typing import List, Tuple
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import (
-    CubeToSimplexMapping,
-    SigmoidParams,
-    comprehensive_quality_assessment,
-    optimize_diffeomorphism,
-)
+from thurstone import (CubeToSimplexMapping, SigmoidParams,
+                       comprehensive_quality_assessment,
+                       optimize_diffeomorphism)
 
 # Set publication-quality matplotlib parameters
 plt.rcParams.update(

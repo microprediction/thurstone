@@ -5,27 +5,24 @@ This script implements the comprehensive research study designed to find
 the best cube-to-simplex mappings across different scenarios and dimensions.
 """
 
-import numpy as np
-import pandas as pd
+import itertools
 import json
 import os
-import time
-from datetime import datetime
-from typing import Dict, List, Tuple, Any
-import itertools
-from dataclasses import asdict
 import sys
+import time
+from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Tuple
+
+import numpy as np
+import pandas as pd
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import (
-    CubeToSimplexMapping,
-    SigmoidParams,
-    comprehensive_quality_assessment,
-    optimize_diffeomorphism,
-    ParameterBounds,
-)
+from thurstone import (CubeToSimplexMapping, ParameterBounds, SigmoidParams,
+                       comprehensive_quality_assessment,
+                       optimize_diffeomorphism)
 
 
 class StudyManager:

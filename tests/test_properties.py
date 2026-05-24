@@ -5,6 +5,7 @@ import pytest
 pytest.importorskip("hypothesis")
 import hypothesis as h
 import hypothesis.strategies as st
+
 from thurstone import AbilityCalibrator
 from thurstone.inference import implicit_state_prices
 

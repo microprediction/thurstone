@@ -12,9 +12,10 @@ Run:
 """
 
 import numpy as np
-from thurstone import UniformLattice, Density
-from thurstone.pricing import Race
+
+from thurstone import Density, UniformLattice
 from thurstone.inference import AbilityCalibrator
+from thurstone.pricing import Race
 
 
 def main():

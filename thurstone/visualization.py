@@ -6,7 +6,9 @@ lattice point transformations, and quality measures.
 """
 
 from __future__ import annotations
-from typing import Tuple, Optional, Dict, Any, List
+
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 
 # Optional matplotlib import with graceful fallback
@@ -21,13 +23,9 @@ except ImportError:
     plt = None
 
 from .cube_to_simplex import CubeToSimplexMapping
-from .quality_assessment import (
-    assess_symmetry,
-    assess_volume_preservation,
-    assess_smoothness,
-    assess_uniform_coverage,
-    assess_invertibility,
-)
+from .quality_assessment import (assess_invertibility, assess_smoothness,
+                                 assess_symmetry, assess_uniform_coverage,
+                                 assess_volume_preservation)
 
 
 def _ensure_matplotlib():

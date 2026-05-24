@@ -6,21 +6,21 @@ framework to find optimal parameter configurations.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional, Any
-import numpy as np
-from datetime import datetime
-import json
 
-from .cube_to_simplex import SigmoidParams, CubeToSimplexMapping
+import json
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from .adaptive_special_horse import (AdaptiveSpecialHorse, DistributionType,
+                                     SpecialHorseConfig)
+from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
-from .adaptive_special_horse import (
-    AdaptiveSpecialHorse,
-    SpecialHorseConfig,
-    DistributionType,
-)
-from .quality_assessment import comprehensive_quality_assessment, QualityMetrics
-from .pure_optimizers import pure_optimize, suggest_pure, PURE_OPTIMIZERS
+from .pure_optimizers import PURE_OPTIMIZERS, pure_optimize, suggest_pure
+from .quality_assessment import (QualityMetrics,
+                                 comprehensive_quality_assessment)
 
 
 @dataclass

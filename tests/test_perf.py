@@ -1,4 +1,5 @@
 import pytest
+
 from thurstone import AbilityCalibrator
 
 # Skip if pytest-benchmark plugin is not installed

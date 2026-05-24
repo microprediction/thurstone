@@ -2,8 +2,8 @@
 Monitor the progress of the systematic study and prepare for next phases.
 """
 
-import os
 import json
+import os
 import time
 from datetime import datetime
 

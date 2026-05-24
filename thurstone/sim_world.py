@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Optional
 import math
+from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
-from .lattice import UniformLattice
 from .density import Density
-from .inference import AbilityCalibrator
 from .dynamic import RaceObservation
+from .inference import AbilityCalibrator
+from .lattice import UniformLattice
 
 
 def sigma_true(dt: float, alpha: float = 0.04) -> float:

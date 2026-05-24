@@ -12,12 +12,13 @@ Pipeline
 
 from __future__ import annotations
 
-import numpy as np
 import math
 from typing import List
 
-from thurstone import UniformLattice, Density, KalmanAbilityTracker
-from thurstone.sim_world import simulate_world, sigma_true
+import numpy as np
+
+from thurstone import Density, KalmanAbilityTracker, UniformLattice
+from thurstone.sim_world import sigma_true, simulate_world
 
 # Configuration
 RNG_SEED: int = 7

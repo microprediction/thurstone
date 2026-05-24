@@ -8,9 +8,10 @@ Run:
     python examples/plot_offset_densities_150.py
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
-from thurstone import UniformLattice, Density
+import numpy as np
+
+from thurstone import Density, UniformLattice
 
 
 def main():

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from thurstone import UniformLattice, Density
+from thurstone import Density, UniformLattice
 
 ATOL = 1e-8
 RTOL = 1e-8

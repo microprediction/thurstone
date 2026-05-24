@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
+
 import numpy as np
 
 from .inference import AbilityCalibrator

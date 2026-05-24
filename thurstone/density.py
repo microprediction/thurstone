@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
-import numpy as np
 from typing import Callable, Optional, Tuple
+
+import numpy as np
+
 from .lattice import UniformLattice
-from .normaldist import normpdf, normcdf
+from .normaldist import normcdf, normpdf
 
 
 def _cdf_from_pdf(pdf: np.ndarray) -> np.ndarray:

@@ -1,15 +1,13 @@
 from __future__ import annotations
+
+import matplotlib.pyplot as plt
 import numpy as np
 
-from thurstone import (
-    UniformLattice,
-    Density,
-    AbilityCalibrator,
-    MultiRayGlobalCalibrator,
-)
+from thurstone import (AbilityCalibrator, Density, MultiRayGlobalCalibrator,
+                       UniformLattice)
+from thurstone.multiray import (_interp_price_and_slope_1d,
+                                _interp_price_and_slope_2d)
 from thurstone.pricing import Race
-import matplotlib.pyplot as plt
-from thurstone.multiray import _interp_price_and_slope_1d, _interp_price_and_slope_2d
 
 
 def main():

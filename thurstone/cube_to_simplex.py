@@ -6,14 +6,16 @@ smooth mappings from [0,1]^k to the k-simplex.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
+
 import numpy as np
 
-from .lattice import UniformLattice
-from .density import Density
-from .pricing import Race
 from .conventions import STD_L, STD_UNIT
+from .density import Density
+from .lattice import UniformLattice
+from .pricing import Race
 
 
 def sigmoid(x: float) -> float:

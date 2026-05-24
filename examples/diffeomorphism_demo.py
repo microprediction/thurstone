@@ -10,19 +10,18 @@ This example showcases the complete framework:
 Run this script to see the framework in action!
 """
 
-import numpy as np
-import sys
 import os
+import sys
+
+import numpy as np
 
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone.cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from thurstone.quality_assessment import (
-    comprehensive_quality_assessment,
-    QualityMetrics,
-)
-from thurstone.optimization import optimize_diffeomorphism, ParameterBounds
+from thurstone.optimization import ParameterBounds, optimize_diffeomorphism
+from thurstone.quality_assessment import (QualityMetrics,
+                                          comprehensive_quality_assessment)
 
 
 def create_example_mappings() -> dict:

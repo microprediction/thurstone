@@ -14,9 +14,9 @@ Run:
 import numpy as np
 from numpy.random import default_rng
 
-from thurstone import UniformLattice, Density
-from thurstone.inference import AbilityCalibrator
+from thurstone import Density, UniformLattice
 from thurstone.global_fit import GlobalAbilityCalibrator
+from thurstone.inference import AbilityCalibrator
 
 
 def main():

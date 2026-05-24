@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Sequence, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
+
 import numpy as np
 
 from .density import Density
-from .inference import AbilityCalibrator
 from .dynamic import RaceObservation  # reuse existing container to keep DRY
+from .inference import AbilityCalibrator
 
 
 @dataclass
