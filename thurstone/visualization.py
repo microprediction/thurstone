@@ -8,15 +8,31 @@ lattice point transformations, and quality measures.
 from __future__ import annotations
 from typing import Tuple, Optional, Dict, Any, List
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-from mpl_toolkits.mplot3d import Axes3D
+
+# Optional matplotlib import with graceful fallback
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap
+    from mpl_toolkits.mplot3d import Axes3D
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    plt = None
 
 from .cube_to_simplex import CubeToSimplexMapping
 from .quality_assessment import (
     assess_symmetry, assess_volume_preservation, assess_smoothness,
     assess_uniform_coverage, assess_invertibility
 )
+
+
+def _ensure_matplotlib():
+    """Ensure matplotlib is available for visualization functions."""
+    if not MATPLOTLIB_AVAILABLE:
+        raise ImportError(
+            "Matplotlib is required for visualization functions. "
+            "Install with: pip install 'thurstone[viz]' or pip install matplotlib"
+        )
 
 
 def create_lattice_grid(resolution: int = 20) -> Tuple[np.ndarray, np.ndarray]:
@@ -49,6 +65,8 @@ def plot_cube_lattice_2d(mapping: CubeToSimplexMapping,
     Returns:
         matplotlib Figure
     """
+    _ensure_matplotlib()
+
     if mapping.k != 2:
         raise ValueError("This function is only for k=2 (triangle)")
 
