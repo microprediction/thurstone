@@ -20,14 +20,22 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from thurstone import (STD_A, STD_L, STD_SCALE, STD_UNIT, AbilityCalibrator,
-                       Density, Race, StatePricer, UniformLattice)
+from thurstone import (
+    STD_A,
+    STD_L,
+    STD_SCALE,
+    STD_UNIT,
+    AbilityCalibrator,
+    Density,
+    Race,
+    StatePricer,
+    UniformLattice,
+)
 from thurstone.clustering import ClusterSplitter
 from thurstone.global_fit import GlobalAbilityCalibrator
 from thurstone.global_ls import GlobalLSCalibrator
 from thurstone.normaldist import normcdf, normpdf
-from thurstone.order_stats import (expected_payoff_with_multiplicity,
-                                   winner_of_many)
+from thurstone.order_stats import expected_payoff_with_multiplicity, winner_of_many
 
 OUT_DIR = ROOT / "docs" / "fixtures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)

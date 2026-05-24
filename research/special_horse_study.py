@@ -21,9 +21,11 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone import SigmoidParams, comprehensive_quality_assessment
-from thurstone.adaptive_special_horse import (AdaptiveSpecialHorse,
-                                              DistributionType,
-                                              SpecialHorseConfig)
+from thurstone.adaptive_special_horse import (
+    AdaptiveSpecialHorse,
+    DistributionType,
+    SpecialHorseConfig,
+)
 from thurstone.enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
 
 

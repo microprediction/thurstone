@@ -4,9 +4,12 @@ Quick integration test to validate the diffeomorphism framework.
 
 import numpy as np
 
-from thurstone import (CubeToSimplexMapping, SigmoidParams,
-                       comprehensive_quality_assessment,
-                       optimize_diffeomorphism)
+from thurstone import (
+    CubeToSimplexMapping,
+    SigmoidParams,
+    comprehensive_quality_assessment,
+    optimize_diffeomorphism,
+)
 
 
 def test_basic_functionality():
