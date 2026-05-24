@@ -597,9 +597,9 @@ def main():
                 bbox_inches='tight', facecolor='white')
     figures.append(("Figure 4", fig4))
 
-    print(f"\n✅ All figures generated successfully!")
-    print(f"📁 Saved to directory: {output_dir}/")
-    print(f"🖼️  Generated {len(figures)} publication-quality figures:")
+    print(f"\n All figures generated successfully!")
+    print(f" Saved to directory: {output_dir}/")
+    print(f"  Generated {len(figures)} publication-quality figures:")
 
     for name, fig in figures:
         print(f"   • {name}: {fig.get_figwidth():.1f}x{fig.get_figheight():.1f} inches")

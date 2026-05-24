@@ -71,7 +71,7 @@ class SpecialHorseStudyManager:
         with open(filepath, 'w') as f:
             json.dump(data_clean, f, indent=2)
 
-        print(f"📁 Saved {phase} results to {filepath}")
+        print(f" Saved {phase} results to {filepath}")
 
 
 def run_special_horse_study(k: int = 2):
@@ -224,7 +224,7 @@ def run_special_horse_study(k: int = 2):
     print(f"   Best score: {best_result['quality_scores']['overall']:.4f}")
 
     total_time = time.time() - start_time
-    print(f"\n✅ Special horse study completed in {total_time/60:.1f} minutes!")
+    print(f"\n Special horse study completed in {total_time/60:.1f} minutes!")
 
     return results
 

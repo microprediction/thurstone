@@ -81,7 +81,7 @@ class StudyManager:
         with open(filepath, 'w') as f:
             json.dump(data_clean, f, indent=2)
 
-        print(f"📁 Saved {phase} results to {filepath}")
+        print(f" Saved {phase} results to {filepath}")
 
 
 def phase1_parameter_exploration(study: StudyManager, k: int = 2):
@@ -473,7 +473,7 @@ def generate_study_report(study: StudyManager):
         print(f"   • Algorithm: {best_opt['algorithm']}")
         print(f"   • Weighting: {best_opt['weighting']}")
 
-    print(f"\n✅ Study complete! All results saved to {study.output_dir}/")
+    print(f"\n Study complete! All results saved to {study.output_dir}/")
     return report
 
 
@@ -507,11 +507,11 @@ def main():
 
         print(f"\n🎉 SYSTEMATIC STUDY COMPLETED SUCCESSFULLY!")
         print(f" Generated comprehensive research data for Thurstone diffeomorphisms")
-        print(f"📁 All results saved to: {study.output_dir}/")
+        print(f" All results saved to: {study.output_dir}/")
 
     except KeyboardInterrupt:
         print(f"\n⏸️  Study interrupted by user.")
-        print(f"📁 Partial results saved to: {study.output_dir}/")
+        print(f" Partial results saved to: {study.output_dir}/")
     except Exception as e:
         print(f"\n❌ Error during study execution: {e}")
         raise

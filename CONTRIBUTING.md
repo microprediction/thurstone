@@ -82,8 +82,8 @@ git push origin feature/your-change
    # Check linting (core package only)
    flake8 thurstone/ --count --max-complexity=25 --max-line-length=127
    
-   # Verify no emojis
-   grep -r "🎯\|✅\|🚀\|📊\|🐎\|📈\|🏁\|🔄\|✓" thurstone/ && echo "❌ EMOJIS FOUND" || echo "✓ No emojis"
+   # Verify no emojis (use common emoji patterns)
+   grep -r "[[:emoji:]]" thurstone/ && echo "EMOJIS FOUND" || echo "No emojis detected"
    ```
 
 2. **Write clear PR description:**
@@ -131,23 +131,23 @@ isort .
 
 # Check core package linting
 if ! flake8 thurstone/ --count --max-complexity=25 --max-line-length=127 --statistics; then
-    echo "❌ Core package linting failed"
+    echo "ERROR: Core package linting failed"
     exit 1
 fi
 
-# Check for emojis
-if grep -r "🎯\|✅\|🚀\|📊\|🐎\|📈\|🏁\|🔄\|✓" thurstone/; then
-    echo "❌ Emojis found in core package"
+# Check for emojis (use common emoji patterns)
+if grep -r "[[:emoji:]]" thurstone/; then
+    echo "Emojis found in core package"
     exit 1
 fi
 
 # Run tests
 if ! python -m pytest tests/ -q; then
-    echo "❌ Tests failed"
+    echo "ERROR: Tests failed"
     exit 1
 fi
 
-echo "✓ All pre-commit checks passed"
+echo "SUCCESS: All pre-commit checks passed"
 EOF
 
 chmod +x .git/hooks/pre-commit
@@ -169,7 +169,7 @@ chmod +x .git/hooks/pre-commit
 
 ## Common Mistakes to Avoid
 
-### **❌ Don't Do This:**
+### **ERROR: Don't Do This:**
 
 1. **Working on multiple branches simultaneously without coordination**
    - Creates merge conflicts

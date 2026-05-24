@@ -2,7 +2,7 @@
 
 This directory contains a complete research framework for studying optimal cube-to-simplex diffeomorphisms using Thurstone racing models.
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 research/
@@ -14,7 +14,7 @@ research/
 └── study_results/                  # Generated results and data (created when running studies)
 ```
 
-## 📋 Research Components
+##  Research Components
 
 ### 1. Academic Paper (`paper_draft.md`)
 A complete research paper including:
@@ -72,7 +72,7 @@ Generates four comprehensive figures:
 - Best mapping visualization
 - Quality breakdown of optimal configurations
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Run Complete Study
 ```bash
@@ -91,7 +91,7 @@ python generate_paper_figures.py
 cat study_design.md
 ```
 
-## 📊 Study Scope and Scale
+##  Study Scope and Scale
 
 ### Demo Version (Current)
 - **Grid Search**: 3,125 parameter combinations
@@ -112,7 +112,7 @@ To run the complete study as designed, modify sample sizes in:
 - **Total Evaluations**: ~50,000+ quality assessments
 - **Runtime**: 100-200 compute hours
 
-## 🎯 Key Research Questions
+##  Key Research Questions
 
 1. **What are optimal sigmoid parameters for different objectives?**
 2. **How do quality measures trade off against each other?**
@@ -120,7 +120,7 @@ To run the complete study as designed, modify sample sizes in:
 4. **How does mapping quality scale with dimension k?**
 5. **What parameter sensitivity patterns exist?**
 
-## 📈 Expected Findings
+##  Expected Findings
 
 Based on preliminary analysis, we expect:
 
@@ -165,7 +165,7 @@ Based on preliminary analysis, we expect:
 - Complete experimental logs
 - Standardized evaluation protocols
 
-## 📊 Results and Deliverables
+##  Results and Deliverables
 
 ### **Quantitative Results**
 - Optimal parameter sets for each scenario
@@ -185,7 +185,7 @@ Based on preliminary analysis, we expect:
 - Performance benchmarks
 - Implementation guidelines
 
-## 🔄 Running Different Study Variants
+##  Running Different Study Variants
 
 ### **Parameter-Focused Study**
 ```python
@@ -242,7 +242,7 @@ For questions about the research methodology, implementation, or results interpr
 3. Examine the implementation comments for technical details
 4. Open issues for bugs or enhancement requests
 
-## 🏆 Research Impact
+##  Research Impact
 
 This framework enables:
 
