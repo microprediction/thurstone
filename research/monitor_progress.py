@@ -12,7 +12,7 @@ def check_study_progress():
     results_dir = "study_results"
 
     if not os.path.exists(results_dir):
-        print("📋 Study not yet started - no results directory found")
+        print(" Study not yet started - no results directory found")
         return
 
     # Check for completed phases
@@ -24,7 +24,7 @@ def check_study_progress():
         'Final Report': 'complete_study_report.json'
     }
 
-    print(f"📊 STUDY PROGRESS CHECK - {datetime.now().strftime('%H:%M:%S')}")
+    print(f" STUDY PROGRESS CHECK - {datetime.now().strftime('%H:%M:%S')}")
     print("=" * 60)
 
     completed_phases = []
@@ -49,20 +49,20 @@ def check_study_progress():
                         data = json.load(f)
 
                     if isinstance(data, list) and len(data) > 0:
-                        print(f"   📈 Contains {len(data):,} evaluation records")
+                        print(f"    Contains {len(data):,} evaluation records")
 
                         # Show some key stats
                         if 'quality_scores' in data[0]:
                             scores = [item['quality_scores']['overall'] for item in data if 'quality_scores' in item]
                             if scores:
-                                print(f"   📊 Score range: {min(scores):.4f} - {max(scores):.4f}")
+                                print(f"    Score range: {min(scores):.4f} - {max(scores):.4f}")
 
                 except Exception as e:
                     print(f"   ⚠️ Could not parse file: {e}")
         else:
             print(f"⏳ {phase}: In progress or not started")
 
-    print(f"\n📈 Progress: {len(completed_phases)}/{len(phase_files)} phases complete")
+    print(f"\n Progress: {len(completed_phases)}/{len(phase_files)} phases complete")
 
     return len(completed_phases), len(phase_files)
 
@@ -70,7 +70,7 @@ def prepare_next_phase():
     """Prepare commands for the next phase of research."""
     completed, total = check_study_progress()
 
-    print(f"\n🚀 NEXT STEPS:")
+    print(f"\n NEXT STEPS:")
 
     if completed == 0:
         print("⏳ Phase 1 (Systematic Study) is running...")
@@ -78,7 +78,7 @@ def prepare_next_phase():
         print("   Expected: 1-3 hours for demo version")
 
     elif completed >= 1 and completed < total:
-        print("⚡ Phase 1 completed! Ready for Phase 2 (Generate Figures)")
+        print(" Phase 1 completed! Ready for Phase 2 (Generate Figures)")
         print("   Command: python research/generate_paper_figures.py")
         print("   Expected: 30-60 minutes")
 
@@ -88,7 +88,7 @@ def prepare_next_phase():
         print("   Then: Update paper_draft.md with findings")
 
     else:
-        print("📊 Study in progress - check back later")
+        print(" Study in progress - check back later")
 
 def show_key_findings():
     """Show key findings from completed phases."""
@@ -99,7 +99,7 @@ def show_key_findings():
     phase1_files = glob.glob(os.path.join(results_dir, 'phase1_grid_search_*.json'))
 
     if phase1_files:
-        print(f"\n🔍 KEY FINDINGS FROM PHASE 1:")
+        print(f"\n KEY FINDINGS FROM PHASE 1:")
         print("=" * 40)
 
         latest_file = max(phase1_files, key=os.path.getctime)
@@ -111,7 +111,7 @@ def show_key_findings():
                 # Find best overall configurations
                 best_configs = sorted(data, key=lambda x: x['quality_scores']['overall'], reverse=True)[:5]
 
-                print("🏆 TOP 5 PARAMETER CONFIGURATIONS:")
+                print(" TOP 5 PARAMETER CONFIGURATIONS:")
                 for i, config in enumerate(best_configs, 1):
                     score = config['quality_scores']['overall']
                     weighting = config['weighting']
@@ -121,7 +121,7 @@ def show_key_findings():
 
                 # Analyze by weighting scheme
                 weightings = set(item['weighting'] for item in data)
-                print(f"\n📊 BEST BY WEIGHTING SCHEME:")
+                print(f"\n BEST BY WEIGHTING SCHEME:")
                 for weight in weightings:
                     weight_data = [item for item in data if item['weighting'] == weight]
                     best = max(weight_data, key=lambda x: x['quality_scores']['overall'])
@@ -134,7 +134,7 @@ def show_key_findings():
     phase2_files = glob.glob(os.path.join(results_dir, 'phase2_optimization_*.json'))
 
     if phase2_files:
-        print(f"\n🎯 KEY FINDINGS FROM PHASE 2:")
+        print(f"\n KEY FINDINGS FROM PHASE 2:")
         print("=" * 40)
 
         latest_file = max(phase2_files, key=os.path.getctime)
@@ -145,7 +145,7 @@ def show_key_findings():
             if isinstance(data, list) and len(data) > 0:
                 # Group by algorithm
                 algorithms = set(item['algorithm'] for item in data)
-                print("🚀 ALGORITHM PERFORMANCE:")
+                print(" ALGORITHM PERFORMANCE:")
 
                 for alg in algorithms:
                     alg_data = [item for item in data if item['algorithm'] == alg]
@@ -173,7 +173,7 @@ def main():
     # Suggest next steps
     prepare_next_phase()
 
-    print(f"\n💡 TIP: Run this monitor script periodically to track progress:")
+    print(f"\n TIP: Run this monitor script periodically to track progress:")
     print(f"   python research/monitor_progress.py")
 
 if __name__ == "__main__":

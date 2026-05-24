@@ -76,7 +76,7 @@ class SpecialHorseStudyManager:
 
 def run_special_horse_study(k: int = 2):
     """Run systematic study of special horse configurations."""
-    print(f"🐎 SPECIAL HORSE SYSTEMATIC STUDY")
+    print(f" SPECIAL HORSE SYSTEMATIC STUDY")
     print(f"{'='*60}")
     print(f"Focus: Optimize (k+1)-th horse with fixed symmetric sigmoids")
     print(f"Dimension: k={k}")
@@ -88,7 +88,7 @@ def run_special_horse_study(k: int = 2):
     for i in range(k):
         sigmoid_params.append(SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5))
 
-    print(f"🎯 Using fixed symmetric sigmoids: α=1.2, β=4.0, γ=0.5")
+    print(f" Using fixed symmetric sigmoids: α=1.2, β=4.0, γ=0.5")
 
     # Define special horse parameter space
     distributions = [
@@ -108,15 +108,15 @@ def run_special_horse_study(k: int = 2):
                          len(locations) * len(scales) * len(adaptive_modes))
     total_evaluations = total_combinations * len(study.quality_weightings)
 
-    print(f"📊 Special horse configurations: {total_combinations:,}")
-    print(f"📊 Total evaluations: {total_evaluations:,}")
+    print(f" Special horse configurations: {total_combinations:,}")
+    print(f" Total evaluations: {total_evaluations:,}")
     print(f"⏱️ Estimated time: {total_evaluations * 3 / 60:.1f} minutes")
 
     results = []
     start_time = time.time()
     eval_count = 0
 
-    print(f"\n⚡ Starting evaluations...")
+    print(f"\n Starting evaluations...")
 
     # Test each special horse configuration
     for dist in distributions:
@@ -193,14 +193,14 @@ def run_special_horse_study(k: int = 2):
     study.save_results('special_horse_systematic', results)
 
     # Analyze results
-    print(f"\n📈 SPECIAL HORSE ANALYSIS")
+    print(f"\n SPECIAL HORSE ANALYSIS")
 
     for weighting_name in study.quality_weightings.keys():
         weighting_results = [r for r in results if r['weighting'] == weighting_name]
         weighting_results.sort(key=lambda x: x['quality_scores']['overall'], reverse=True)
 
         top_10 = weighting_results[:10]
-        print(f"\n🏆 Top 10 for {weighting_name} weighting:")
+        print(f"\n Top 10 for {weighting_name} weighting:")
         for i, result in enumerate(top_10, 1):
             config = result['special_horse_config']
             score = result['quality_scores']['overall']
@@ -215,7 +215,7 @@ def run_special_horse_study(k: int = 2):
     best_result = all_results[0]
     best_config = best_result['special_horse_config']
 
-    print(f"\n🎯 OVERALL BEST SPECIAL HORSE:")
+    print(f"\n OVERALL BEST SPECIAL HORSE:")
     print(f"   Distribution: {best_config['distribution']}")
     print(f"   Base ability: {best_config['base_ability']}")
     print(f"   Location: {best_config['location']}")
@@ -230,7 +230,7 @@ def run_special_horse_study(k: int = 2):
 
 
 if __name__ == "__main__":
-    print("🐎 STARTING SPECIAL HORSE FOCUSED STUDY")
+    print(" STARTING SPECIAL HORSE FOCUSED STUDY")
     print("=" * 60)
 
     results = run_special_horse_study(k=2)

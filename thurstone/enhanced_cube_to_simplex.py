@@ -198,7 +198,7 @@ def create_test_mappings() -> dict:
 
 # Example usage and testing
 if __name__ == "__main__":
-    print("🎯 ENHANCED CUBE-TO-SIMPLEX MAPPING TEST")
+    print("ENHANCED CUBE-TO-SIMPLEX MAPPING TEST")
     print("=" * 50)
 
     # Create test mappings
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     print("Testing different special horse configurations...")
 
     for name, mapping in list(mappings.items())[:5]:  # Test first 5
-        print(f"\n📊 {name}:")
+        print(f"\n{name}:")
         print(f"   Special horse: {mapping.special_horse.config.distribution.value}")
 
         for i, point in enumerate(test_points):
@@ -227,4 +227,4 @@ if __name__ == "__main__":
         print(f"   Center [0.5, 0.5] → sum = {np.sum(center_result):.6f} ✓")
 
     print(f"\n✅ Enhanced mapping framework working!")
-    print(f"🚀 Ready for comprehensive quality comparison!")
+    print("Ready for comprehensive quality comparison!")

@@ -388,7 +388,7 @@ def demonstrate_parameter_sensitivity():
 
 def main():
     """Run the comprehensive demonstration."""
-    print("🎯 THURSTONE DIFFEOMORPHISM FRAMEWORK DEMONSTRATION")
+    print("THURSTONE DIFFEOMORPHISM FRAMEWORK DEMONSTRATION")
     print("=" * 60)
     print("This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models.")
     print("The framework creates smooth mappings from [0,1]^k to the k-simplex using")
@@ -421,7 +421,7 @@ def main():
         print("   • Lattice point analysis and coverage")
         print("   • Parameter sensitivity analysis")
 
-        print("\n📊 Key Findings:")
+        print("\nKey Findings:")
         print("   • Mappings preserve probability constraints (sum to 1)")
         print("   • Parameter optimization can improve quality scores")
         print("   • Different configurations show various trade-offs")
@@ -433,7 +433,7 @@ def main():
         print("   • Optimization: Random search and evolutionary algorithms")
         print("   • Visualization: Comprehensive plotting tools")
 
-        print("\n📈 Next Steps:")
+        print("\nNext Steps:")
         print("   • Try higher dimensions (k=3, k=4)")
         print("   • Experiment with evolutionary optimization")
         print("   • Use visualization tools to explore mappings")

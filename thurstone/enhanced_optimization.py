@@ -217,7 +217,7 @@ def enhanced_optimize_diffeomorphism(
     """
     import time
 
-    print(f"🎯 ENHANCED DIFFEOMORPHISM OPTIMIZATION")
+    print("ENHANCED DIFFEOMORPHISM OPTIMIZATION")
     print(f"   Algorithm: {algorithm}")
     print(f"   Dimension: k={k}")
     print(f"   Max evaluations: {max_evaluations}")
@@ -330,7 +330,7 @@ def compare_optimization_algorithms(
     if algorithms is None:
         algorithms = ["HarmonySearch", "DifferentialEvolution", "ParticleSwarm"]
 
-    print(f"🏁 ALGORITHM COMPARISON")
+    print("ALGORITHM COMPARISON")
     print(f"   Algorithms: {', '.join(algorithms)}")
     print(f"   Runs per algorithm: {n_runs}")
     print(f"   Evaluations per run: {max_evaluations}")
@@ -338,7 +338,7 @@ def compare_optimization_algorithms(
     results = {}
 
     for algorithm in algorithms:
-        print(f"\n🔄 Testing {algorithm}...")
+        print(f"\nTesting {algorithm}...")
         results[algorithm] = []
 
         for run in range(n_runs):
@@ -364,7 +364,7 @@ def compare_optimization_algorithms(
 
 # Example usage
 if __name__ == "__main__":
-    print("🎯 ENHANCED DIFFEOMORPHISM OPTIMIZATION TEST")
+    print("ENHANCED DIFFEOMORPHISM OPTIMIZATION TEST")
     print("=" * 60)
 
     # Test single optimization
@@ -377,18 +377,18 @@ if __name__ == "__main__":
         random_seed=42
     )
 
-    print(f"\n📊 OPTIMIZATION RESULTS:")
+    print("\nOPTIMIZATION RESULTS:")
     print(f"   Best score: {result.best_score:.4f}")
     print(f"   Algorithm: {result.algorithm_used}")
     print(f"   Evaluations: {result.total_evaluations}")
 
-    print(f"\n🐎 Special horse configuration:")
+    print("\nSpecial horse configuration:")
     special_config = result.best_mapping.special_horse.config
     print(f"   Distribution: {special_config.distribution.value}")
     print(f"   Base ability: {special_config.base_ability:.3f}")
     print(f"   Scale: {special_config.scale:.3f}")
 
-    print(f"\n📈 Quality breakdown:")
+    print("\nQuality breakdown:")
     metrics = result.best_metrics
     print(f"   Symmetry: {metrics.symmetry_score:.4f}")
     print(f"   Volume preservation: {(metrics.volume_preservation_score or 0):.4f}")

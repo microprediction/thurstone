@@ -604,7 +604,7 @@ def main():
     for name, fig in figures:
         print(f"   • {name}: {fig.get_figwidth():.1f}x{fig.get_figheight():.1f} inches")
 
-    print(f"\n📊 Figure Summary:")
+    print("\nFigure Summary:")
     print(f"   • Figure 1: Demonstrates lattice mappings for 4 different parameter configurations")
     print(f"   • Figure 2: Shows 3D visualization of the mapping process")
     print(f"   • Figure 3: Comprehensive quality analysis including radar charts and heatmaps")

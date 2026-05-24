@@ -263,7 +263,7 @@ def create_special_horse_configs() -> Dict[str, SpecialHorseConfig]:
 
 # Example usage and testing
 if __name__ == "__main__":
-    print("🐎 ADAPTIVE SPECIAL HORSE FRAMEWORK TEST")
+    print("ADAPTIVE SPECIAL HORSE FRAMEWORK TEST")
     print("=" * 50)
 
     # Create test configurations
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     test_other_abilities = np.array([0.5, -0.2])
 
     for name, config in configs.items():
-        print(f"\n📊 Testing {name}:")
+        print(f"\nTesting {name}:")
         print(f"   Distribution: {config.distribution.value}")
         print(f"   Base ability: {config.base_ability}")
         print(f"   Adaptive mode: {config.adaptive_mode}")
@@ -294,4 +294,4 @@ if __name__ == "__main__":
         print(f"   Performance range: [{np.min(performances):.3f}, {np.max(performances):.3f}]")
 
     print(f"\n✅ Adaptive special horse framework ready!")
-    print(f"🚀 Ready to integrate with cube-to-simplex mappings!")
+    print("Ready to integrate with cube-to-simplex mappings!")
