@@ -16,6 +16,7 @@ from .cube_to_simplex import CubeToSimplexMapping
 @dataclass
 class QualityMetrics:
     """Container for various quality metrics."""
+
     symmetry_score: float
     volume_preservation_score: Optional[float] = None
     smoothness_score: Optional[float] = None
@@ -25,18 +26,23 @@ class QualityMetrics:
     def overall_score(self, weights: Optional[Dict[str, float]] = None) -> float:
         """Compute weighted average of available metrics."""
         if weights is None:
-            weights = {'symmetry': 1.0, 'volume_preservation': 1.0, 'smoothness': 1.0,
-                      'coverage': 1.0, 'invertibility': 1.0}
+            weights = {
+                "symmetry": 1.0,
+                "volume_preservation": 1.0,
+                "smoothness": 1.0,
+                "coverage": 1.0,
+                "invertibility": 1.0,
+            }
 
         total_weight = 0.0
         total_score = 0.0
 
         for metric_name, score in [
-            ('symmetry', self.symmetry_score),
-            ('volume_preservation', self.volume_preservation_score),
-            ('smoothness', self.smoothness_score),
-            ('coverage', self.coverage_score),
-            ('invertibility', self.invertibility_score)
+            ("symmetry", self.symmetry_score),
+            ("volume_preservation", self.volume_preservation_score),
+            ("smoothness", self.smoothness_score),
+            ("coverage", self.coverage_score),
+            ("invertibility", self.invertibility_score),
         ]:
             if score is not None and metric_name in weights:
                 weight = weights[metric_name]
@@ -46,9 +52,11 @@ class QualityMetrics:
         return total_score / total_weight if total_weight > 0 else 0.0
 
 
-def assess_symmetry(mapping: CubeToSimplexMapping,
-                   n_samples: int = 10000,
-                   random_seed: Optional[int] = None) -> Tuple[float, Dict[str, Any]]:
+def assess_symmetry(
+    mapping: CubeToSimplexMapping,
+    n_samples: int = 10000,
+    random_seed: Optional[int] = None,
+) -> Tuple[float, Dict[str, Any]]:
     """
     Assess how symmetric the mapping is - i.e., how close each horse's
     winning probability is to 1/(k+1) when sampling uniformly from the cube.
@@ -89,22 +97,24 @@ def assess_symmetry(mapping: CubeToSimplexMapping,
     symmetry_score = max(0.0, 1.0 - avg_relative_deviation)
 
     details = {
-        'mean_probabilities': mean_probs,
-        'expected_probability': expected_prob,
-        'deviations': deviations,
-        'max_deviation': np.max(deviations),
-        'avg_deviation': np.mean(deviations),
-        'std_deviation': np.std(deviations),
-        'n_samples': n_samples
+        "mean_probabilities": mean_probs,
+        "expected_probability": expected_prob,
+        "deviations": deviations,
+        "max_deviation": np.max(deviations),
+        "avg_deviation": np.mean(deviations),
+        "std_deviation": np.std(deviations),
+        "n_samples": n_samples,
     }
 
     return symmetry_score, details
 
 
-def assess_volume_preservation(mapping: CubeToSimplexMapping,
-                              n_samples: int = 1000,
-                              epsilon: float = 1e-4,
-                              random_seed: Optional[int] = None) -> Tuple[float, Dict[str, Any]]:
+def assess_volume_preservation(
+    mapping: CubeToSimplexMapping,
+    n_samples: int = 1000,
+    epsilon: float = 1e-4,
+    random_seed: Optional[int] = None,
+) -> Tuple[float, Dict[str, Any]]:
     """
     Assess how well the mapping preserves volume by examining the Jacobian determinant.
 
@@ -163,34 +173,36 @@ def assess_volume_preservation(mapping: CubeToSimplexMapping,
     jacobian_dets = np.array(jacobian_dets)
 
     if len(jacobian_dets) == 0:
-        return 0.0, {'error': 'No valid Jacobian computations'}
+        return 0.0, {"error": "No valid Jacobian computations"}
 
     # Volume preservation score: 1 - coefficient of variation of |det(J)|
     # Perfect preservation would have constant |det(J)|, so CV = 0 → score = 1
     mean_det = np.mean(jacobian_dets)
     std_det = np.std(jacobian_dets)
-    cv = std_det / mean_det if mean_det > 0 else float('inf')
+    cv = std_det / mean_det if mean_det > 0 else float("inf")
 
     # Score decreases as coefficient of variation increases
     volume_score = max(0.0, 1.0 - min(cv, 1.0))
 
     details = {
-        'jacobian_determinants': jacobian_dets,
-        'mean_det': mean_det,
-        'std_det': std_det,
-        'coefficient_of_variation': cv,
-        'min_det': np.min(jacobian_dets),
-        'max_det': np.max(jacobian_dets),
-        'n_samples': len(jacobian_dets)
+        "jacobian_determinants": jacobian_dets,
+        "mean_det": mean_det,
+        "std_det": std_det,
+        "coefficient_of_variation": cv,
+        "min_det": np.min(jacobian_dets),
+        "max_det": np.max(jacobian_dets),
+        "n_samples": len(jacobian_dets),
     }
 
     return volume_score, details
 
 
-def assess_smoothness(mapping: CubeToSimplexMapping,
-                     n_samples: int = 1000,
-                     epsilon: float = 1e-4,
-                     random_seed: Optional[int] = None) -> Tuple[float, Dict[str, Any]]:
+def assess_smoothness(
+    mapping: CubeToSimplexMapping,
+    n_samples: int = 1000,
+    epsilon: float = 1e-4,
+    random_seed: Optional[int] = None,
+) -> Tuple[float, Dict[str, Any]]:
     """
     Assess smoothness by examining the magnitude of gradients.
 
@@ -259,22 +271,24 @@ def assess_smoothness(mapping: CubeToSimplexMapping,
     smoothness_score = max(0.0, 1.0 / (1.0 + mean_normalized_gradient))
 
     details = {
-        'gradient_norms': gradient_norms,
-        'mean_gradient_norm': np.mean(gradient_norms),
-        'std_gradient_norm': np.std(gradient_norms),
-        'max_gradient_norm': np.max(gradient_norms),
-        'reference_scale': reference_scale,
-        'normalized_mean': mean_normalized_gradient,
-        'n_samples': n_samples
+        "gradient_norms": gradient_norms,
+        "mean_gradient_norm": np.mean(gradient_norms),
+        "std_gradient_norm": np.std(gradient_norms),
+        "max_gradient_norm": np.max(gradient_norms),
+        "reference_scale": reference_scale,
+        "normalized_mean": mean_normalized_gradient,
+        "n_samples": n_samples,
     }
 
     return smoothness_score, details
 
 
-def assess_uniform_coverage(mapping: CubeToSimplexMapping,
-                           n_samples: int = 10000,
-                           n_bins: int = 20,
-                           random_seed: Optional[int] = None) -> Tuple[float, Dict[str, Any]]:
+def assess_uniform_coverage(
+    mapping: CubeToSimplexMapping,
+    n_samples: int = 10000,
+    n_bins: int = 20,
+    random_seed: Optional[int] = None,
+) -> Tuple[float, Dict[str, Any]]:
     """
     Assess how uniformly the mapping covers the simplex.
 
@@ -310,8 +324,9 @@ def assess_uniform_coverage(mapping: CubeToSimplexMapping,
         # Create 2D histogram
         # Since we're on simplex, we need triangular binning
         # Simple approach: use rectangular binning but mask invalid regions
-        hist, x_edges, y_edges = np.histogram2d(x_coords, y_coords, bins=n_bins,
-                                               range=[[0, 1], [0, 1]])
+        hist, x_edges, y_edges = np.histogram2d(
+            x_coords, y_coords, bins=n_bins, range=[[0, 1], [0, 1]]
+        )
 
         # Mask bins where x + y > 1 (outside simplex)
         bin_centers_x = (x_edges[:-1] + x_edges[1:]) / 2
@@ -337,15 +352,15 @@ def assess_uniform_coverage(mapping: CubeToSimplexMapping,
         flat_indices = []
         for i, coords in enumerate(hist_coords):
             # Simple hash-based approach
-            flat_idx = hash(tuple(coords)) % (n_bins ** k)
+            flat_idx = hash(tuple(coords)) % (n_bins**k)
             flat_indices.append(flat_idx)
 
-        valid_hist, _ = np.histogram(flat_indices, bins=n_bins ** k)
-        n_valid_bins = n_bins ** k
+        valid_hist, _ = np.histogram(flat_indices, bins=n_bins**k)
+        n_valid_bins = n_bins**k
 
     # Compute coverage uniformity
     if len(valid_hist) == 0 or n_valid_bins == 0:
-        return 0.0, {'error': 'No valid bins'}
+        return 0.0, {"error": "No valid bins"}
 
     # Expected count per bin for uniform distribution
     expected_count = n_samples / n_valid_bins
@@ -353,7 +368,7 @@ def assess_uniform_coverage(mapping: CubeToSimplexMapping,
     # Chi-squared like measure of uniformity
     observed_counts = valid_hist[valid_hist > 0]  # Only non-empty bins
     if len(observed_counts) == 0:
-        return 0.0, {'error': 'No occupied bins'}
+        return 0.0, {"error": "No occupied bins"}
 
     # Coverage score based on how many bins are occupied and how uniform the counts are
     occupancy_ratio = len(observed_counts) / n_valid_bins
@@ -361,7 +376,7 @@ def assess_uniform_coverage(mapping: CubeToSimplexMapping,
     # Uniformity of occupied bins (coefficient of variation)
     mean_count = np.mean(observed_counts)
     std_count = np.std(observed_counts)
-    cv_count = std_count / mean_count if mean_count > 0 else float('inf')
+    cv_count = std_count / mean_count if mean_count > 0 else float("inf")
 
     # Combined score: occupancy * uniformity
     occupancy_score = occupancy_ratio
@@ -369,26 +384,28 @@ def assess_uniform_coverage(mapping: CubeToSimplexMapping,
     coverage_score = (occupancy_score + uniformity_score) / 2.0
 
     details = {
-        'histogram': valid_hist,
-        'n_valid_bins': n_valid_bins,
-        'n_occupied_bins': len(observed_counts),
-        'occupancy_ratio': occupancy_ratio,
-        'mean_count': mean_count,
-        'std_count': std_count,
-        'cv_count': cv_count,
-        'occupancy_score': occupancy_score,
-        'uniformity_score': uniformity_score,
-        'n_samples': n_samples
+        "histogram": valid_hist,
+        "n_valid_bins": n_valid_bins,
+        "n_occupied_bins": len(observed_counts),
+        "occupancy_ratio": occupancy_ratio,
+        "mean_count": mean_count,
+        "std_count": std_count,
+        "cv_count": cv_count,
+        "occupancy_score": occupancy_score,
+        "uniformity_score": uniformity_score,
+        "n_samples": n_samples,
     }
 
     return coverage_score, details
 
 
-def assess_invertibility(mapping: CubeToSimplexMapping,
-                        n_samples: int = 1000,
-                        tolerance: float = 0.01,
-                        max_iterations: int = 100,
-                        random_seed: Optional[int] = None) -> Tuple[float, Dict[str, Any]]:
+def assess_invertibility(
+    mapping: CubeToSimplexMapping,
+    n_samples: int = 1000,
+    tolerance: float = 0.01,
+    max_iterations: int = 100,
+    random_seed: Optional[int] = None,
+) -> Tuple[float, Dict[str, Any]]:
     """
     Assess how well-conditioned the inverse mapping is.
 
@@ -420,7 +437,9 @@ def assess_invertibility(mapping: CubeToSimplexMapping,
     inversion_errors = []
     condition_numbers = []
 
-    for i, (original_cube, target_simplex) in enumerate(zip(cube_test_points, simplex_points)):
+    for i, (original_cube, target_simplex) in enumerate(
+        zip(cube_test_points, simplex_points)
+    ):
         # Simple gradient descent to find inverse
         # Start from a random point in the cube
         current_cube = np.random.uniform(0, 1, k)
@@ -458,8 +477,12 @@ def assess_invertibility(mapping: CubeToSimplexMapping,
                     # Use the first k rows (since outputs sum to 1)
                     effective_jacobian = jacobian[:k, :]
                     if np.linalg.matrix_rank(effective_jacobian) == k:
-                        singular_values = np.linalg.svd(effective_jacobian, compute_uv=False)
-                        condition_number = np.max(singular_values) / np.min(singular_values)
+                        singular_values = np.linalg.svd(
+                            effective_jacobian, compute_uv=False
+                        )
+                        condition_number = np.max(singular_values) / np.min(
+                            singular_values
+                        )
                         condition_numbers.append(condition_number)
 
                 except (np.linalg.LinAlgError, ZeroDivisionError):
@@ -492,7 +515,7 @@ def assess_invertibility(mapping: CubeToSimplexMapping,
         error_score = max(0.0, 1.0 - mean_inversion_error)
     else:
         error_score = 0.0
-        mean_inversion_error = float('inf')
+        mean_inversion_error = float("inf")
 
     if condition_numbers:
         mean_condition_number = np.mean(condition_numbers)
@@ -502,33 +525,35 @@ def assess_invertibility(mapping: CubeToSimplexMapping,
         condition_score = max(0.0, 1.0 - log_condition / 5.0)  # Penalize log_cond > 5
     else:
         condition_score = 0.0
-        mean_condition_number = float('inf')
+        mean_condition_number = float("inf")
 
     # Overall invertibility score
     invertibility_score = (success_rate + error_score + condition_score) / 3.0
 
     details = {
-        'success_rate': success_rate,
-        'successful_inversions': successful_inversions,
-        'total_attempts': n_samples,
-        'mean_inversion_error': mean_inversion_error,
-        'inversion_errors': inversion_errors,
-        'mean_condition_number': mean_condition_number,
-        'condition_numbers': condition_numbers,
-        'error_score': error_score,
-        'condition_score': condition_score
+        "success_rate": success_rate,
+        "successful_inversions": successful_inversions,
+        "total_attempts": n_samples,
+        "mean_inversion_error": mean_inversion_error,
+        "inversion_errors": inversion_errors,
+        "mean_condition_number": mean_condition_number,
+        "condition_numbers": condition_numbers,
+        "error_score": error_score,
+        "condition_score": condition_score,
     }
 
     return invertibility_score, details
 
 
-def comprehensive_quality_assessment(mapping: CubeToSimplexMapping,
-                                   symmetry_samples: int = 10000,
-                                   volume_samples: int = 1000,
-                                   smoothness_samples: int = 1000,
-                                   coverage_samples: int = 5000,
-                                   invertibility_samples: int = 100,
-                                   random_seed: Optional[int] = None) -> QualityMetrics:
+def comprehensive_quality_assessment(
+    mapping: CubeToSimplexMapping,
+    symmetry_samples: int = 10000,
+    volume_samples: int = 1000,
+    smoothness_samples: int = 1000,
+    coverage_samples: int = 5000,
+    invertibility_samples: int = 100,
+    random_seed: Optional[int] = None,
+) -> QualityMetrics:
     """
     Perform a comprehensive quality assessment of a cube-to-simplex mapping.
 
@@ -548,23 +573,31 @@ def comprehensive_quality_assessment(mapping: CubeToSimplexMapping,
     symmetry_score, _ = assess_symmetry(mapping, symmetry_samples, random_seed)
 
     print("Assessing volume preservation...")
-    volume_score, _ = assess_volume_preservation(mapping, volume_samples, random_seed=random_seed)
+    volume_score, _ = assess_volume_preservation(
+        mapping, volume_samples, random_seed=random_seed
+    )
 
     print("Assessing smoothness...")
-    smoothness_score, _ = assess_smoothness(mapping, smoothness_samples, random_seed=random_seed)
+    smoothness_score, _ = assess_smoothness(
+        mapping, smoothness_samples, random_seed=random_seed
+    )
 
     print("Assessing uniform coverage...")
-    coverage_score, _ = assess_uniform_coverage(mapping, coverage_samples, random_seed=random_seed)
+    coverage_score, _ = assess_uniform_coverage(
+        mapping, coverage_samples, random_seed=random_seed
+    )
 
     print("Assessing invertibility...")
-    invertibility_score, _ = assess_invertibility(mapping, invertibility_samples, random_seed=random_seed)
+    invertibility_score, _ = assess_invertibility(
+        mapping, invertibility_samples, random_seed=random_seed
+    )
 
     return QualityMetrics(
         symmetry_score=symmetry_score,
         volume_preservation_score=volume_score,
         smoothness_score=smoothness_score,
         coverage_score=coverage_score,
-        invertibility_score=invertibility_score
+        invertibility_score=invertibility_score,
     )
 
 
@@ -577,12 +610,10 @@ if __name__ == "__main__":
     # Create a test mapping
     sigmoid_params = [
         SigmoidParams(alpha=1.0, beta=4.0, gamma=0.3),
-        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7)
+        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7),
     ]
     mapping = CubeToSimplexMapping(
-        sigmoid_params=sigmoid_params,
-        special_horse_ability=0.0,
-        noise_scale=1.0
+        sigmoid_params=sigmoid_params, special_horse_ability=0.0, noise_scale=1.0
     )
 
     # Test symmetry assessment
@@ -595,13 +626,15 @@ if __name__ == "__main__":
 
     # Test comprehensive assessment
     print("\nRunning comprehensive assessment:")
-    metrics = comprehensive_quality_assessment(mapping,
-                                             symmetry_samples=3000,
-                                             volume_samples=150,
-                                             smoothness_samples=150,
-                                             coverage_samples=2000,
-                                             invertibility_samples=50,
-                                             random_seed=42)
+    metrics = comprehensive_quality_assessment(
+        mapping,
+        symmetry_samples=3000,
+        volume_samples=150,
+        smoothness_samples=150,
+        coverage_samples=2000,
+        invertibility_samples=50,
+        random_seed=42,
+    )
     print(f"Symmetry: {metrics.symmetry_score:.4f}")
     print(f"Volume preservation: {metrics.volume_preservation_score:.4f}")
     print(f"Smoothness: {metrics.smoothness_score:.4f}")

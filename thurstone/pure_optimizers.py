@@ -322,7 +322,7 @@ def suggest_pure(n_dim: int, n_trials: int) -> List[str]:
             "DifferentialEvolution",
             "CMAEvolutionStrategy",
             "ParticleSwarm",
-            "BayesianOpt"
+            "BayesianOpt",
         ]
     else:
         return [
@@ -330,5 +330,5 @@ def suggest_pure(n_dim: int, n_trials: int) -> List[str]:
             "DifferentialEvolution",
             "ParticleSwarm",
             "BayesianOpt",
-            "CMAEvolutionStrategy"
+            "CMAEvolutionStrategy",
         ]

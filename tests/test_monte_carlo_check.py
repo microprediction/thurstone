@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 from thurstone import AbilityCalibrator, Density
 
+
 def draw_from_density(d: Density, rng, n=50_000):
     cdf = np.cumsum(d.p)
     u = rng.random(n)
@@ -9,6 +10,7 @@ def draw_from_density(d: Density, rng, n=50_000):
     idx = np.searchsorted(cdf, u)
     xs = d.lattice.unit * (idx - d.lattice.L)
     return xs
+
 
 def test_mc_vs_lattice(base, rng):
     # 3 runners with modest offsets
@@ -26,7 +28,5 @@ def test_mc_vs_lattice(base, rng):
         vals = [samples[i][k] for i in range(3)]
         w = int(np.argmin(vals))
         wins[w] += 1
-    p_mc = [w/N for w in wins]
+    p_mc = [w / N for w in wins]
     assert_allclose(p_mc, p_lattice, atol=0.02)  # coarse tolerance is fine
-
-

@@ -5,13 +5,22 @@ from .density import Density, _cdf_from_pdf, _pdf_from_cdf
 EPS = 1e-18
 DEL = 1e-12
 
-def _conditional_win_draw_loss(pdfA: np.ndarray, pdfB: np.ndarray, cdfA: np.ndarray, cdfB: np.ndarray):
-    winA = pdfA * (1.0 - cdfB)       # X < Y
-    draw = pdfA * pdfB               # X == Y
-    winB = pdfB * (1.0 - cdfA)       # Y < X
+
+def _conditional_win_draw_loss(
+    pdfA: np.ndarray, pdfB: np.ndarray, cdfA: np.ndarray, cdfB: np.ndarray
+):
+    winA = pdfA * (1.0 - cdfB)  # X < Y
+    draw = pdfA * pdfB  # X == Y
+    winB = pdfB * (1.0 - cdfA)  # Y < X
     return winA, draw, winB
 
-def _winner_of_two(dA: Density, dB: Density, multA: np.ndarray | None = None, multB: np.ndarray | None = None) -> tuple[Density, np.ndarray]:
+
+def _winner_of_two(
+    dA: Density,
+    dB: Density,
+    multA: np.ndarray | None = None,
+    multB: np.ndarray | None = None,
+) -> tuple[Density, np.ndarray]:
     cA = dA.cdf()
     cB = dB.cdf()
     cMin = 1.0 - (1.0 - cA) * (1.0 - cB)
@@ -20,9 +29,9 @@ def _winner_of_two(dA: Density, dB: Density, multA: np.ndarray | None = None, mu
 
     L = dA.lattice.L
     if multA is None:
-        multA = np.ones(2*L + 1, dtype=float)
+        multA = np.ones(2 * L + 1, dtype=float)
     if multB is None:
-        multB = np.ones(2*L + 1, dtype=float)
+        multB = np.ones(2 * L + 1, dtype=float)
 
     wA, dr, wB = _conditional_win_draw_loss(dA.p, dB.p, cA, cB)
     numer = wA * multA + dr * (multA + multB) + wB * multB + EPS
@@ -30,17 +39,25 @@ def _winner_of_two(dA: Density, dB: Density, multA: np.ndarray | None = None, mu
     mult = numer / denom
     return out, mult
 
+
 def winner_of_many(densities: list[Density]) -> tuple[Density, np.ndarray]:
     if len(densities) == 0:
         raise ValueError("winner_of_many requires at least one density.")
     d = densities[0]
     L = d.lattice.L
-    mult = np.ones(2*L + 1, dtype=float)
+    mult = np.ones(2 * L + 1, dtype=float)
     for d2 in densities[1:]:
         d, mult = _winner_of_two(d, d2, mult, np.ones_like(mult))
     return d, mult
 
-def get_the_rest(density: Density, densityAll: Density | None, multiplicityAll: np.ndarray, cdf: np.ndarray | None = None, cdfAll: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
+
+def get_the_rest(
+    density: Density,
+    densityAll: Density | None,
+    multiplicityAll: np.ndarray,
+    cdf: np.ndarray | None = None,
+    cdfAll: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     if cdf is None:
         cdf = density.cdf()
     if cdfAll is None:
@@ -76,14 +93,23 @@ def get_the_rest(density: Density, densityAll: Density | None, multiplicityAll: 
     mult = np.maximum(mult, 0.0)
     return cdfRest, mult
 
-def expected_payoff_with_multiplicity(density: Density, densityAll: Density, multiplicityAll: np.ndarray, cdf: np.ndarray | None = None, cdfAll: np.ndarray | None = None) -> np.ndarray:
-    cRest, mRest = get_the_rest(density, densityAll, multiplicityAll, cdf=cdf, cdfAll=cdfAll)
+
+def expected_payoff_with_multiplicity(
+    density: Density,
+    densityAll: Density,
+    multiplicityAll: np.ndarray,
+    cdf: np.ndarray | None = None,
+    cdfAll: np.ndarray | None = None,
+) -> np.ndarray:
+    cRest, mRest = get_the_rest(
+        density, densityAll, multiplicityAll, cdf=cdf, cdfAll=cdfAll
+    )
     pdf = density.p if cdf is None else _pdf_from_cdf(cdf)
-    win, draw, _ = _conditional_win_draw_loss(pdf, _pdf_from_cdf(cRest), density.cdf(), cRest)
+    win, draw, _ = _conditional_win_draw_loss(
+        pdf, _pdf_from_cdf(cRest), density.cdf(), cRest
+    )
     # multiplicity must be finite and >= 0; clamp small negative numerical noise
     mRest = np.maximum(mRest, 0.0)
     if not np.all(np.isfinite(mRest)):
         raise ValueError("Multiplicity contains non-finite values.")
     return win + draw / (1.0 + mRest)
-
-

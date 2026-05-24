@@ -1,7 +1,12 @@
 from __future__ import annotations
 import numpy as np
 
-from thurstone import UniformLattice, Density, AbilityCalibrator, MultiRayGlobalCalibrator
+from thurstone import (
+    UniformLattice,
+    Density,
+    AbilityCalibrator,
+    MultiRayGlobalCalibrator,
+)
 from thurstone.pricing import Race
 import matplotlib.pyplot as plt
 from thurstone.multiray import _interp_price_and_slope_1d, _interp_price_and_slope_2d
@@ -53,12 +58,21 @@ def main():
 
     fit = MultiRayGlobalCalibrator(item_ids=item_ids, dim=dim, random_state=999)
     for j in train_idx:
-        fit.add_condition(cond_id=cond_ids[j], calibrator=calibrators[j], item_ids=item_ids, prices=prices_obs[j])
+        fit.add_condition(
+            cond_id=cond_ids[j],
+            calibrator=calibrators[j],
+            item_ids=item_ids,
+            prices=prices_obs[j],
+        )
 
     # Before fit
     fit.rebuild_all_curves()
-    preds0_train = np.stack([fit.predict_condition(cid) for cid in train_cond_ids], axis=0)
-    obs_train = np.stack([prices_obs[cond_ids.index(cid)] for cid in train_cond_ids], axis=0)
+    preds0_train = np.stack(
+        [fit.predict_condition(cid) for cid in train_cond_ids], axis=0
+    )
+    obs_train = np.stack(
+        [prices_obs[cond_ids.index(cid)] for cid in train_cond_ids], axis=0
+    )
     mse0_train = float(np.mean((preds0_train - obs_train) ** 2))
     print(f"Train MSE before: {mse0_train:.6e}")
 
@@ -67,14 +81,24 @@ def main():
 
     # After fit
     fit.rebuild_all_curves()
-    preds1_train = np.stack([fit.predict_condition(cid) for cid in train_cond_ids], axis=0)
+    preds1_train = np.stack(
+        [fit.predict_condition(cid) for cid in train_cond_ids], axis=0
+    )
     mse1_train = float(np.mean((preds1_train - obs_train) ** 2))
     max_abs_err_train = float(np.max(np.abs(preds1_train - obs_train)))
     print(f"Train MSE after:  {mse1_train:.6e}")
     print(f"Train max abs err: {max_abs_err_train:.6e}")
 
     # ---- Hold-out evaluation: fit (beta, V) per held-out condition with Z frozen ----
-    def fit_holdout_condition(cond_j: int, Z: np.ndarray, step_beta=0.3, step_v=0.3, l2_v=1e-6, slope_floor=1e-10, iters=15):
+    def fit_holdout_condition(
+        cond_j: int,
+        Z: np.ndarray,
+        step_beta=0.3,
+        step_v=0.3,
+        l2_v=1e-6,
+        slope_floor=1e-10,
+        iters=15,
+    ):
         cid = cond_ids[cond_j]
         cal = calibrators[cond_j]
         # Initialize (beta, v) using ability-space LS from local inversion
@@ -110,7 +134,7 @@ def main():
             slopes_safe = slopes.copy()
             mask = np.abs(slopes_safe) < slope_floor
             slopes_safe[mask] = slope_floor
-            y = - e / slopes_safe
+            y = -e / slopes_safe
             # regress for delta beta and delta v
             X = np.zeros((len(item_ids), 1 + dim), dtype=float)
             X[:, 0] = 1.0
@@ -135,7 +159,15 @@ def main():
     Z_fit = np.stack([fit.Z[hid] for hid in item_ids], axis=0)
     preds_hold = []
     for j in hold_idx:
-        _, _, p_final = fit_holdout_condition(j, Z_fit, step_beta=fit.step_beta, step_v=fit.step_v, l2_v=fit.l2_v, slope_floor=fit.slope_floor, iters=15)
+        _, _, p_final = fit_holdout_condition(
+            j,
+            Z_fit,
+            step_beta=fit.step_beta,
+            step_v=fit.step_v,
+            l2_v=fit.l2_v,
+            slope_floor=fit.slope_floor,
+            iters=15,
+        )
         preds_hold.append(p_final)
     if preds_hold:
         preds_hold = np.stack(preds_hold, axis=0)
@@ -163,12 +195,21 @@ def main():
     # use train predictions for coloring (avoid leakage from hold-out fitting)
     pred_mat = preds1_train  # shape (n_train_conds, n_items)
     assign = np.argmax(pred_mat, axis=0)  # per item -> condition index within train set
-    cmap = plt.get_cmap('tab10')
+    cmap = plt.get_cmap("tab10")
+
     def cid_color(idx: int):
         return cmap(idx % cmap.N)
+
     plt.figure(figsize=(6, 6))
     item_colors = [cid_color(int(assign[i])) for i in range(len(item_ids))]
-    plt.scatter(Z[:, 0], Z[:, 1], s=20, alpha=0.85, c=item_colors, label="items (colored by argmax cond)")
+    plt.scatter(
+        Z[:, 0],
+        Z[:, 1],
+        s=20,
+        alpha=0.85,
+        c=item_colors,
+        label="items (colored by argmax cond)",
+    )
     # draw rays from the origin (V are normalized), color by condition
     scale = np.percentile(np.linalg.norm(Z, axis=1), 95)
     # Only plot rays for conditions actually present in the fitted model
@@ -178,17 +219,27 @@ def main():
         # color index consistent with train ordering if possible
         color_idx = train_cond_ids.index(cid) if cid in train_cond_ids else j
         color = cid_color(color_idx)
-        plt.arrow(0, 0, v[0] * scale, v[1] * scale, length_includes_head=True,
-                  head_width=0.05 * scale, color=color, alpha=0.95)
+        plt.arrow(
+            0,
+            0,
+            v[0] * scale,
+            v[1] * scale,
+            length_includes_head=True,
+            head_width=0.05 * scale,
+            color=color,
+            alpha=0.95,
+        )
         plt.text(v[0] * scale * 1.05, v[1] * scale * 1.05, cid, color=color)
-    plt.axis('equal')
+    plt.axis("equal")
     plt.grid(True, alpha=0.25)
     plt.title("Item embeddings Z and condition rays V")
     plt.legend()
     plt.tight_layout()
 
     # ---- Visualization: predicted vs observed probabilities per condition ----
-    fig, axes = plt.subplots(len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=True)
+    fig, axes = plt.subplots(
+        len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=True
+    )
     if len(cond_ids) == 1:
         axes = [axes]
     for j, cid in enumerate(cond_ids):
@@ -202,7 +253,7 @@ def main():
             p_pred = preds_hold[hpos]
             color = cid_color(hpos + 5)  # shift color index for hold-out
         ax = axes[j]
-        ax.plot([0, 1], [0, 1], 'k--', lw=1)
+        ax.plot([0, 1], [0, 1], "k--", lw=1)
         ax.scatter(p_obs, p_pred, s=20, alpha=0.85, color=color)
         ax.set_ylabel(f"{cid} {'[train]' if j in train_idx else '[hold-out]'}")
     axes[-1].set_xlabel("Observed probability")
@@ -210,27 +261,49 @@ def main():
     plt.tight_layout()
 
     # ---- Visualization: ability vs probability along each ray ----
-    fig, axes = plt.subplots(len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=False)
+    fig, axes = plt.subplots(
+        len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=False
+    )
     if len(cond_ids) == 1:
         axes = [axes]
     for j, cid in enumerate(cond_ids):
         p_obs = prices_obs[j]
         if j in train_idx:
-            v = fit.V[cid]; b = fit.beta[cid]
+            v = fit.V[cid]
+            b = fit.beta[cid]
             a = Z @ v + b
             tpos = train_cond_ids.index(cid)
             p_pred = preds1_train[tpos]
             color = cid_color(tpos)
         else:
             # refit to get parameters and predicted probs for hold-out without changing Z
-            beta_loc, v_loc, p_final = fit_holdout_condition(j, Z, step_beta=fit.step_beta, step_v=fit.step_v, l2_v=fit.l2_v, slope_floor=fit.slope_floor, iters=5)
+            beta_loc, v_loc, p_final = fit_holdout_condition(
+                j,
+                Z,
+                step_beta=fit.step_beta,
+                step_v=fit.step_v,
+                l2_v=fit.l2_v,
+                slope_floor=fit.slope_floor,
+                iters=5,
+            )
             a = Z @ v_loc + beta_loc
             p_pred = p_final
             hpos = list(hold_idx).index(j)
             color = cid_color(hpos + 5)
         ax = axes[j]
-        ax.scatter(a, p_obs, s=30, facecolors='none', edgecolors=color, marker='o', alpha=0.95, label=f"{cid} obs")
-        ax.scatter(a, p_pred, s=30, color=color, marker='x', alpha=0.95, label=f"{cid} pred")
+        ax.scatter(
+            a,
+            p_obs,
+            s=30,
+            facecolors="none",
+            edgecolors=color,
+            marker="o",
+            alpha=0.95,
+            label=f"{cid} obs",
+        )
+        ax.scatter(
+            a, p_pred, s=30, color=color, marker="x", alpha=0.95, label=f"{cid} pred"
+        )
         ax.set_ylabel(cid)
         ax.legend(ncol=2, fontsize=8)
     axes[-1].set_xlabel("a_ij = beta_j + v_j^T z_i")
@@ -242,5 +315,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

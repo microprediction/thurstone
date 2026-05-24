@@ -14,7 +14,11 @@ import json
 
 from .cube_to_simplex import SigmoidParams, CubeToSimplexMapping
 from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
-from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig, DistributionType
+from .adaptive_special_horse import (
+    AdaptiveSpecialHorse,
+    SpecialHorseConfig,
+    DistributionType,
+)
 from .quality_assessment import comprehensive_quality_assessment, QualityMetrics
 from .pure_optimizers import pure_optimize, suggest_pure, PURE_OPTIMIZERS
 
@@ -22,6 +26,7 @@ from .pure_optimizers import pure_optimize, suggest_pure, PURE_OPTIMIZERS
 @dataclass
 class EnhancedOptimizationResult:
     """Result of enhanced diffeomorphism optimization."""
+
     best_params: Dict[str, Any]
     best_score: float
     best_mapping: EnhancedCubeToSimplexMapping
@@ -39,13 +44,15 @@ class EnhancedDiffeomorphismObjective:
     and special horse configuration.
     """
 
-    def __init__(self,
-                 k: int,
-                 quality_weights: Optional[Dict[str, float]] = None,
-                 assessment_samples: Optional[Dict[str, int]] = None,
-                 optimize_special_horse: bool = True,
-                 noise_scale: float = 1.0,
-                 random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        k: int,
+        quality_weights: Optional[Dict[str, float]] = None,
+        assessment_samples: Optional[Dict[str, int]] = None,
+        optimize_special_horse: bool = True,
+        noise_scale: float = 1.0,
+        random_seed: Optional[int] = None,
+    ):
         """
         Args:
             k: Dimension of cube/simplex
@@ -61,17 +68,22 @@ class EnhancedDiffeomorphismObjective:
         self.optimize_special_horse = optimize_special_horse
 
         if quality_weights is None:
-            quality_weights = {'symmetry': 2.0, 'volume_preservation': 1.0, 'smoothness': 1.0,
-                              'coverage': 1.5, 'invertibility': 1.0}
+            quality_weights = {
+                "symmetry": 2.0,
+                "volume_preservation": 1.0,
+                "smoothness": 1.0,
+                "coverage": 1.5,
+                "invertibility": 1.0,
+            }
         self.quality_weights = quality_weights
 
         if assessment_samples is None:
             assessment_samples = {
-                'symmetry_samples': 2000,
-                'volume_samples': 150,
-                'smoothness_samples': 150,
-                'coverage_samples': 1200,
-                'invertibility_samples': 25
+                "symmetry_samples": 2000,
+                "volume_samples": 150,
+                "smoothness_samples": 150,
+                "coverage_samples": 1200,
+                "invertibility_samples": 25,
             }
         self.assessment_samples = assessment_samples
 
@@ -86,20 +98,24 @@ class EnhancedDiffeomorphismObjective:
 
         # Sigmoid parameters for each dimension
         for i in range(self.k):
-            structure.append((f'sigmoid_{i}_alpha', 'sigmoid', (0.1, 3.0)))
-            structure.append((f'sigmoid_{i}_beta', 'sigmoid', (1.0, 10.0)))
-            structure.append((f'sigmoid_{i}_gamma', 'sigmoid', (0.1, 0.9)))
+            structure.append((f"sigmoid_{i}_alpha", "sigmoid", (0.1, 3.0)))
+            structure.append((f"sigmoid_{i}_beta", "sigmoid", (1.0, 10.0)))
+            structure.append((f"sigmoid_{i}_gamma", "sigmoid", (0.1, 0.9)))
 
         if self.optimize_special_horse:
             # Special horse parameters
-            structure.append(('special_base_ability', 'special', (-2.0, 2.0)))
-            structure.append(('special_location', 'special', (-1.0, 1.0)))
-            structure.append(('special_scale', 'special', (0.1, 3.0)))
-            structure.append(('special_distribution_type', 'special', (0, 4)))  # 0-4 for distribution types
+            structure.append(("special_base_ability", "special", (-2.0, 2.0)))
+            structure.append(("special_location", "special", (-1.0, 1.0)))
+            structure.append(("special_scale", "special", (0.1, 3.0)))
+            structure.append(
+                ("special_distribution_type", "special", (0, 4))
+            )  # 0-4 for distribution types
 
         return structure
 
-    def _params_vector_to_config(self, x: np.ndarray) -> Tuple[List[SigmoidParams], SpecialHorseConfig]:
+    def _params_vector_to_config(
+        self, x: np.ndarray
+    ) -> Tuple[List[SigmoidParams], SpecialHorseConfig]:
         """Convert optimization parameter vector to configuration objects."""
         # Extract sigmoid parameters
         sigmoid_params = []
@@ -128,14 +144,25 @@ class EnhancedDiffeomorphismObjective:
             location_bounds = (-1.0, 1.0)
             scale_bounds = (0.1, 3.0)
 
-            base_ability = ability_bounds[0] + x[special_start_idx] * (ability_bounds[1] - ability_bounds[0])
-            location = location_bounds[0] + x[special_start_idx + 1] * (location_bounds[1] - location_bounds[0])
-            scale = scale_bounds[0] + x[special_start_idx + 2] * (scale_bounds[1] - scale_bounds[0])
+            base_ability = ability_bounds[0] + x[special_start_idx] * (
+                ability_bounds[1] - ability_bounds[0]
+            )
+            location = location_bounds[0] + x[special_start_idx + 1] * (
+                location_bounds[1] - location_bounds[0]
+            )
+            scale = scale_bounds[0] + x[special_start_idx + 2] * (
+                scale_bounds[1] - scale_bounds[0]
+            )
 
             # Distribution type (discrete choice)
             dist_idx = int(x[special_start_idx + 3] * 5)  # 0-4
-            dist_types = [DistributionType.NORMAL, DistributionType.STUDENT_T,
-                         DistributionType.LAPLACE, DistributionType.UNIFORM, DistributionType.EXPONENTIAL]
+            dist_types = [
+                DistributionType.NORMAL,
+                DistributionType.STUDENT_T,
+                DistributionType.LAPLACE,
+                DistributionType.UNIFORM,
+                DistributionType.EXPONENTIAL,
+            ]
             distribution = dist_types[min(dist_idx, len(dist_types) - 1)]
 
             special_horse_config = SpecialHorseConfig(
@@ -143,7 +170,7 @@ class EnhancedDiffeomorphismObjective:
                 base_ability=base_ability,
                 location=location,
                 scale=scale,
-                shape=3.0 if distribution == DistributionType.STUDENT_T else 1.0
+                shape=3.0 if distribution == DistributionType.STUDENT_T else 1.0,
             )
         else:
             # Default special horse config
@@ -172,14 +199,12 @@ class EnhancedDiffeomorphismObjective:
             mapping = EnhancedCubeToSimplexMapping(
                 sigmoid_params=sigmoid_params,
                 special_horse=special_horse,
-                noise_scale=self.noise_scale
+                noise_scale=self.noise_scale,
             )
 
             # Assess quality
             metrics = comprehensive_quality_assessment(
-                mapping,
-                random_seed=self.random_seed,
-                **self.assessment_samples
+                mapping, random_seed=self.random_seed, **self.assessment_samples
             )
 
             # Compute weighted score
@@ -199,7 +224,7 @@ def enhanced_optimize_diffeomorphism(
     max_evaluations: int = 100,
     quality_weights: Optional[Dict[str, float]] = None,
     optimize_special_horse: bool = True,
-    random_seed: Optional[int] = None
+    random_seed: Optional[int] = None,
 ) -> EnhancedOptimizationResult:
     """
     Optimize diffeomorphism using enhanced framework with pure optimizers.
@@ -228,7 +253,7 @@ def enhanced_optimize_diffeomorphism(
         k=k,
         quality_weights=quality_weights,
         optimize_special_horse=optimize_special_horse,
-        random_seed=random_seed
+        random_seed=random_seed,
     )
 
     # Set up optimization
@@ -251,7 +276,7 @@ def enhanced_optimize_diffeomorphism(
         objective=tracked_objective,
         algorithm=algorithm,
         n_trials=max_evaluations,
-        n_dim=n_dim
+        n_dim=n_dim,
     )
 
     optimization_time = time.time() - start_time
@@ -262,15 +287,13 @@ def enhanced_optimize_diffeomorphism(
     best_mapping = EnhancedCubeToSimplexMapping(
         sigmoid_params=sigmoid_params,
         special_horse=special_horse,
-        noise_scale=objective.noise_scale
+        noise_scale=objective.noise_scale,
     )
 
     # Final quality assessment
     print(f"   Computing final quality assessment...")
     best_metrics = comprehensive_quality_assessment(
-        best_mapping,
-        random_seed=random_seed,
-        **objective.assessment_samples
+        best_mapping, random_seed=random_seed, **objective.assessment_samples
     )
 
     # Prepare parameter dictionary
@@ -278,9 +301,9 @@ def enhanced_optimize_diffeomorphism(
     for i, (name, param_type, bounds) in enumerate(objective.param_structure):
         # Map back from [0,1] to original bounds
         value = bounds[0] + best_x[i] * (bounds[1] - bounds[0])
-        if name == 'special_distribution_type':
+        if name == "special_distribution_type":
             # Handle discrete distribution type
-            dist_types = ['normal', 'student_t', 'laplace', 'uniform', 'exponential']
+            dist_types = ["normal", "student_t", "laplace", "uniform", "exponential"]
             dist_idx = int(value)
             best_params[name] = dist_types[min(dist_idx, len(dist_types) - 1)]
         else:
@@ -296,7 +319,9 @@ def enhanced_optimize_diffeomorphism(
         optimization_history=[],  # Could be extended to track history
         total_evaluations=objective.evaluation_count,
         optimization_time=optimization_time,
-        parameter_bounds={name: bounds for name, _, bounds in objective.param_structure}
+        parameter_bounds={
+            name: bounds for name, _, bounds in objective.param_structure
+        },
     )
 
     print(f"\n✅ OPTIMIZATION COMPLETE!")
@@ -312,7 +337,7 @@ def compare_optimization_algorithms(
     algorithms: Optional[List[str]] = None,
     max_evaluations: int = 50,
     quality_weights: Optional[Dict[str, float]] = None,
-    n_runs: int = 3
+    n_runs: int = 3,
 ) -> Dict[str, List[EnhancedOptimizationResult]]:
     """
     Compare different optimization algorithms on the diffeomorphism problem.
@@ -349,7 +374,7 @@ def compare_optimization_algorithms(
                 algorithm=algorithm,
                 max_evaluations=max_evaluations,
                 quality_weights=quality_weights,
-                random_seed=42 + run
+                random_seed=42 + run,
             )
 
             results[algorithm].append(result)
@@ -372,9 +397,9 @@ if __name__ == "__main__":
         k=2,
         algorithm="HarmonySearch",
         max_evaluations=30,
-        quality_weights={'symmetry': 2.0, 'coverage': 1.5},
+        quality_weights={"symmetry": 2.0, "coverage": 1.5},
         optimize_special_horse=True,
-        random_seed=42
+        random_seed=42,
     )
 
     print("\nOPTIMIZATION RESULTS:")

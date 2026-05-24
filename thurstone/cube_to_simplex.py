@@ -40,15 +40,18 @@ def parametric_sigmoid(x: float, alpha: float, beta: float, gamma: float) -> flo
 @dataclass
 class SigmoidParams:
     """Parameters for a single sigmoid mapping."""
+
     alpha: float  # Scale
-    beta: float   # Steepness
+    beta: float  # Steepness
     gamma: float  # Shift (inflection point)
 
     def __call__(self, x: float) -> float:
         return parametric_sigmoid(x, self.alpha, self.beta, self.gamma)
 
     def __repr__(self):
-        return f"SigmoidParams(α={self.alpha:.2f}, β={self.beta:.2f}, γ={self.gamma:.2f})"
+        return (
+            f"SigmoidParams(α={self.alpha:.2f}, β={self.beta:.2f}, γ={self.gamma:.2f})"
+        )
 
 
 @dataclass
@@ -62,9 +65,10 @@ class CubeToSimplexMapping:
     3. Create normal densities for each horse centered at their ability
     4. Run Thurstone race to get winning probabilities → point on k-simplex
     """
+
     sigmoid_params: List[SigmoidParams]  # One per dimension
-    special_horse_ability: float         # Ability of (k+1)-st horse
-    noise_scale: float = 1.0            # Standard deviation of performance noise
+    special_horse_ability: float  # Ability of (k+1)-st horse
+    noise_scale: float = 1.0  # Standard deviation of performance noise
     lattice: Optional[UniformLattice] = None  # Computational lattice
 
     def __post_init__(self):
@@ -108,7 +112,7 @@ class CubeToSimplexMapping:
                 lattice=self.lattice,
                 loc=ability,
                 scale=self.noise_scale,
-                a=0.0  # a=0 gives standard normal (not skewed)
+                a=0.0,  # a=0 gives standard normal (not skewed)
             )
             densities.append(density)
 
@@ -143,7 +147,9 @@ class CubeToSimplexMapping:
         """
         cube_points = np.asarray(cube_points)
         if cube_points.ndim != 2 or cube_points.shape[1] != self.k:
-            raise ValueError(f"Expected shape (n_points, {self.k}), got {cube_points.shape}")
+            raise ValueError(
+                f"Expected shape (n_points, {self.k}), got {cube_points.shape}"
+            )
 
         results = []
         for point in cube_points:
@@ -152,9 +158,12 @@ class CubeToSimplexMapping:
         return np.array(results)
 
 
-def create_uniform_sigmoid_params(k: int, alpha_range: Tuple[float, float] = (0.5, 2.0),
-                                beta_range: Tuple[float, float] = (2.0, 8.0),
-                                gamma_range: Tuple[float, float] = (0.2, 0.8)) -> List[SigmoidParams]:
+def create_uniform_sigmoid_params(
+    k: int,
+    alpha_range: Tuple[float, float] = (0.5, 2.0),
+    beta_range: Tuple[float, float] = (2.0, 8.0),
+    gamma_range: Tuple[float, float] = (0.2, 0.8),
+) -> List[SigmoidParams]:
     """
     Create reasonably uniform sigmoid parameters for k dimensions.
 
@@ -186,32 +195,36 @@ if __name__ == "__main__":
     # Create a simple mapping for the triangle (k=2)
     sigmoid_params = [
         SigmoidParams(alpha=1.0, beta=4.0, gamma=0.3),
-        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7)
+        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7),
     ]
     special_ability = 0.0
 
     mapping = CubeToSimplexMapping(
         sigmoid_params=sigmoid_params,
         special_horse_ability=special_ability,
-        noise_scale=1.0
+        noise_scale=1.0,
     )
 
     print(f"Mapping: k={mapping.k}")
     print(f"Sigmoid params: {mapping.sigmoid_params}")
 
     # Test some points
-    test_points = np.array([
-        [0.0, 0.0],  # Corner
-        [1.0, 1.0],  # Opposite corner
-        [0.5, 0.5],  # Center
-        [0.2, 0.8],  # Asymmetric
-        [0.7, 0.3]   # Another asymmetric
-    ])
+    test_points = np.array(
+        [
+            [0.0, 0.0],  # Corner
+            [1.0, 1.0],  # Opposite corner
+            [0.5, 0.5],  # Center
+            [0.2, 0.8],  # Asymmetric
+            [0.7, 0.3],  # Another asymmetric
+        ]
+    )
 
     print("\nTesting individual points:")
     for i, point in enumerate(test_points):
         simplex_point = mapping(point)
-        print(f"Point {i}: {point} → {simplex_point} (sum: {np.sum(simplex_point):.6f})")
+        print(
+            f"Point {i}: {point} → {simplex_point} (sum: {np.sum(simplex_point):.6f})"
+        )
 
     # Test batch processing
     print("\nTesting batch processing:")

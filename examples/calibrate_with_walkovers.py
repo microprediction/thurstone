@@ -7,6 +7,7 @@ clusters), the 1D inverse (location-only) can recover probabilities closely.
 Run:
     python examples/calibrate_with_walkovers.py
 """
+
 import numpy as np
 from thurstone import UniformLattice, Density
 from thurstone.inference import AbilityCalibrator
@@ -23,8 +24,8 @@ def main():
     # - Mid cluster near zero
     # - Weak cluster far right
     strong = list(np.linspace(-3.0, -1.0, 8))
-    mid    = list(np.linspace(-0.5, 0.5, 14))
-    weak   = list(np.linspace(1.0, 3.0, 8))
+    mid = list(np.linspace(-0.5, 0.5, 14))
+    weak = list(np.linspace(1.0, 3.0, 8))
     true_ability = strong + mid + weak
     n = len(true_ability)
 
@@ -88,5 +89,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

@@ -6,6 +6,7 @@ Tolerances are per-fixture (chosen to be tight but not flaky).
 Run from repo root:
     python scripts/generate_fixtures.py
 """
+
 from __future__ import annotations
 
 import json
@@ -60,13 +61,15 @@ def fixture_normaldist() -> None:
 def fixture_skew_normal() -> None:
     lat = UniformLattice(L=200, unit=0.05)
     cases = []
-    for (loc, scale, a) in [(0.0, 1.0, 0.0), (0.5, 1.2, 1.0), (-1.0, 0.8, -2.0)]:
+    for loc, scale, a in [(0.0, 1.0, 0.0), (0.5, 1.2, 1.0), (-1.0, 0.8, -2.0)]:
         d = Density.skew_normal(lat, loc=loc, scale=scale, a=a)
-        cases.append({
-            "params": {"loc": loc, "scale": scale, "a": a},
-            "p": d.p.tolist(),
-            "mean": float(d.mean()),
-        })
+        cases.append(
+            {
+                "params": {"loc": loc, "scale": scale, "a": a},
+                "p": d.p.tolist(),
+                "mean": float(d.mean()),
+            }
+        )
     payload = {
         "tolerance": 1e-10,
         "lattice": {"L": lat.L, "unit": lat.unit},
@@ -157,7 +160,7 @@ def fixture_state_prices_from_ability() -> None:
     abilities_cases = [
         [-1.0, -0.4, 0.0, 0.3, 0.9],
         [0.0, 0.0, 0.0],
-        [-3.5, -0.2, 0.1, 4.8],   # exercises ClusterSplitter
+        [-3.5, -0.2, 0.1, 4.8],  # exercises ClusterSplitter
     ]
     cases = []
     for ab in abilities_cases:
@@ -180,7 +183,9 @@ def fixture_global_fit() -> None:
         {"ids": ["B", "C", "D"], "div": [3.5, 5.5, 7.0]},
         {"ids": ["A", "C", "D"], "div": [3.2, 5.0, 9.0]},
     ]
-    gn = GlobalAbilityCalibrator(["A", "B", "C", "D"], l2=1e-8, step_bias=0.3, step_theta=0.3)
+    gn = GlobalAbilityCalibrator(
+        ["A", "B", "C", "D"], l2=1e-8, step_bias=0.3, step_theta=0.3
+    )
     races_payload = []
     for r in races:
         prices = StatePricer.prices_from_dividends(r["div"]).tolist()

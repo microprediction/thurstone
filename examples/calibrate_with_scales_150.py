@@ -1,5 +1,5 @@
 """
-Example: 2D calibration with 150 runners 
+Example: 2D calibration with 150 runners
 
 This demonstrates AbilityCalibrator.set_scales(...) and solve_from_prices(...)
 using a 2D interpolation in (loc, scale).
@@ -10,6 +10,7 @@ Optional visualization requires matplotlib:
 Run:
     python examples/calibrate_with_scales_150.py
 """
+
 import numpy as np
 from thurstone import UniformLattice, Density
 from thurstone.pricing import Race
@@ -27,15 +28,17 @@ def main():
     scales = np.linspace(2.0, 4.0, n)
 
     # Forward: build densities from (loc, scale), then compute state prices
-    densities = [Density.skew_normal(lattice, loc=float(loc), scale=float(s), a=0.0)
-                 for loc, s in zip(true_locs, scales)]
+    densities = [
+        Density.skew_normal(lattice, loc=float(loc), scale=float(s), a=0.0)
+        for loc, s in zip(true_locs, scales)
+    ]
     prices_true = Race(densities).state_prices()
 
     # Inverse: 2D calibration in (loc, scale)
     cal = AbilityCalibrator(
         base,
         n_iter=5,
-        loc_span=8.0,     # widen for large scales
+        loc_span=8.0,  # widen for large scales
         loc_step=0.2,
         scale_span=1.0,
         scale_steps=3,
@@ -53,8 +56,10 @@ def main():
     print(f"Loc max abs error (median-centered): {max_abs_err_loc:.3f}")
 
     # Recover probabilities from estimated locs (using the same per-runner scales)
-    densities_est = [Density.skew_normal(lattice, loc=float(loc), scale=float(s), a=0.0)
-                     for loc, s in zip(est_locs, scales)]
+    densities_est = [
+        Density.skew_normal(lattice, loc=float(loc), scale=float(s), a=0.0)
+        for loc, s in zip(est_locs, scales)
+    ]
     prices_est = Race(densities_est).state_prices()
 
     # Compare probabilities
@@ -68,6 +73,7 @@ def main():
     # Optional visualization
     try:
         import matplotlib.pyplot as plt
+
         fig1, ax1 = plt.subplots(figsize=(8, 5))
         ax1.scatter(true_c, est_c, s=12, alpha=0.7, label="runners")
         lim = float(max(np.max(np.abs(true_c)), np.max(np.abs(est_c))))
@@ -96,5 +102,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

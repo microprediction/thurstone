@@ -18,6 +18,7 @@ from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
 @dataclass
 class ParameterBounds:
     """Bounds for optimization parameters."""
+
     alpha_min: float = 0.1
     alpha_max: float = 3.0
     beta_min: float = 1.0
@@ -31,6 +32,7 @@ class ParameterBounds:
 @dataclass
 class OptimizationResult:
     """Result of hyperparameter optimization."""
+
     best_params: Dict[str, Any]
     best_score: float
     best_mapping: CubeToSimplexMapping
@@ -45,12 +47,14 @@ class ObjectiveFunction:
     Objective function for optimization that evaluates mapping quality.
     """
 
-    def __init__(self,
-                 k: int,
-                 quality_weights: Optional[Dict[str, float]] = None,
-                 assessment_samples: Dict[str, int] = None,
-                 noise_scale: float = 1.0,
-                 random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        k: int,
+        quality_weights: Optional[Dict[str, float]] = None,
+        assessment_samples: Dict[str, int] = None,
+        noise_scale: float = 1.0,
+        random_seed: Optional[int] = None,
+    ):
         """
         Args:
             k: Dimension of the cube/simplex
@@ -64,17 +68,22 @@ class ObjectiveFunction:
         self.random_seed = random_seed
 
         if quality_weights is None:
-            quality_weights = {'symmetry': 2.0, 'volume_preservation': 1.0, 'smoothness': 1.0,
-                              'coverage': 1.5, 'invertibility': 1.0}
+            quality_weights = {
+                "symmetry": 2.0,
+                "volume_preservation": 1.0,
+                "smoothness": 1.0,
+                "coverage": 1.5,
+                "invertibility": 1.0,
+            }
         self.quality_weights = quality_weights
 
         if assessment_samples is None:
             assessment_samples = {
-                'symmetry_samples': 5000,
-                'volume_samples': 300,
-                'smoothness_samples': 300,
-                'coverage_samples': 3000,
-                'invertibility_samples': 50
+                "symmetry_samples": 5000,
+                "volume_samples": 300,
+                "smoothness_samples": 300,
+                "coverage_samples": 3000,
+                "invertibility_samples": 50,
             }
         self.assessment_samples = assessment_samples
 
@@ -108,25 +117,25 @@ class ObjectiveFunction:
             mapping = CubeToSimplexMapping(
                 sigmoid_params=sigmoid_params,
                 special_horse_ability=special_ability,
-                noise_scale=self.noise_scale
+                noise_scale=self.noise_scale,
             )
 
             # Assess quality
             metrics = comprehensive_quality_assessment(
-                mapping,
-                random_seed=self.random_seed,
-                **self.assessment_samples
+                mapping, random_seed=self.random_seed, **self.assessment_samples
             )
 
             # Compute weighted score
             score = metrics.overall_score(self.quality_weights)
 
-            print(f"Evaluation {self.evaluation_count}: Score = {score:.4f} "
-                  f"(Sym: {metrics.symmetry_score:.3f}, "
-                  f"Vol: {metrics.volume_preservation_score:.3f}, "
-                  f"Smooth: {metrics.smoothness_score:.3f}, "
-                  f"Cov: {metrics.coverage_score:.3f}, "
-                  f"Inv: {metrics.invertibility_score:.3f})")
+            print(
+                f"Evaluation {self.evaluation_count}: Score = {score:.4f} "
+                f"(Sym: {metrics.symmetry_score:.3f}, "
+                f"Vol: {metrics.volume_preservation_score:.3f}, "
+                f"Smooth: {metrics.smoothness_score:.3f}, "
+                f"Cov: {metrics.coverage_score:.3f}, "
+                f"Inv: {metrics.invertibility_score:.3f})"
+            )
 
             return score
 
@@ -139,10 +148,12 @@ class Optimizer(ABC):
     """Base class for optimization algorithms."""
 
     @abstractmethod
-    def optimize(self,
-                objective: ObjectiveFunction,
-                bounds: ParameterBounds,
-                max_evaluations: int) -> OptimizationResult:
+    def optimize(
+        self,
+        objective: ObjectiveFunction,
+        bounds: ParameterBounds,
+        max_evaluations: int,
+    ) -> OptimizationResult:
         """Run optimization and return result."""
         pass
 
@@ -153,10 +164,12 @@ class RandomSearchOptimizer(Optimizer):
     def __init__(self, random_seed: Optional[int] = None):
         self.random_seed = random_seed
 
-    def optimize(self,
-                objective: ObjectiveFunction,
-                bounds: ParameterBounds,
-                max_evaluations: int) -> OptimizationResult:
+    def optimize(
+        self,
+        objective: ObjectiveFunction,
+        bounds: ParameterBounds,
+        max_evaluations: int,
+    ) -> OptimizationResult:
         """Run random search optimization."""
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
@@ -170,18 +183,28 @@ class RandomSearchOptimizer(Optimizer):
         best_metrics = None
         history = []
 
-        print(f"Starting random search optimization with {max_evaluations} evaluations...")
+        print(
+            f"Starting random search optimization with {max_evaluations} evaluations..."
+        )
 
         for i in range(max_evaluations):
             # Generate random parameters within bounds
             params_vector = np.zeros(param_dimension)
 
             for j in range(k):
-                params_vector[j * 3] = np.random.uniform(bounds.alpha_min, bounds.alpha_max)      # alpha
-                params_vector[j * 3 + 1] = np.random.uniform(bounds.beta_min, bounds.beta_max)   # beta
-                params_vector[j * 3 + 2] = np.random.uniform(bounds.gamma_min, bounds.gamma_max) # gamma
+                params_vector[j * 3] = np.random.uniform(
+                    bounds.alpha_min, bounds.alpha_max
+                )  # alpha
+                params_vector[j * 3 + 1] = np.random.uniform(
+                    bounds.beta_min, bounds.beta_max
+                )  # beta
+                params_vector[j * 3 + 2] = np.random.uniform(
+                    bounds.gamma_min, bounds.gamma_max
+                )  # gamma
 
-            params_vector[k * 3] = np.random.uniform(bounds.special_ability_min, bounds.special_ability_max)
+            params_vector[k * 3] = np.random.uniform(
+                bounds.special_ability_min, bounds.special_ability_max
+            )
 
             # Evaluate
             score = objective(params_vector)
@@ -202,32 +225,34 @@ class RandomSearchOptimizer(Optimizer):
                 best_mapping = CubeToSimplexMapping(
                     sigmoid_params=sigmoid_params,
                     special_horse_ability=params_vector[k * 3],
-                    noise_scale=objective.noise_scale
+                    noise_scale=objective.noise_scale,
                 )
 
                 best_metrics = comprehensive_quality_assessment(
                     best_mapping,
                     random_seed=objective.random_seed,
-                    **objective.assessment_samples
+                    **objective.assessment_samples,
                 )
 
                 print(f"*** New best at evaluation {i+1}: {best_score:.4f} ***")
 
             # Record history
-            history.append({
-                'evaluation': i + 1,
-                'params_vector': params_vector.copy(),
-                'score': score,
-                'is_best': score == best_score
-            })
+            history.append(
+                {
+                    "evaluation": i + 1,
+                    "params_vector": params_vector.copy(),
+                    "score": score,
+                    "is_best": score == best_score,
+                }
+            )
 
         # Prepare result
         best_params = {}
         for j in range(k):
-            best_params[f'alpha_{j}'] = best_params_vector[j * 3]
-            best_params[f'beta_{j}'] = best_params_vector[j * 3 + 1]
-            best_params[f'gamma_{j}'] = best_params_vector[j * 3 + 2]
-        best_params['special_ability'] = best_params_vector[k * 3]
+            best_params[f"alpha_{j}"] = best_params_vector[j * 3]
+            best_params[f"beta_{j}"] = best_params_vector[j * 3 + 1]
+            best_params[f"gamma_{j}"] = best_params_vector[j * 3 + 2]
+        best_params["special_ability"] = best_params_vector[k * 3]
 
         return OptimizationResult(
             best_params=best_params,
@@ -235,27 +260,31 @@ class RandomSearchOptimizer(Optimizer):
             best_mapping=best_mapping,
             best_metrics=best_metrics,
             optimization_history=history,
-            total_evaluations=max_evaluations
+            total_evaluations=max_evaluations,
         )
 
 
 class EvolutionaryOptimizer(Optimizer):
     """Evolutionary algorithm optimizer."""
 
-    def __init__(self,
-                 population_size: int = 20,
-                 mutation_rate: float = 0.1,
-                 crossover_rate: float = 0.7,
-                 random_seed: Optional[int] = None):
+    def __init__(
+        self,
+        population_size: int = 20,
+        mutation_rate: float = 0.1,
+        crossover_rate: float = 0.7,
+        random_seed: Optional[int] = None,
+    ):
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.random_seed = random_seed
 
-    def optimize(self,
-                objective: ObjectiveFunction,
-                bounds: ParameterBounds,
-                max_evaluations: int) -> OptimizationResult:
+    def optimize(
+        self,
+        objective: ObjectiveFunction,
+        bounds: ParameterBounds,
+        max_evaluations: int,
+    ) -> OptimizationResult:
         """Run evolutionary optimization."""
         if self.random_seed is not None:
             np.random.seed(self.random_seed)
@@ -273,11 +302,19 @@ class EvolutionaryOptimizer(Optimizer):
             individual = np.zeros(param_dimension)
 
             for j in range(k):
-                individual[j * 3] = np.random.uniform(bounds.alpha_min, bounds.alpha_max)
-                individual[j * 3 + 1] = np.random.uniform(bounds.beta_min, bounds.beta_max)
-                individual[j * 3 + 2] = np.random.uniform(bounds.gamma_min, bounds.gamma_max)
+                individual[j * 3] = np.random.uniform(
+                    bounds.alpha_min, bounds.alpha_max
+                )
+                individual[j * 3 + 1] = np.random.uniform(
+                    bounds.beta_min, bounds.beta_max
+                )
+                individual[j * 3 + 2] = np.random.uniform(
+                    bounds.gamma_min, bounds.gamma_max
+                )
 
-            individual[k * 3] = np.random.uniform(bounds.special_ability_min, bounds.special_ability_max)
+            individual[k * 3] = np.random.uniform(
+                bounds.special_ability_min, bounds.special_ability_max
+            )
 
             population.append(individual)
             fitness.append(objective(individual))
@@ -293,7 +330,9 @@ class EvolutionaryOptimizer(Optimizer):
         # Evolution loop
         while evaluations_used < max_evaluations:
             generation += 1
-            print(f"Generation {generation} (evaluations: {evaluations_used}/{max_evaluations})")
+            print(
+                f"Generation {generation} (evaluations: {evaluations_used}/{max_evaluations})"
+            )
 
             new_population = []
             new_fitness = []
@@ -304,12 +343,17 @@ class EvolutionaryOptimizer(Optimizer):
             new_fitness.append(fitness[best_idx])
 
             # Generate rest of population
-            while len(new_population) < self.population_size and evaluations_used < max_evaluations:
+            while (
+                len(new_population) < self.population_size
+                and evaluations_used < max_evaluations
+            ):
                 if np.random.random() < self.crossover_rate and len(population) >= 2:
                     # Crossover
                     parent1_idx = self._tournament_selection(fitness)
                     parent2_idx = self._tournament_selection(fitness)
-                    child = self._crossover(population[parent1_idx], population[parent2_idx])
+                    child = self._crossover(
+                        population[parent1_idx], population[parent2_idx]
+                    )
                 else:
                     # Mutation of random individual
                     parent_idx = np.random.randint(len(population))
@@ -333,26 +377,30 @@ class EvolutionaryOptimizer(Optimizer):
                 if child_fitness > best_score:
                     best_score = child_fitness
                     best_individual = child.copy()
-                    print(f"*** New best in generation {generation}: {best_score:.4f} ***")
+                    print(
+                        f"*** New best in generation {generation}: {best_score:.4f} ***"
+                    )
 
             population = new_population
             fitness = new_fitness
 
             # Record history
-            history.append({
-                'generation': generation,
-                'best_fitness': best_score,
-                'mean_fitness': np.mean(fitness),
-                'evaluations': evaluations_used
-            })
+            history.append(
+                {
+                    "generation": generation,
+                    "best_fitness": best_score,
+                    "mean_fitness": np.mean(fitness),
+                    "evaluations": evaluations_used,
+                }
+            )
 
         # Create result
         best_params = {}
         for j in range(k):
-            best_params[f'alpha_{j}'] = best_individual[j * 3]
-            best_params[f'beta_{j}'] = best_individual[j * 3 + 1]
-            best_params[f'gamma_{j}'] = best_individual[j * 3 + 2]
-        best_params['special_ability'] = best_individual[k * 3]
+            best_params[f"alpha_{j}"] = best_individual[j * 3]
+            best_params[f"beta_{j}"] = best_individual[j * 3 + 1]
+            best_params[f"gamma_{j}"] = best_individual[j * 3 + 2]
+        best_params["special_ability"] = best_individual[k * 3]
 
         # Create best mapping
         sigmoid_params = []
@@ -365,13 +413,13 @@ class EvolutionaryOptimizer(Optimizer):
         best_mapping = CubeToSimplexMapping(
             sigmoid_params=sigmoid_params,
             special_horse_ability=best_individual[k * 3],
-            noise_scale=objective.noise_scale
+            noise_scale=objective.noise_scale,
         )
 
         best_metrics = comprehensive_quality_assessment(
             best_mapping,
             random_seed=objective.random_seed,
-            **objective.assessment_samples
+            **objective.assessment_samples,
         )
 
         return OptimizationResult(
@@ -380,12 +428,16 @@ class EvolutionaryOptimizer(Optimizer):
             best_mapping=best_mapping,
             best_metrics=best_metrics,
             optimization_history=history,
-            total_evaluations=evaluations_used
+            total_evaluations=evaluations_used,
         )
 
-    def _tournament_selection(self, fitness: List[float], tournament_size: int = 3) -> int:
+    def _tournament_selection(
+        self, fitness: List[float], tournament_size: int = 3
+    ) -> int:
         """Tournament selection for parent selection."""
-        candidates = np.random.choice(len(fitness), size=min(tournament_size, len(fitness)), replace=False)
+        candidates = np.random.choice(
+            len(fitness), size=min(tournament_size, len(fitness)), replace=False
+        )
         best_candidate = candidates[np.argmax([fitness[i] for i in candidates])]
         return best_candidate
 
@@ -413,31 +465,43 @@ class EvolutionaryOptimizer(Optimizer):
                     std = (bounds.gamma_max - bounds.gamma_min) * 0.1
                     mutated[i] += np.random.normal(0, std)
                 else:  # Special ability
-                    std = (bounds.special_ability_max - bounds.special_ability_min) * 0.1
+                    std = (
+                        bounds.special_ability_max - bounds.special_ability_min
+                    ) * 0.1
                     mutated[i] += np.random.normal(0, std)
 
         return mutated
 
-    def _clip_to_bounds(self, individual: np.ndarray, bounds: ParameterBounds, k: int) -> np.ndarray:
+    def _clip_to_bounds(
+        self, individual: np.ndarray, bounds: ParameterBounds, k: int
+    ) -> np.ndarray:
         """Clip parameters to bounds."""
         clipped = individual.copy()
 
         for j in range(k):
             clipped[j * 3] = np.clip(clipped[j * 3], bounds.alpha_min, bounds.alpha_max)
-            clipped[j * 3 + 1] = np.clip(clipped[j * 3 + 1], bounds.beta_min, bounds.beta_max)
-            clipped[j * 3 + 2] = np.clip(clipped[j * 3 + 2], bounds.gamma_min, bounds.gamma_max)
+            clipped[j * 3 + 1] = np.clip(
+                clipped[j * 3 + 1], bounds.beta_min, bounds.beta_max
+            )
+            clipped[j * 3 + 2] = np.clip(
+                clipped[j * 3 + 2], bounds.gamma_min, bounds.gamma_max
+            )
 
-        clipped[k * 3] = np.clip(clipped[k * 3], bounds.special_ability_min, bounds.special_ability_max)
+        clipped[k * 3] = np.clip(
+            clipped[k * 3], bounds.special_ability_min, bounds.special_ability_max
+        )
 
         return clipped
 
 
-def optimize_diffeomorphism(k: int,
-                           optimizer: str = 'random',
-                           max_evaluations: int = 100,
-                           bounds: Optional[ParameterBounds] = None,
-                           quality_weights: Optional[Dict[str, float]] = None,
-                           random_seed: Optional[int] = None) -> OptimizationResult:
+def optimize_diffeomorphism(
+    k: int,
+    optimizer: str = "random",
+    max_evaluations: int = 100,
+    bounds: Optional[ParameterBounds] = None,
+    quality_weights: Optional[Dict[str, float]] = None,
+    random_seed: Optional[int] = None,
+) -> OptimizationResult:
     """
     Optimize a k-dimensional cube-to-simplex diffeomorphism.
 
@@ -457,15 +521,13 @@ def optimize_diffeomorphism(k: int,
 
     # Create objective function
     objective = ObjectiveFunction(
-        k=k,
-        quality_weights=quality_weights,
-        random_seed=random_seed
+        k=k, quality_weights=quality_weights, random_seed=random_seed
     )
 
     # Create optimizer
-    if optimizer == 'random':
+    if optimizer == "random":
         opt = RandomSearchOptimizer(random_seed=random_seed)
-    elif optimizer == 'evolutionary':
+    elif optimizer == "evolutionary":
         opt = EvolutionaryOptimizer(random_seed=random_seed)
     else:
         raise ValueError(f"Unknown optimizer: {optimizer}")
@@ -488,10 +550,10 @@ if __name__ == "__main__":
     # Quick test with small evaluation budget
     result = optimize_diffeomorphism(
         k=2,
-        optimizer='random',
+        optimizer="random",
         max_evaluations=20,
-        quality_weights={'symmetry': 2.0, 'smoothness': 1.0},
-        random_seed=42
+        quality_weights={"symmetry": 2.0, "smoothness": 1.0},
+        random_seed=42,
     )
 
     print(f"\nFinal Results:")

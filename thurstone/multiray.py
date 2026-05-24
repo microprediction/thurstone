@@ -6,10 +6,14 @@ import numpy as np
 from .inference import AbilityCalibrator
 
 
-def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float, float]:
+def _interp_price_and_slope_1d(
+    cal: AbilityCalibrator, mu: float
+) -> Tuple[float, float]:
     """Interpolate price and d price / d mu from cached 1D curve."""
     if not cal.lookup_curve_1d_prices:
-        raise ValueError("AbilityCalibrator has no 1D lookup curve. Run solve_from_prices or rebuild curves first.")
+        raise ValueError(
+            "AbilityCalibrator has no 1D lookup curve. Run solve_from_prices or rebuild curves first."
+        )
     locs = cal.lookup_curve_1d_prices["locs"]
     prices = cal.lookup_curve_1d_prices["prices"]
     dprices = np.gradient(prices, locs)
@@ -20,7 +24,9 @@ def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float
     return p, dp
 
 
-def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) -> Tuple[float, float]:
+def _interp_price_and_slope_2d(
+    cal: AbilityCalibrator, mu: float, scale: float
+) -> Tuple[float, float]:
     """Interpolate price and slope across location and scale using cached 2D curves; falls back to 1D."""
     if not cal.lookup_curves_2d_prices:
         return _interp_price_and_slope_1d(cal, mu)
@@ -36,11 +42,11 @@ def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) 
         return p, dp
     idx = int(np.searchsorted(s_arr, scale))
     if idx <= 0:
-        s1, s2 = s_arr[0], s_arr[min(1, len(s_arr)-1)]
+        s1, s2 = s_arr[0], s_arr[min(1, len(s_arr) - 1)]
     elif idx >= len(s_arr):
         s1, s2 = s_arr[-2], s_arr[-1]
     else:
-        s1, s2 = s_arr[idx-1], s_arr[idx]
+        s1, s2 = s_arr[idx - 1], s_arr[idx]
     w = 0.0 if s2 == s1 else (float(scale) - s1) / (s2 - s1)
     locs1, prices1 = cal.lookup_curves_2d_prices[float(s1)]
     dprices1 = np.gradient(prices1, locs1)
@@ -85,7 +91,7 @@ class MultiRayGlobalCalibrator:
     # parameters
     Z: Dict[str, np.ndarray] = field(default_factory=dict)  # item -> (dim,)
     V: Dict[str, np.ndarray] = field(default_factory=dict)  # cond_id -> (dim,)
-    beta: Dict[str, float] = field(default_factory=dict)    # cond_id -> float
+    beta: Dict[str, float] = field(default_factory=dict)  # cond_id -> float
 
     # regularization
     l2_z: float = 1e-6
@@ -123,7 +129,9 @@ class MultiRayGlobalCalibrator:
     ) -> None:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
-        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
+        if (calibrator.lookup_curve_1d_prices is None) and (
+            not calibrator.lookup_curves_2d_prices
+        ):
             calibrator.solve_from_prices(prices_arr)
         spec = ConditionSpec(
             cond_id=cond_id,
@@ -136,7 +144,7 @@ class MultiRayGlobalCalibrator:
         # initialize parameters for this condition if absent
         if cond_id not in self.V:
             base_seed = 1469598103934665603  # large-ish offset (FNV basis)
-            rs = (0 if self.random_state is None else int(self.random_state))
+            rs = 0 if self.random_state is None else int(self.random_state)
             seed = (rs + (hash(cond_id) & 0xFFFFFFFF)) ^ base_seed
             rng = np.random.default_rng(seed)
             v = rng.standard_normal(self.dim)
@@ -149,9 +157,13 @@ class MultiRayGlobalCalibrator:
         self._rebuild_cond_index()
 
     def ability(self, cond_id: str, item_id: str) -> float:
-        return float(self.beta[cond_id] + float(np.dot(self.V[cond_id], self.Z[item_id])))
+        return float(
+            self.beta[cond_id] + float(np.dot(self.V[cond_id], self.Z[item_id]))
+        )
 
-    def _predict_and_slopes_for_condition(self, c_idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _predict_and_slopes_for_condition(
+        self, c_idx: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         spec = self.conditions[c_idx]
         cal = spec.calibrator
         m = len(spec.item_ids)
@@ -213,7 +225,7 @@ class MultiRayGlobalCalibrator:
                 # if dp is exactly zero, treat as positive floor
                 slopes_safe[mask] = self.slope_floor
                 # targets for delta ability
-                y = - e / slopes_safe
+                y = -e / slopes_safe
                 m = len(spec.item_ids)
                 X = np.zeros((m, 1 + self.dim), dtype=float)
                 X[:, 0] = 1.0
@@ -228,7 +240,9 @@ class MultiRayGlobalCalibrator:
                 except np.linalg.LinAlgError:
                     w = np.linalg.lstsq(XtX, Xty, rcond=None)[0]
                 self.beta[spec.cond_id] += self.step_beta * float(w[0])
-                self.V[spec.cond_id] = self.V[spec.cond_id] + self.step_v * np.asarray(w[1:], dtype=float)
+                self.V[spec.cond_id] = self.V[spec.cond_id] + self.step_v * np.asarray(
+                    w[1:], dtype=float
+                )
                 # normalize V after update
                 v = self.V[spec.cond_id]
                 nrm = float(np.linalg.norm(v))
@@ -245,9 +259,11 @@ class MultiRayGlobalCalibrator:
                     slope_k = cond_slopes[j][k]
                     # clamp slope
                     if abs(slope_k) < self.slope_floor:
-                        slope_k = self.slope_floor if slope_k >= 0 else -self.slope_floor
+                        slope_k = (
+                            self.slope_floor if slope_k >= 0 else -self.slope_floor
+                        )
                     e_k = cond_p_hat[j][k] - spec.prices[k]
-                    yk = - e_k / slope_k
+                    yk = -e_k / slope_k
                     rows.append(self.V[spec.cond_id])
                     ys.append(yk)
                 if not rows:
@@ -262,7 +278,9 @@ class MultiRayGlobalCalibrator:
                     dz = np.linalg.lstsq(MtM, Mty, rcond=None)[0]
                 self.Z[hid] = self.Z[hid] + self.step_z * dz
 
-    def fit_with_rebuild(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
+    def fit_with_rebuild(
+        self, num_outer_iters: int = 3, num_inner_iters: int = 10
+    ) -> None:
         for _ in range(num_outer_iters):
             self.rebuild_all_curves()
             self.fit_inner(num_inner_iters)
@@ -272,5 +290,3 @@ class MultiRayGlobalCalibrator:
         c_idx = self.cond_index[cond_id]
         p_hat, _ = self._predict_and_slopes_for_condition(c_idx)
         return p_hat
-
-

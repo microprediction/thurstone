@@ -1,6 +1,7 @@
 import numpy as np
 from thurstone import AbilityCalibrator
 
+
 def test_roundtrip_ability_prices(base):
     cal = AbilityCalibrator(base, n_iter=5)
     true_ability = np.array([-4.0, -1.0, 0.0, +0.7, +2.0], dtype=float)
@@ -9,7 +10,7 @@ def test_roundtrip_ability_prices(base):
     est = np.array(cal.solve_from_prices(prices), dtype=float)
     # Remove translation by median-centering
     true_c = true_ability - np.median(true_ability)
-    est_c  = est          - np.median(est)
+    est_c = est - np.median(est)
     # 1) rank order must match
     assert list(np.argsort(true_c)) == list(np.argsort(est_c))
     # 2) correlation must be high
@@ -17,5 +18,3 @@ def test_roundtrip_ability_prices(base):
     assert corr > 0.985
     # Optional loose absolute guard
     assert float(np.max(np.abs(true_c - est_c))) < 3.0
-
-

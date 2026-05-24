@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Sequence, Callable, Optional, Tuple
-import math 
+import math
 import numpy as np
 
 from .density import Density
 from .inference import AbilityCalibrator
-
 
 # --- Public containers --------------------------------------------------------
 
@@ -22,6 +21,7 @@ class RaceObservation:
     - prices: risk‑neutral winning probabilities for the same order of horse_ids
     - winner: optional winner id (future extensions may use ranks/margins)
     """
+
     race_id: str
     time: float
     horse_ids: List[str]
@@ -272,7 +272,7 @@ class DynamicThurstoneCalibrator:
             dt_h = np.diff(t)
             dθ = np.diff(theta)
             dts.extend(dt_h.tolist())
-            dtheta2.extend((dθ ** 2).tolist())
+            dtheta2.extend((dθ**2).tolist())
 
         if not dts:
             raise ValueError("No ability increments to fit sigma(Δt).")
@@ -316,7 +316,6 @@ class DynamicThurstoneCalibrator:
 
         return sigma_fn
 
-
     # --- helpers for measurement-noise calibration ----------------------------
     def _collect_increments(
         self,
@@ -338,15 +337,15 @@ class DynamicThurstoneCalibrator:
             if dt_min is not None or dt_max is not None:
                 m = np.ones_like(dt_h, dtype=bool)
                 if dt_min is not None:
-                    m &= (dt_h >= dt_min)
+                    m &= dt_h >= dt_min
                 if dt_max is not None:
-                    m &= (dt_h <= dt_max)
+                    m &= dt_h <= dt_max
                 dt_h = dt_h[m]
                 dth = dth[m]
             if dt_h.size == 0:
                 continue
             dts.extend(dt_h.tolist())
-            dtheta2.extend((dth ** 2).tolist())
+            dtheta2.extend((dth**2).tolist())
         return np.asarray(dts, dtype=float), np.asarray(dtheta2, dtype=float)
 
     def fit_sigma_autocalibrate(
@@ -400,7 +399,9 @@ class DynamicThurstoneCalibrator:
             return ability
         winner_idx = int(horse_ids.index(winner_id))
         cal = self._new_calibrator()
-        base_probs = np.asarray(cal.state_prices_from_ability(ability.tolist()), dtype=float)
+        base_probs = np.asarray(
+            cal.state_prices_from_ability(ability.tolist()), dtype=float
+        )
         # loss = -log q_w
         loss0 = -float(np.log(max(base_probs[winner_idx], 1e-15)))
         grad = np.zeros_like(ability, dtype=float)
@@ -436,7 +437,11 @@ class DynamicThurstoneCalibrator:
             a = ability_vec.copy()
             for _ in range(max(0, int(refine_steps))):
                 a = self._refine_with_result_once(
-                    a, race.horse_ids, race.winner, step=refine_step_size, eps=refine_eps
+                    a,
+                    race.horse_ids,
+                    race.winner,
+                    step=refine_step_size,
+                    eps=refine_eps,
                 )
             per_horse = {h: float(x) for h, x in zip(race.horse_ids, a.tolist())}
             race_abilities.append(per_horse)
@@ -473,15 +478,15 @@ class DynamicThurstoneCalibrator:
             if dt_min is not None or dt_max is not None:
                 m = np.ones_like(dt_h, dtype=bool)
                 if dt_min is not None:
-                    m &= (dt_h >= dt_min)
+                    m &= dt_h >= dt_min
                 if dt_max is not None:
-                    m &= (dt_h <= dt_max)
+                    m &= dt_h <= dt_max
                 dt_h = dt_h[m]
                 dth = dth[m]
             if dt_h.size == 0:
                 continue
             dts.extend(dt_h.tolist())
-            dtheta2.extend((dth ** 2).tolist())
+            dtheta2.extend((dth**2).tolist())
 
         if not dts:
             raise ValueError("No ability increments to fit parametric σ(Δt).")
@@ -506,4 +511,3 @@ class DynamicThurstoneCalibrator:
             return math.sqrt(max(alpha_hat * float(dt), 1e-12))
 
         return sigma_fn, alpha_hat, meas_var_hat
-
