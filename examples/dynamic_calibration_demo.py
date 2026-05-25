@@ -18,17 +18,18 @@ Estimation
 3) Smooth each horse’s trajectory with a random‑walk prior using the learned σ(Δt).
 4) Evaluate recovered dynamic abilities against ground truth; compare learned σ(Δt) with σ_true(Δt).
 """
+
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from thurstone import UniformLattice, Density
+from thurstone import Density, UniformLattice
+from thurstone.dynamic import DynamicThurstoneCalibrator, RaceObservation
 from thurstone.inference import AbilityCalibrator
-from thurstone.dynamic import RaceObservation, DynamicThurstoneCalibrator
-from thurstone.sim_world import simulate_world, sigma_true
+from thurstone.sim_world import sigma_true, simulate_world
 
 # ------------------------------------------------------------------
 # Configuration – central place for key parameters
@@ -38,8 +39,8 @@ NUM_HORSES: int = 20
 NUM_RACES: int = 50
 RACE_SIZE_RANGE: tuple[int, int] = (8, 14)
 HORIZON_DAYS: float = 2000
-ALPHA_RW: float = 0.03            # σ_true(dt) = sqrt(ALPHA_RW * dt)
-SIGMA0_INIT: float = 1.0          # initial ability std
+ALPHA_RW: float = 0.03  # σ_true(dt) = sqrt(ALPHA_RW * dt)
+SIGMA0_INIT: float = 1.0  # initial ability std
 # Bookmaker noise model: relative per-horse variance + race-level bias variance
 BOOKMAKER_TAU_REL: float = 0.5
 BOOKMAKER_TAU_BIAS: float = 1.0
@@ -53,11 +54,8 @@ CAL_N_ITER: int = 3
 SIGMA_N_BINS: int = 10
 SIGMA_MIN_POINTS: int = 50
 SIGMA_MONOTONE: bool = True
-OBS_VAR: float = BOOKMAKER_TAU_REL ** 2
-SMOOTH_SIGMA_SCALE: float = 1.4   # >1 to reduce over-smoothing by increasing σ(Δt)
-
-
-
+OBS_VAR: float = BOOKMAKER_TAU_REL**2
+SMOOTH_SIGMA_SCALE: float = 1.4  # >1 to reduce over-smoothing by increasing σ(Δt)
 
 
 def evaluate_correlation_centered(
@@ -93,7 +91,9 @@ def evaluate_correlation_centered(
     return float(np.corrcoef(T, E)[0, 1])
 
 
-def evaluate_sigma_rmse(sigma_est, sigma_gt, dt_min: float = 0.5, dt_max: float = 40.0, n: int = 80) -> float:
+def evaluate_sigma_rmse(
+    sigma_est, sigma_gt, dt_min: float = 0.5, dt_max: float = 40.0, n: int = 80
+) -> float:
     xs = np.linspace(dt_min, dt_max, n)
     se = np.array([sigma_est(float(x)) for x in xs], dtype=float)
     sg = np.array([sigma_gt(float(x)) for x in xs], dtype=float)
@@ -134,9 +134,12 @@ def estimate_book_factor_band(
         # use odds space for stability: u = odds(m)/odds(q) = exp(logit(m)-logit(q))
         # also restrict to mid-probability range to avoid tail blow-ups
         valid = (
-            (q_model > pmin) & (q_model < pmax) &
-            (m_obs > pmin) & (m_obs < pmax) &
-            np.isfinite(q_model) & np.isfinite(m_obs)
+            (q_model > pmin)
+            & (q_model < pmax)
+            & (m_obs > pmin)
+            & (m_obs < pmax)
+            & np.isfinite(q_model)
+            & np.isfinite(m_obs)
         )
         if np.any(valid):
             logit_m = np.log(m_obs[valid]) - np.log1p(-m_obs[valid])
@@ -189,12 +192,18 @@ def main() -> None:
         bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
     dyn_book.fit_abilities(sigma_function=None)
-    r_book = evaluate_correlation_centered(dyn_book.theta_, dyn_book.times_, true_theta, true_times)
+    r_book = evaluate_correlation_centered(
+        dyn_book.theta_, dyn_book.times_, true_theta, true_times
+    )
     print(f"[Book]    correlation (centered): {r_book:.4f}")
 
     # 1) Static per‑race inverse from (noisy) bookmaker prices, then refine with results
-    dyn.fit_abilities_with_results(refine_steps=1, refine_step_size=0.6, refine_eps=0.05)
-    r_raw = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
+    dyn.fit_abilities_with_results(
+        refine_steps=1, refine_step_size=0.6, refine_eps=0.05
+    )
+    r_raw = evaluate_correlation_centered(
+        dyn.theta_, dyn.times_, true_theta, true_times
+    )
     print(f"[Raw+Res] correlation (centered): {r_raw:.4f}")
 
     # 2) Learn σ(Δt) from RAW price‑implied abilities (no refinement),
@@ -203,7 +212,7 @@ def main() -> None:
         base_density=base,
         races=races,
         ability_calibrator_kwargs=dict(n_iter=CAL_N_ITER),
-        bookmaker_sigma=BOOKMAKER_TAU,
+        bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
     dyn_sigma.fit_abilities(sigma_function=None)
     # Parametric model: Var(Δθ) ≈ 2*τ^2 + α*Δt  ⇒  τ̂^2 = intercept/2,  α̂ = slope
@@ -212,7 +221,7 @@ def main() -> None:
         dt_min=0.0,
         dt_max=40.0,
     )
-    print(f"[Sigma]   tau_hat (parametric): {math.sqrt(max(meas_var_hat,0.0)):.4f}")
+    print(f"[Sigma]   tau_hat (parametric): {math.sqrt(max(meas_var_hat, 0.0)):.4f}")
     # Optional: compare to a binned estimator using τ̂^2 from the parametric fit
     # sigma_est, _ = dyn.fit_sigma(n_bins=SIGMA_N_BINS, min_points=SIGMA_MIN_POINTS,
     #                              monotone=SIGMA_MONOTONE, meas_var=meas_var_hat), meas_var_hat
@@ -223,16 +232,23 @@ def main() -> None:
     # Use inferred measurement variance for observation noise and scale σ(Δt) to avoid over-smoothing.
     def sigma_scaled(dt: float) -> float:
         return float(SMOOTH_SIGMA_SCALE) * float(sigma_est(float(dt)))
+
     dyn.fit_abilities(sigma_function=sigma_scaled, obs_var=float(meas_var_hat))
-    r_smooth = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
+    r_smooth = evaluate_correlation_centered(
+        dyn.theta_, dyn.times_, true_theta, true_times
+    )
     print(f"[Smooth]  correlation (centered): {r_smooth:.4f}")
     # 4) Infer bookmaker error factor band:
     #    - from book-only abilities (pure market comparison)
     #    - from smoothed abilities (after using σ̂ and results)
     q10b, medb, q90b = estimate_book_factor_band(dyn_book, races, base)
-    print(f"[BookErr/book]   factor band (10/50/90%): [{q10b:.2f}, {medb:.2f}, {q90b:.2f}]  (target ≈ [0.8, 1.3])")
+    print(
+        f"[BookErr/book]   factor band (10/50/90%): [{q10b:.2f}, {medb:.2f}, {q90b:.2f}]  (target ≈ [0.8, 1.3])"
+    )
     q10s, meds, q90s = estimate_book_factor_band(dyn, races, base)
-    print(f"[BookErr/smooth] factor band (10/50/90%): [{q10s:.2f}, {meds:.2f}, {q90s:.2f}]")
+    print(
+        f"[BookErr/smooth] factor band (10/50/90%): [{q10s:.2f}, {meds:.2f}, {q90s:.2f}]"
+    )
 
     # Optional visualization
     try:
@@ -258,7 +274,13 @@ def main() -> None:
         if sample:
             nrows = int(np.ceil(len(sample) / 3))
             ncols = min(3, len(sample))
-            fig, axes = plt.subplots(nrows, ncols, figsize=(4*ncols, 2.8*nrows), squeeze=False, sharex=False)
+            fig, axes = plt.subplots(
+                nrows,
+                ncols,
+                figsize=(4 * ncols, 2.8 * nrows),
+                squeeze=False,
+                sharex=False,
+            )
             for k, hid in enumerate(sample):
                 r = k // ncols
                 c = k % ncols
@@ -267,20 +289,20 @@ def main() -> None:
                 tt = true_times.get(hid, np.array([]))
                 th = true_theta.get(hid, np.array([]))
                 if tt.size > 0:
-                    ax.plot(tt, th, '-o', label='true θ', alpha=0.9)
+                    ax.plot(tt, th, "-o", label="true θ", alpha=0.9)
                 # bookmaker noisy μ̂
                 bt = book_times.get(hid, np.array([]))
                 bh = book_theta.get(hid, np.array([]))
                 if bt.size > 0:
-                    ax.plot(bt, bh, 'x-', label='book μ̂', alpha=0.7)
+                    ax.plot(bt, bh, "x-", label="book μ̂", alpha=0.7)
                 # post‑race smoothed (dyn)
                 st = dyn.times_.get(hid, np.array([]))
                 sh = dyn.theta_.get(hid, np.array([]))
                 if st is not None and sh is not None and len(st) > 0:
-                    ax.plot(st, sh, '-.', label='post‑race θ̂ (smoothed)', alpha=0.9)
+                    ax.plot(st, sh, "-.", label="post‑race θ̂ (smoothed)", alpha=0.9)
                 ax.set_title(hid)
-                ax.set_xlabel('time')
-                ax.set_ylabel('ability')
+                ax.set_xlabel("time")
+                ax.set_ylabel("ability")
                 ax.grid(True, alpha=0.2)
                 ax.legend(fontsize=8)
             plt.tight_layout()
@@ -291,5 +313,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

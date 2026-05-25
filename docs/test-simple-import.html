@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Simple Import Test</title>
+</head>
+<body>
+  <h1>Simple Import Test</h1>
+  <div id="result">Loading...</div>
+
+  <script type="module">
+    try {
+      // Test just the basic module loading first
+      console.log("About to import...");
+      const latticeModule = await import("./js/thurstone/lattice.js");
+      console.log("Lattice module:", latticeModule);
+      const { UniformLattice } = latticeModule;
+      console.log("UniformLattice constructor:", UniformLattice);
+
+      // Try to create an instance
+      const lat = new UniformLattice(200, 0.05);
+      console.log("Created lattice:", lat);
+
+      document.getElementById('result').innerHTML = "✅ Success! UniformLattice created with L=" + lat.L + ", unit=" + lat.unit;
+    } catch (error) {
+      console.error("Error:", error);
+      document.getElementById('result').innerHTML = "❌ Error: " + error.message + "<br>Stack: " + error.stack;
+    }
+  </script>
+</body>
+</html>

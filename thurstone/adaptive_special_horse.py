@@ -6,14 +6,17 @@ distributions, variances, and adaptive strategies to optimize mapping properties
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
-import numpy as np
 from enum import Enum
+from typing import Any, Dict, Optional
+
+import numpy as np
 
 
 class DistributionType(Enum):
     """Supported distribution types for the special horse."""
+
     NORMAL = "normal"
     STUDENT_T = "student_t"
     LAPLACE = "laplace"
@@ -24,12 +27,13 @@ class DistributionType(Enum):
 @dataclass
 class SpecialHorseConfig:
     """Configuration for the special horse performance distribution."""
+
     distribution: DistributionType = DistributionType.NORMAL
-    base_ability: float = 0.0      # Base ability level
-    location: float = 0.0          # Mean/location parameter for noise
-    scale: float = 1.0             # Standard deviation/scale parameter
-    shape: float = 3.0             # Shape parameter (e.g., df for Student's t)
-    adaptive_mode: str = "fixed"   # "fixed", "mean_adaptive", "position_adaptive"
+    base_ability: float = 0.0  # Base ability level
+    location: float = 0.0  # Mean/location parameter for noise
+    scale: float = 1.0  # Standard deviation/scale parameter
+    shape: float = 3.0  # Shape parameter (e.g., df for Student's t)
+    adaptive_mode: str = "fixed"  # "fixed", "mean_adaptive", "position_adaptive"
 
     def __post_init__(self):
         if self.scale <= 0:
@@ -47,10 +51,12 @@ class AdaptiveSpecialHorse:
         self.config = config
         self._rng = np.random.RandomState(42)  # For reproducibility
 
-    def compute_ability(self,
-                       cube_point: np.ndarray,
-                       other_abilities: np.ndarray,
-                       sigmoid_params: Optional[Any] = None) -> float:
+    def compute_ability(
+        self,
+        cube_point: np.ndarray,
+        other_abilities: np.ndarray,
+        sigmoid_params: Optional[Any] = None,
+    ) -> float:
         """
         Compute the special horse ability based on configuration and context.
 
@@ -77,10 +83,12 @@ class AdaptiveSpecialHorse:
 
         return base_ability
 
-    def sample_performance(self,
-                          cube_point: np.ndarray,
-                          other_abilities: np.ndarray,
-                          sigmoid_params: Optional[Any] = None) -> float:
+    def sample_performance(
+        self,
+        cube_point: np.ndarray,
+        other_abilities: np.ndarray,
+        sigmoid_params: Optional[Any] = None,
+    ) -> float:
         """
         Sample a performance value for the special horse.
 
@@ -118,8 +126,9 @@ class AdaptiveSpecialHorse:
                     scale_multiplier = 3.0
                 else:
                     scale_multiplier = 1.0
-                return self._rng.normal(self.config.location,
-                                     self.config.scale * scale_multiplier)
+                return self._rng.normal(
+                    self.config.location, self.config.scale * scale_multiplier
+                )
 
         elif self.config.distribution == DistributionType.LAPLACE:
             # Laplace distribution using exponential random variables
@@ -132,8 +141,9 @@ class AdaptiveSpecialHorse:
         elif self.config.distribution == DistributionType.UNIFORM:
             # Uniform distribution
             half_width = self.config.scale * np.sqrt(3)  # Match variance
-            return self._rng.uniform(self.config.location - half_width,
-                                   self.config.location + half_width)
+            return self._rng.uniform(
+                self.config.location - half_width, self.config.location + half_width
+            )
 
         elif self.config.distribution == DistributionType.EXPONENTIAL:
             # Exponential distribution (only positive values)
@@ -142,10 +152,12 @@ class AdaptiveSpecialHorse:
         else:
             raise ValueError(f"Unsupported distribution: {self.config.distribution}")
 
-    def get_expected_performance(self,
-                               cube_point: np.ndarray,
-                               other_abilities: np.ndarray,
-                               sigmoid_params: Optional[Any] = None) -> float:
+    def get_expected_performance(
+        self,
+        cube_point: np.ndarray,
+        other_abilities: np.ndarray,
+        sigmoid_params: Optional[Any] = None,
+    ) -> float:
         """Get expected performance (for deterministic calculations)."""
         ability = self.compute_ability(cube_point, other_abilities, sigmoid_params)
         return ability + self.config.location
@@ -153,21 +165,23 @@ class AdaptiveSpecialHorse:
     def get_performance_variance(self) -> float:
         """Get variance of performance distribution."""
         if self.config.distribution == DistributionType.NORMAL:
-            return self.config.scale ** 2
+            return self.config.scale**2
         elif self.config.distribution == DistributionType.STUDENT_T:
             if self.config.shape > 2:
-                return self.config.scale ** 2 * self.config.shape / (self.config.shape - 2)
+                return (
+                    self.config.scale**2 * self.config.shape / (self.config.shape - 2)
+                )
             else:
-                return float('inf')  # Heavy tails
+                return float("inf")  # Heavy tails
         elif self.config.distribution == DistributionType.LAPLACE:
-            return 2 * (self.config.scale ** 2)
+            return 2 * (self.config.scale**2)
         elif self.config.distribution == DistributionType.UNIFORM:
             half_width = self.config.scale * np.sqrt(3)
             return (2 * half_width) ** 2 / 12
         elif self.config.distribution == DistributionType.EXPONENTIAL:
-            return self.config.scale ** 2
+            return self.config.scale**2
         else:
-            return self.config.scale ** 2  # Default fallback
+            return self.config.scale**2  # Default fallback
 
 
 def create_special_horse_configs() -> Dict[str, SpecialHorseConfig]:
@@ -175,87 +189,78 @@ def create_special_horse_configs() -> Dict[str, SpecialHorseConfig]:
 
     configs = {
         # Standard configurations
-        'standard_normal': SpecialHorseConfig(
+        "standard_normal": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=0.0,
             location=0.0,
-            scale=1.0
+            scale=1.0,
         ),
-
         # High variance for better coverage
-        'high_variance': SpecialHorseConfig(
+        "high_variance": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=0.0,
             location=0.0,
-            scale=2.0
+            scale=2.0,
         ),
-
         # Low variance for smoothness
-        'low_variance': SpecialHorseConfig(
+        "low_variance": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=0.0,
             location=0.0,
-            scale=0.5
+            scale=0.5,
         ),
-
         # Heavy tails for boundary coverage
-        'heavy_tails': SpecialHorseConfig(
+        "heavy_tails": SpecialHorseConfig(
             distribution=DistributionType.STUDENT_T,
             base_ability=0.0,
             location=0.0,
             scale=1.0,
-            shape=3.0  # Low df for heavy tails
+            shape=3.0,  # Low df for heavy tails
         ),
-
         # Laplace for sharp peaked performance
-        'laplace_peaked': SpecialHorseConfig(
+        "laplace_peaked": SpecialHorseConfig(
             distribution=DistributionType.LAPLACE,
             base_ability=0.0,
             location=0.0,
-            scale=1.0
+            scale=1.0,
         ),
-
         # Uniform for bounded performance
-        'uniform_bounded': SpecialHorseConfig(
+        "uniform_bounded": SpecialHorseConfig(
             distribution=DistributionType.UNIFORM,
             base_ability=0.0,
             location=0.0,
-            scale=1.0
+            scale=1.0,
         ),
-
         # Mean-adaptive for automatic balancing
-        'mean_adaptive': SpecialHorseConfig(
+        "mean_adaptive": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=0.0,
             location=0.0,
             scale=1.0,
-            adaptive_mode="mean_adaptive"
+            adaptive_mode="mean_adaptive",
         ),
-
         # Position-adaptive for spatial variation
-        'position_adaptive': SpecialHorseConfig(
+        "position_adaptive": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=0.0,
             location=0.0,
             scale=1.0,
-            adaptive_mode="position_adaptive"
+            adaptive_mode="position_adaptive",
         ),
-
         # Strong special horse with low variance
-        'dominant_reliable': SpecialHorseConfig(
+        "dominant_reliable": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=1.0,
             location=0.0,
-            scale=0.3
+            scale=0.3,
         ),
-
         # Weak special horse with high variance
-        'weak_unpredictable': SpecialHorseConfig(
+        "weak_unpredictable": SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
             base_ability=-0.5,
             location=0.0,
-            scale=1.5
-        )
+            scale=1.5,
+        ),
     }
 
     return configs
@@ -284,14 +289,18 @@ if __name__ == "__main__":
         # Sample multiple performances
         performances = []
         for _ in range(1000):
-            perf = special_horse.sample_performance(test_cube_point, test_other_abilities)
+            perf = special_horse.sample_performance(
+                test_cube_point, test_other_abilities
+            )
             performances.append(perf)
 
         performances = np.array(performances)
 
         print(f"   Mean performance: {np.mean(performances):.3f}")
         print(f"   Std performance: {np.std(performances):.3f}")
-        print(f"   Performance range: [{np.min(performances):.3f}, {np.max(performances):.3f}]")
+        print(
+            f"   Performance range: [{np.min(performances):.3f}, {np.max(performances):.3f}]"
+        )
 
     print(f"\n✅ Adaptive special horse framework ready!")
     print("Ready to integrate with cube-to-simplex mappings!")

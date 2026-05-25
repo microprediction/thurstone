@@ -10,16 +10,20 @@ This example showcases the complete framework:
 Run this script to see the framework in action!
 """
 
-import numpy as np
-import sys
 import os
+import sys
+
+import numpy as np
 
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone.cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from thurstone.quality_assessment import comprehensive_quality_assessment, QualityMetrics
-from thurstone.optimization import optimize_diffeomorphism, ParameterBounds
+from thurstone.cube_to_simplex import CubeToSimplexMapping  # noqa: E402
+from thurstone.cube_to_simplex import SigmoidParams
+from thurstone.optimization import ParameterBounds  # noqa: E402
+from thurstone.optimization import optimize_diffeomorphism
+from thurstone.quality_assessment import QualityMetrics  # noqa: E402
+from thurstone.quality_assessment import comprehensive_quality_assessment
 
 
 def create_example_mappings() -> dict:
@@ -29,45 +33,37 @@ def create_example_mappings() -> dict:
     # 1. Symmetric mapping (all parameters similar)
     symmetric_params = [
         SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
-        SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5)
+        SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
     ]
-    mappings['symmetric'] = CubeToSimplexMapping(
-        sigmoid_params=symmetric_params,
-        special_horse_ability=0.0,
-        noise_scale=1.0
+    mappings["symmetric"] = CubeToSimplexMapping(
+        sigmoid_params=symmetric_params, special_horse_ability=0.0, noise_scale=1.0
     )
 
     # 2. Asymmetric mapping (different parameters)
     asymmetric_params = [
         SigmoidParams(alpha=2.0, beta=6.0, gamma=0.2),
-        SigmoidParams(alpha=0.8, beta=3.0, gamma=0.8)
+        SigmoidParams(alpha=0.8, beta=3.0, gamma=0.8),
     ]
-    mappings['asymmetric'] = CubeToSimplexMapping(
-        sigmoid_params=asymmetric_params,
-        special_horse_ability=0.5,
-        noise_scale=1.0
+    mappings["asymmetric"] = CubeToSimplexMapping(
+        sigmoid_params=asymmetric_params, special_horse_ability=0.5, noise_scale=1.0
     )
 
     # 3. Steep mapping (high beta values)
     steep_params = [
         SigmoidParams(alpha=1.5, beta=10.0, gamma=0.3),
-        SigmoidParams(alpha=1.2, beta=8.0, gamma=0.7)
+        SigmoidParams(alpha=1.2, beta=8.0, gamma=0.7),
     ]
-    mappings['steep'] = CubeToSimplexMapping(
-        sigmoid_params=steep_params,
-        special_horse_ability=-0.3,
-        noise_scale=1.0
+    mappings["steep"] = CubeToSimplexMapping(
+        sigmoid_params=steep_params, special_horse_ability=-0.3, noise_scale=1.0
     )
 
     # 4. Gentle mapping (low beta values)
     gentle_params = [
         SigmoidParams(alpha=1.0, beta=2.0, gamma=0.5),
-        SigmoidParams(alpha=1.0, beta=2.0, gamma=0.5)
+        SigmoidParams(alpha=1.0, beta=2.0, gamma=0.5),
     ]
-    mappings['gentle'] = CubeToSimplexMapping(
-        sigmoid_params=gentle_params,
-        special_horse_ability=0.0,
-        noise_scale=1.0
+    mappings["gentle"] = CubeToSimplexMapping(
+        sigmoid_params=gentle_params, special_horse_ability=0.0, noise_scale=1.0
     )
 
     return mappings
@@ -82,12 +78,10 @@ def demonstrate_basic_usage():
     # Create a simple mapping
     sigmoid_params = [
         SigmoidParams(alpha=1.5, beta=4.0, gamma=0.3),
-        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7)
+        SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7),
     ]
     mapping = CubeToSimplexMapping(
-        sigmoid_params=sigmoid_params,
-        special_horse_ability=0.2,
-        noise_scale=1.0
+        sigmoid_params=sigmoid_params, special_horse_ability=0.2, noise_scale=1.0
     )
 
     print(f"Created mapping for k={mapping.k} (triangle)")
@@ -107,7 +101,9 @@ def demonstrate_basic_usage():
     print("-" * 50)
     for point in test_points:
         simplex_point = mapping(point)
-        print(f"{point!s:15} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f})")
+        print(
+            f"{point!s:15} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f})"
+        )
 
     # Verify probabilities sum to 1
     print("\nVerifying probability constraints:")
@@ -141,7 +137,7 @@ def compare_mappings():
             smoothness_samples=200,
             coverage_samples=2000,
             invertibility_samples=30,
-            random_seed=42
+            random_seed=42,
         )
 
         results[name] = metrics
@@ -151,17 +147,21 @@ def compare_mappings():
     print("\n" + "=" * 80)
     print("QUALITY COMPARISON TABLE")
     print("=" * 80)
-    print(f"{'Mapping':<12} {'Overall':<8} {'Symmetry':<9} {'Volume':<8} {'Smooth':<8} {'Coverage':<9} {'Invert':<8}")
+    print(
+        f"{'Mapping':<12} {'Overall':<8} {'Symmetry':<9} {'Volume':<8} {'Smooth':<8} {'Coverage':<9} {'Invert':<8}"
+    )
     print("-" * 80)
 
     for name, metrics in results.items():
-        print(f"{name:<12} "
-              f"{metrics.overall_score():<8.4f} "
-              f"{metrics.symmetry_score:<9.4f} "
-              f"{(metrics.volume_preservation_score or 0):<8.4f} "
-              f"{(metrics.smoothness_score or 0):<8.4f} "
-              f"{(metrics.coverage_score or 0):<9.4f} "
-              f"{(metrics.invertibility_score or 0):<8.4f}")
+        print(
+            f"{name:<12} "
+            f"{metrics.overall_score():<8.4f} "
+            f"{metrics.symmetry_score:<9.4f} "
+            f"{(metrics.volume_preservation_score or 0):<8.4f} "
+            f"{(metrics.smoothness_score or 0):<8.4f} "
+            f"{(metrics.coverage_score or 0):<9.4f} "
+            f"{(metrics.invertibility_score or 0):<8.4f}"
+        )
 
     # Find best mapping
     best_name = max(results.keys(), key=lambda k: results[k].overall_score())
@@ -183,10 +183,10 @@ def demonstrate_optimization():
     # Use smaller evaluation budget for demo
     result = optimize_diffeomorphism(
         k=2,
-        optimizer='random',
+        optimizer="random",
         max_evaluations=15,  # Small for demo
-        quality_weights={'symmetry': 2.0, 'coverage': 1.5, 'smoothness': 1.0},
-        random_seed=42
+        quality_weights={"symmetry": 2.0, "coverage": 1.5, "smoothness": 1.0},
+        random_seed=42,
     )
 
     print(f"\nOptimization Results:")
@@ -209,10 +209,10 @@ def demonstrate_optimization():
     manual_mapping = CubeToSimplexMapping(
         sigmoid_params=[
             SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5)
+            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
         ],
         special_horse_ability=0.0,
-        noise_scale=1.0
+        noise_scale=1.0,
     )
 
     print(f"\nComparing with manual symmetric configuration:")
@@ -223,7 +223,7 @@ def demonstrate_optimization():
         smoothness_samples=150,
         coverage_samples=1500,
         invertibility_samples=25,
-        random_seed=42
+        random_seed=42,
     )
 
     print(f"Manual mapping score: {manual_metrics.overall_score():.4f}")
@@ -243,12 +243,10 @@ def analyze_lattice_behavior():
     # Create a well-behaved mapping
     sigmoid_params = [
         SigmoidParams(alpha=1.2, beta=4.0, gamma=0.4),
-        SigmoidParams(alpha=1.3, beta=4.5, gamma=0.6)
+        SigmoidParams(alpha=1.3, beta=4.5, gamma=0.6),
     ]
     mapping = CubeToSimplexMapping(
-        sigmoid_params=sigmoid_params,
-        special_horse_ability=0.1,
-        noise_scale=1.0
+        sigmoid_params=sigmoid_params, special_horse_ability=0.1, noise_scale=1.0
     )
 
     # Create regular lattice
@@ -269,9 +267,18 @@ def analyze_lattice_behavior():
     p3_coords = simplex_points[:, 2]
 
     print(f"\nSimplex coordinate statistics:")
-    print(f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]")
-    print(f"p₂: mean={np.mean(p2_coords):.3f}, std={np.std(p2_coords):.3f}, range=[{np.min(p2_coords):.3f}, {np.max(p2_coords):.3f}]")
-    print(f"p₃: mean={np.mean(p3_coords):.3f}, std={np.std(p3_coords):.3f}, range=[{np.min(p3_coords):.3f}, {np.max(p3_coords):.3f}]")
+    print(
+        f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, "
+        f"range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]"
+    )
+    print(
+        f"p₂: mean={np.mean(p2_coords):.3f}, std={np.std(p2_coords):.3f}, "
+        f"range=[{np.min(p2_coords):.3f}, {np.max(p2_coords):.3f}]"
+    )
+    print(
+        f"p₃: mean={np.mean(p3_coords):.3f}, std={np.std(p3_coords):.3f}, "
+        f"range=[{np.min(p3_coords):.3f}, {np.max(p3_coords):.3f}]"
+    )
 
     # Check if we're covering the simplex well
     # Distance from simplex vertices
@@ -294,7 +301,9 @@ def analyze_lattice_behavior():
     for corner in corners:
         simplex_point = mapping(corner)
         winner = np.argmax(simplex_point)
-        print(f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner+1} wins]")
+        print(
+            f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner+1} wins]"
+        )
 
     return cube_points, simplex_points
 
@@ -307,12 +316,10 @@ def demonstrate_parameter_sensitivity():
 
     base_params = [
         SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
-        SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5)
+        SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
     ]
     base_mapping = CubeToSimplexMapping(
-        sigmoid_params=base_params,
-        special_horse_ability=0.0,
-        noise_scale=1.0
+        sigmoid_params=base_params, special_horse_ability=0.0, noise_scale=1.0
     )
 
     print("Base configuration:")
@@ -323,36 +330,52 @@ def demonstrate_parameter_sensitivity():
         smoothness_samples=100,
         coverage_samples=1000,
         invertibility_samples=20,
-        random_seed=42
+        random_seed=42,
     )
     print(f"Base score: {base_metrics.overall_score():.4f}")
 
     # Test parameter variations
     variations = [
-        ("Higher alpha", [
-            SigmoidParams(alpha=2.0, beta=4.0, gamma=0.5),
-            SigmoidParams(alpha=2.0, beta=4.0, gamma=0.5)
-        ], 0.0),
-
-        ("Higher beta", [
-            SigmoidParams(alpha=1.0, beta=8.0, gamma=0.5),
-            SigmoidParams(alpha=1.0, beta=8.0, gamma=0.5)
-        ], 0.0),
-
-        ("Shifted gamma", [
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.3),
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.7)
-        ], 0.0),
-
-        ("Strong special horse", [
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5)
-        ], 1.0),
-
-        ("Weak special horse", [
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
-            SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5)
-        ], -1.0),
+        (
+            "Higher alpha",
+            [
+                SigmoidParams(alpha=2.0, beta=4.0, gamma=0.5),
+                SigmoidParams(alpha=2.0, beta=4.0, gamma=0.5),
+            ],
+            0.0,
+        ),
+        (
+            "Higher beta",
+            [
+                SigmoidParams(alpha=1.0, beta=8.0, gamma=0.5),
+                SigmoidParams(alpha=1.0, beta=8.0, gamma=0.5),
+            ],
+            0.0,
+        ),
+        (
+            "Shifted gamma",
+            [
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.3),
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.7),
+            ],
+            0.0,
+        ),
+        (
+            "Strong special horse",
+            [
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
+            ],
+            1.0,
+        ),
+        (
+            "Weak special horse",
+            [
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
+                SigmoidParams(alpha=1.0, beta=4.0, gamma=0.5),
+            ],
+            -1.0,
+        ),
     ]
 
     print(f"\nParameter sensitivity results:")
@@ -363,7 +386,7 @@ def demonstrate_parameter_sensitivity():
         mapping = CubeToSimplexMapping(
             sigmoid_params=params,
             special_horse_ability=special_ability,
-            noise_scale=1.0
+            noise_scale=1.0,
         )
 
         metrics = comprehensive_quality_assessment(
@@ -373,26 +396,32 @@ def demonstrate_parameter_sensitivity():
             smoothness_samples=80,
             coverage_samples=800,
             invertibility_samples=15,
-            random_seed=42
+            random_seed=42,
         )
 
         score = metrics.overall_score()
         change = score - base_metrics.overall_score()
 
-        print(f"{name:<20} "
-              f"{score:<8.4f} "
-              f"{change:+8.4f} "
-              f"{metrics.symmetry_score:<9.4f} "
-              f"{(metrics.smoothness_score or 0):<8.4f}")
+        print(
+            f"{name:<20} "
+            f"{score:<8.4f} "
+            f"{change:+8.4f} "
+            f"{metrics.symmetry_score:<9.4f} "
+            f"{(metrics.smoothness_score or 0):<8.4f}"
+        )
 
 
 def main():
     """Run the comprehensive demonstration."""
     print("THURSTONE DIFFEOMORPHISM FRAMEWORK DEMONSTRATION")
     print("=" * 60)
-    print("This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models.")
+    print(
+        "This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models."
+    )
     print("The framework creates smooth mappings from [0,1]^k to the k-simplex using")
-    print("parametric sigmoid functions and optimizes for quality measures like symmetry,")
+    print(
+        "parametric sigmoid functions and optimizes for quality measures like symmetry,"
+    )
     print("volume preservation, smoothness, coverage, and invertibility.")
 
     try:

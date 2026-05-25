@@ -1,5 +1,7 @@
 import numpy as np
+
 from thurstone import AbilityCalibrator
+
 
 def test_roundtrip_various_patterns(base):
     cal = AbilityCalibrator(base, n_iter=5)
@@ -21,6 +23,7 @@ def test_roundtrip_various_patterns(base):
         corr = float(np.corrcoef(true_c, est_c)[0, 1])
         assert corr > 0.99
 
+
 def test_two_runner_inversion_monotone(base):
     cal = AbilityCalibrator(base, n_iter=3)
     grid = np.linspace(-5.0, 5.0, 21)
@@ -34,5 +37,3 @@ def test_two_runner_inversion_monotone(base):
     # With multiplicity-aware global-curve inversion and coarse grids,
     # correlation can be slightly below 0.99; keep robust but strict.
     assert corr > 0.965
-
-

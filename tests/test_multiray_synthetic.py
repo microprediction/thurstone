@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-from thurstone import Density, AbilityCalibrator, MultiRayGlobalCalibrator
+from thurstone import AbilityCalibrator, Density, MultiRayGlobalCalibrator
 
 
 def test_multiray_probability_fit(base):
@@ -33,6 +33,7 @@ def test_multiray_probability_fit(base):
         # Build densities for state pricing
         dens = [base.shift_fractional(float(ai / base.lattice.unit)) for ai in a]
         from thurstone.pricing import Race
+
         p_obs = np.array(Race(dens).state_prices(), dtype=float)
         cal_j = AbilityCalibrator(base)
         calibrators.append(cal_j)
@@ -42,7 +43,12 @@ def test_multiray_probability_fit(base):
     # Fit model
     fit = MultiRayGlobalCalibrator(item_ids=item_ids, dim=dim, random_state=999)
     for j in range(n_conds):
-        fit.add_condition(cond_id=cond_ids[j], calibrator=calibrators[j], item_ids=item_ids, prices=prices_obs[j])
+        fit.add_condition(
+            cond_id=cond_ids[j],
+            calibrator=calibrators[j],
+            item_ids=item_ids,
+            prices=prices_obs[j],
+        )
 
     # Before fitting
     fit.rebuild_all_curves()
@@ -69,5 +75,3 @@ def test_multiray_probability_fit(base):
     assert mse1 < 1e-3
     max_abs_err = float(np.max(np.abs(preds1 - obs)))
     assert max_abs_err < 5e-2
-
-

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Test Demo Import</title>
+</head>
+<body>
+  <h1>Test Demo Import</h1>
+  <div id="status">Testing...</div>
+
+  <script src="js/thurstone-bundle.js"></script>
+  <script>
+    try {
+      console.log("Testing thurstone bundle...");
+      console.log("UniformLattice:", typeof UniformLattice);
+      console.log("Density:", typeof Density);
+      console.log("AbilityCalibrator:", typeof AbilityCalibrator);
+
+      // Test basic functionality
+      const lattice = new UniformLattice(10, 0.1);
+      const density = Density.skewNormal(lattice);
+      const calibrator = new AbilityCalibrator(density);
+
+      document.getElementById('status').innerHTML = "✅ Bundle loaded successfully!<br>" +
+        "UniformLattice: " + typeof UniformLattice + "<br>" +
+        "Density: " + typeof Density + "<br>" +
+        "AbilityCalibrator: " + typeof AbilityCalibrator + "<br>" +
+        "Test lattice size: " + lattice.size + "<br>" +
+        "Works with file:// protocol! 🎉";
+    } catch (error) {
+      console.error("Bundle test failed:", error);
+      document.getElementById('status').innerHTML = "❌ Bundle test failed: " + error.message;
+    }
+  </script>
+</body>
+</html>

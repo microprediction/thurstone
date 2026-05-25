@@ -143,10 +143,10 @@
       </div>
     </div>
 
-    <script type="module">
+  <script src="js/thurstone-bundle.js"></script>
+  <script>
       // Interactive JavaScript demos - works directly with file:// protocol
       try {
-        const { UniformLattice, Density, Race } = await import("./js/thurstone/index.js");
 
         const NAMES = ["H1", "H2", "H3", "H4", "H5"];
         const COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"];
@@ -195,14 +195,11 @@
         }
         recompute();
       } catch (error) {
-        // Fallback when ES modules can't load (e.g., file:// protocol)
-        console.error("Demo requires web server:", error);
+        console.error("Hero demo error:", error);
         document.querySelector('.hero-pricer').innerHTML =
           '<div style="padding: 40px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">' +
-          '<strong>Interactive Demo requires web server</strong><br><br>' +
-          'This demo uses ES modules which require serving from a web server.<br>' +
-          'Run: <code>python -m http.server 8000 --directory docs</code><br>' +
-          'Then visit: <a href="http://localhost:8000/">http://localhost:8000/</a>' +
+          '<strong>Demo Error</strong><br><br>' +
+          'Error: ' + error.message +
           '</div>';
       }
     </script>

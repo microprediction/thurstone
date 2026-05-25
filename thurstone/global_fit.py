@@ -1,15 +1,21 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple
+
 import numpy as np
 
 from .inference import AbilityCalibrator
 
 
-def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float, float]:
+def _interp_price_and_slope_1d(
+    cal: AbilityCalibrator, mu: float
+) -> Tuple[float, float]:
     """Interpolate price and d price / d mu from cached 1D curve."""
     if not cal.lookup_curve_1d_prices:
-        raise ValueError("AbilityCalibrator has no 1D lookup curve. Run solve_from_prices first.")
+        raise ValueError(
+            "AbilityCalibrator has no 1D lookup curve. Run solve_from_prices first."
+        )
     locs = cal.lookup_curve_1d_prices["locs"]
     prices = cal.lookup_curve_1d_prices["prices"]
     dprices = np.gradient(prices, locs)
@@ -20,7 +26,9 @@ def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float
     return p, dp
 
 
-def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) -> Tuple[float, float]:
+def _interp_price_and_slope_2d(
+    cal: AbilityCalibrator, mu: float, scale: float
+) -> Tuple[float, float]:
     """Interpolate price and slope across location and scale using cached 2D curves."""
     if not cal.lookup_curves_2d_prices:
         return _interp_price_and_slope_1d(cal, mu)
@@ -36,11 +44,11 @@ def _interp_price_and_slope_2d(cal: AbilityCalibrator, mu: float, scale: float) 
         return p, dp
     idx = int(np.searchsorted(s_arr, scale))
     if idx <= 0:
-        s1, s2 = s_arr[0], s_arr[min(1, len(s_arr)-1)]
+        s1, s2 = s_arr[0], s_arr[min(1, len(s_arr) - 1)]
     elif idx >= len(s_arr):
         s1, s2 = s_arr[-2], s_arr[-1]
     else:
-        s1, s2 = s_arr[idx-1], s_arr[idx]
+        s1, s2 = s_arr[idx - 1], s_arr[idx]
     w = 0.0 if s2 == s1 else (float(scale) - s1) / (s2 - s1)
     locs1, prices1 = cal.lookup_curves_2d_prices[float(s1)]
     dprices1 = np.gradient(prices1, locs1)
@@ -80,12 +88,27 @@ class GlobalAbilityCalibrator:
         if not self.theta:
             self.theta = {hid: 0.0 for hid in self.horse_ids}
 
-    def add_race(self, calibrator: AbilityCalibrator, horse_ids: Sequence[str], prices: Sequence[float], scales: Optional[Sequence[float]] = None) -> None:
+    def add_race(
+        self,
+        calibrator: AbilityCalibrator,
+        horse_ids: Sequence[str],
+        prices: Sequence[float],
+        scales: Optional[Sequence[float]] = None,
+    ) -> None:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
-        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
+        if (calibrator.lookup_curve_1d_prices is None) and (
+            not calibrator.lookup_curves_2d_prices
+        ):
             calibrator.solve_from_prices(prices_arr)
-        self.races.append(RaceSpec(calibrator=calibrator, horse_ids=list(horse_ids), prices=prices_arr, scales=scales_arr))
+        self.races.append(
+            RaceSpec(
+                calibrator=calibrator,
+                horse_ids=list(horse_ids),
+                prices=prices_arr,
+                scales=scales_arr,
+            )
+        )
         self.biases.append(0.0)
 
     def _predict_and_slopes_for_race(self, r_idx: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -111,7 +134,7 @@ class GlobalAbilityCalibrator:
                 e = p_hat - spec.prices
                 denom = float(np.dot(slopes, slopes) + self.l2)
                 if denom > 0:
-                    delta = - float(np.dot(slopes, e)) / denom
+                    delta = -float(np.dot(slopes, e)) / denom
                     self.biases[r] += self.step_bias * delta
             for hid in self.horse_ids:
                 num = 0.0
@@ -123,7 +146,9 @@ class GlobalAbilityCalibrator:
                     cal = spec.calibrator
                     mu = float(self.theta[hid] + self.biases[r])
                     if spec.scales is not None and len(cal.lookup_curves_2d_prices) > 0:
-                        p, dp = _interp_price_and_slope_2d(cal, mu, float(spec.scales[i]))
+                        p, dp = _interp_price_and_slope_2d(
+                            cal, mu, float(spec.scales[i])
+                        )
                     else:
                         p, dp = _interp_price_and_slope_1d(cal, mu)
                     e = p - float(spec.prices[i])
@@ -144,7 +169,9 @@ class GlobalAbilityCalibrator:
             else:
                 spec.calibrator.rebuild_curves_from_field_1d(mu_r)
 
-    def fit_with_rebuild(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
+    def fit_with_rebuild(
+        self, num_outer_iters: int = 3, num_inner_iters: int = 10
+    ) -> None:
         for _ in range(num_outer_iters):
             self.rebuild_all_curves()
             self.fit(num_inner_iters)
@@ -162,7 +189,9 @@ class GlobalAbilityCalibrator:
                     cal = spec.calibrator
                     mu = float(self.theta[hid] + self.biases[r])
                     if spec.scales is not None and len(cal.lookup_curves_2d_prices) > 0:
-                        p, dp = _interp_price_and_slope_2d(cal, mu, float(spec.scales[i]))
+                        p, dp = _interp_price_and_slope_2d(
+                            cal, mu, float(spec.scales[i])
+                        )
                     else:
                         p, dp = _interp_price_and_slope_1d(cal, mu)
                     e = p - float(spec.prices[i])
@@ -171,9 +200,9 @@ class GlobalAbilityCalibrator:
                 if den > 0:
                     self.theta[hid] -= self.step_theta * float(num / den)
 
-    def fit_with_rebuild_theta_only(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
+    def fit_with_rebuild_theta_only(
+        self, num_outer_iters: int = 3, num_inner_iters: int = 10
+    ) -> None:
         for _ in range(num_outer_iters):
             self.rebuild_all_curves()
             self.fit_theta_only(num_inner_iters)
-
-

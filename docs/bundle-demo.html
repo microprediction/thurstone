@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Thurstone Bundle Demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      line-height: 1.6;
+    }
+    h1 { color: #2563eb; }
+    .demo-section {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+    }
+    .output {
+      background: white;
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success {
+      color: #059669;
+      font-weight: bold;
+    }
+    .note {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 1rem;
+      border-radius: 4px;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏆 Thurstone Bundle Demo</h1>
+
+  <div class="note">
+    <strong>📁 File Protocol Support:</strong> This demo works when opened directly from the filesystem
+    (file:// protocol) thanks to the thurstone-bundle.js file. No web server required!
+  </div>
+
+  <div class="demo-section">
+    <h2>1. Basic Lattice and Density</h2>
+    <p>Create a uniform lattice and a skew-normal density:</p>
+    <div id="demo1-output" class="output">Running...</div>
+  </div>
+
+  <div class="demo-section">
+    <h2>2. Three-Horse Race</h2>
+    <p>Simulate a race with three horses of different abilities:</p>
+    <div id="demo2-output" class="output">Running...</div>
+  </div>
+
+  <div class="demo-section">
+    <h2>3. Ability Calibration</h2>
+    <p>Inverse problem: estimate abilities from observed prices:</p>
+    <div id="demo3-output" class="output">Running...</div>
+  </div>
+
+  <div class="demo-section">
+    <h2>4. Normal Distribution Functions</h2>
+    <p>Test the built-in normal distribution functions:</p>
+    <div id="demo4-output" class="output">Running...</div>
+  </div>
+
+  <script src="js/thurstone-bundle.js"></script>
+  <script>
+    function demo1() {
+      try {
+        // Create a lattice: 21 points from -10 to +10 with spacing 1.0
+        const lattice = new UniformLattice(10, 1.0);
+
+        // Create a skew-normal density centered at the origin
+        const density = Density.skewNormal(lattice, { loc: 0, scale: 2, a: 0 });
+
+        const output = `✅ Success!
+Lattice: L=${lattice.L}, unit=${lattice.unit}, size=${lattice.size}
+Grid range: [${lattice.grid()[0].toFixed(1)}, ${lattice.grid()[lattice.size-1].toFixed(1)}]
+Density mean: ${density.mean().toFixed(4)}
+Support width: ${density.approxSupportWidth()} grid points`;
+
+        document.getElementById('demo1-output').textContent = output;
+      } catch (error) {
+        document.getElementById('demo1-output').textContent = `❌ Error: ${error.message}`;
+      }
+    }
+
+    function demo2() {
+      try {
+        const lattice = new UniformLattice(100, 0.1);
+
+        // Three horses: Favorite (-1), Even (0), Longshot (+1.5)
+        const densities = [
+          Density.skewNormal(lattice, { loc: -1.0, scale: 1, a: 0 }),  // Favorite
+          Density.skewNormal(lattice, { loc: 0.0, scale: 1, a: 0 }),   // Even
+          Density.skewNormal(lattice, { loc: 1.5, scale: 1, a: 0 })    // Longshot
+        ];
+
+        const race = new Race(densities);
+        const prices = race.statePrices();
+
+        // Convert to percentages and implied odds
+        const percentages = prices.map(p => (p * 100).toFixed(1));
+        const odds = prices.map(p => (1/p).toFixed(2));
+
+        const output = `✅ Success!
+Horse 1 (Favorite): ${percentages[0]}% chance, ${odds[0]}:1 odds
+Horse 2 (Even):     ${percentages[1]}% chance, ${odds[1]}:1 odds
+Horse 3 (Longshot): ${percentages[2]}% chance, ${odds[2]}:1 odds
+
+Price sum: ${prices.reduce((a,b) => a+b, 0).toFixed(6)} (should be 1.0)
+Winner density mean: ${race.winnerDensity().mean().toFixed(4)}`;
+
+        document.getElementById('demo2-output').textContent = output;
+      } catch (error) {
+        document.getElementById('demo2-output').textContent = `❌ Error: ${error.message}`;
+      }
+    }
+
+    function demo3() {
+      try {
+        const lattice = new UniformLattice(200, 0.05);
+        const base = Density.skewNormal(lattice, { loc: 0, scale: 1, a: 0 });
+
+        // Calibrator with 3 iterations
+        const calibrator = new AbilityCalibrator(base, { nIter: 3 });
+
+        // Observed market prices (should sum to 1)
+        const marketPrices = [0.45, 0.35, 0.20];  // 45%, 35%, 20%
+
+        // Estimate abilities
+        const abilities = calibrator.solveFromPrices(marketPrices);
+
+        // Verify: compute prices from estimated abilities
+        const testRace = new Race(abilities.map(a => base.shiftFractional(a / lattice.unit)));
+        const impliedPrices = testRace.statePrices();
+
+        const output = `✅ Success!
+Market prices:   [${marketPrices.map(p => (p*100).toFixed(1)).join('%,  ')}%]
+Estimated abilities: [${abilities.map(a => a.toFixed(3)).join(', ')}]
+Implied prices:  [${impliedPrices.map(p => (p*100).toFixed(1)).join('%,  ')}%]
+
+Max error: ${Math.max(...marketPrices.map((p,i) => Math.abs(p - impliedPrices[i]))).toFixed(5)}
+Ability range: ${(Math.max(...abilities) - Math.min(...abilities)).toFixed(3)}`;
+
+        document.getElementById('demo3-output').textContent = output;
+      } catch (error) {
+        document.getElementById('demo3-output').textContent = `❌ Error: ${error.message}`;
+      }
+    }
+
+    function demo4() {
+      try {
+        // Test normal distribution functions at key points
+        const testPoints = [-2, -1, 0, 1, 2];
+        const results = testPoints.map(x => ({
+          x,
+          pdf: normpdf(x),
+          cdf: normcdf(x),
+          erf: erf(x)
+        }));
+
+        let output = '✅ Success!\n';
+        output += 'x      PDF      CDF      ERF\n';
+        output += '────   ──────   ──────   ──────\n';
+        results.forEach(r => {
+          output += `${r.x.toString().padStart(4)}   ${r.pdf.toFixed(4)}   ${r.cdf.toFixed(4)}   ${r.erf.toFixed(4)}\n`;
+        });
+
+        // Verify some known values
+        const pdf0 = normpdf(0);  // Should be 1/sqrt(2π) ≈ 0.3989
+        const cdf0 = normcdf(0);  // Should be 0.5
+        const erf0 = erf(0);      // Should be 0
+
+        output += `\nVerification:
+normpdf(0) = ${pdf0.toFixed(6)} (expected ≈ 0.398942)
+normcdf(0) = ${cdf0.toFixed(6)} (expected = 0.500000)
+erf(0) = ${erf0.toFixed(6)} (expected = 0.000000)`;
+
+        document.getElementById('demo4-output').textContent = output;
+      } catch (error) {
+        document.getElementById('demo4-output').textContent = `❌ Error: ${error.message}`;
+      }
+    }
+
+    // Run all demos when page loads
+    window.addEventListener('load', () => {
+      demo1();
+      demo2();
+      demo3();
+      demo4();
+    });
+  </script>
+
+  <hr style="margin: 3rem 0;">
+  <p style="color: #6b7280; text-align: center;">
+    <strong>🎉 All demos completed!</strong><br>
+    The thurstone-bundle.js is working perfectly with the file:// protocol.
+    <br><br>
+    <a href="test-bundle.html">→ View detailed test results</a> |
+    <a href="pages/multi-dimensional.html">→ Try the interactive 2D demo</a>
+  </p>
+</body>
+</html>
