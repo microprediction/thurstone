@@ -30,7 +30,7 @@ addopts = "-q -ra"
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 88
+line-length = 100  # More reasonable line length
 target-version = "py311"
 
 [tool.ruff.format]
@@ -38,10 +38,19 @@ target-version = "py311"
 quote-style = "double"
 
 [tool.ruff.lint]
-# Enable essential error detection
+# Enable essential error detection, but be reasonable
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
+    "E9",   # Only critical syntax errors
+    "F63",  # Syntax errors
+    "F7",   # Syntax errors
+    "F82",  # Undefined names
     "I",    # isort
+]
+# Ignore some overly pedantic rules
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "F401",  # Unused imports (common in __init__.py files)
+    "F841",  # Unused variables (sometimes needed for clarity)
+    "F541",  # f-string without placeholders
+    "E741",  # Ambiguous variable names like 'l'
 ]

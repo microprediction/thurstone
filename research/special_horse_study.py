@@ -5,17 +5,14 @@ This study focuses specifically on optimizing the special horse while keeping
 sigmoid parameters fixed to symmetric configurations that we know work well.
 """
 
-import itertools
 import json
 import os
 import sys
 import time
-from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
-import pandas as pd
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -91,9 +88,9 @@ class SpecialHorseStudyManager:
 
 def run_special_horse_study(k: int = 2):
     """Run systematic study of special horse configurations."""
-    print(f" SPECIAL HORSE SYSTEMATIC STUDY")
+    print(" SPECIAL HORSE SYSTEMATIC STUDY")
     print(f"{'=' * 60}")
-    print(f"Focus: Optimize (k+1)-th horse with fixed symmetric sigmoids")
+    print("Focus: Optimize (k+1)-th horse with fixed symmetric sigmoids")
     print(f"Dimension: k={k}")
 
     study = SpecialHorseStudyManager()
@@ -103,7 +100,7 @@ def run_special_horse_study(k: int = 2):
     for i in range(k):
         sigmoid_params.append(SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5))
 
-    print(f" Using fixed symmetric sigmoids: α=1.2, β=4.0, γ=0.5")
+    print(" Using fixed symmetric sigmoids: α=1.2, β=4.0, γ=0.5")
 
     # Define special horse parameter space
     distributions = [
@@ -136,7 +133,7 @@ def run_special_horse_study(k: int = 2):
     start_time = time.time()
     eval_count = 0
 
-    print(f"\n Starting evaluations...")
+    print("\n Starting evaluations...")
 
     # Test each special horse configuration
     for dist in distributions:
@@ -151,9 +148,7 @@ def run_special_horse_study(k: int = 2):
                             elapsed = time.time() - start_time
                             rate = eval_count / elapsed if elapsed > 0 else 0
                             remaining = (
-                                (total_combinations - eval_count) / rate / 60
-                                if rate > 0
-                                else 0
+                                (total_combinations - eval_count) / rate / 60 if rate > 0 else 0
                             )
                             print(
                                 f"   Progress: {eval_count}/{total_combinations} ({100 * eval_count / total_combinations:.1f}%) "
@@ -203,8 +198,7 @@ def run_special_horse_study(k: int = 2):
                                 },
                                 "quality_scores": {
                                     "symmetry": metrics.symmetry_score,
-                                    "volume_preservation": metrics.volume_preservation_score
-                                    or 0,
+                                    "volume_preservation": metrics.volume_preservation_score or 0,
                                     "smoothness": metrics.smoothness_score or 0,
                                     "coverage": metrics.coverage_score or 0,
                                     "invertibility": metrics.invertibility_score or 0,
@@ -219,13 +213,11 @@ def run_special_horse_study(k: int = 2):
     study.save_results("special_horse_systematic", results)
 
     # Analyze results
-    print(f"\n SPECIAL HORSE ANALYSIS")
+    print("\n SPECIAL HORSE ANALYSIS")
 
     for weighting_name in study.quality_weightings.keys():
         weighting_results = [r for r in results if r["weighting"] == weighting_name]
-        weighting_results.sort(
-            key=lambda x: x["quality_scores"]["overall"], reverse=True
-        )
+        weighting_results.sort(key=lambda x: x["quality_scores"]["overall"], reverse=True)
 
         top_10 = weighting_results[:10]
         print(f"\n Top 10 for {weighting_name} weighting:")
@@ -241,13 +233,11 @@ def run_special_horse_study(k: int = 2):
             )
 
     # Find overall best
-    all_results = sorted(
-        results, key=lambda x: x["quality_scores"]["overall"], reverse=True
-    )
+    all_results = sorted(results, key=lambda x: x["quality_scores"]["overall"], reverse=True)
     best_result = all_results[0]
     best_config = best_result["special_horse_config"]
 
-    print(f"\n OVERALL BEST SPECIAL HORSE:")
+    print("\n OVERALL BEST SPECIAL HORSE:")
     print(f"   Distribution: {best_config['distribution']}")
     print(f"   Base ability: {best_config['base_ability']}")
     print(f"   Location: {best_config['location']}")
@@ -267,6 +257,4 @@ if __name__ == "__main__":
 
     results = run_special_horse_study(k=2)
 
-    print(
-        f"\n🎊 Study complete! Check special_horse_results/ directory for detailed results."
-    )
+    print("\n🎊 Study complete! Check special_horse_results/ directory for detailed results.")

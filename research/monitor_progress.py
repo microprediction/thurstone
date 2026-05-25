@@ -4,7 +4,6 @@ Monitor the progress of the systematic study and prepare for next phases.
 
 import json
 import os
-import time
 from datetime import datetime
 
 
@@ -63,9 +62,7 @@ def check_study_progress():
                                 if "quality_scores" in item
                             ]
                             if scores:
-                                print(
-                                    f"    Score range: {min(scores):.4f} - {max(scores):.4f}"
-                                )
+                                print(f"    Score range: {min(scores):.4f} - {max(scores):.4f}")
 
                 except Exception as e:
                     print(f"   ⚠️ Could not parse file: {e}")
@@ -81,7 +78,7 @@ def prepare_next_phase():
     """Prepare commands for the next phase of research."""
     completed, total = check_study_progress()
 
-    print(f"\n NEXT STEPS:")
+    print("\n NEXT STEPS:")
 
     if completed == 0:
         print("⏳ Phase 1 (Systematic Study) is running...")
@@ -112,7 +109,7 @@ def show_key_findings():
     phase1_files = glob.glob(os.path.join(results_dir, "phase1_grid_search_*.json"))
 
     if phase1_files:
-        print(f"\n KEY FINDINGS FROM PHASE 1:")
+        print("\n KEY FINDINGS FROM PHASE 1:")
         print("=" * 40)
 
         latest_file = max(phase1_files, key=os.path.getctime)
@@ -138,12 +135,10 @@ def show_key_findings():
 
                 # Analyze by weighting scheme
                 weightings = set(item["weighting"] for item in data)
-                print(f"\n BEST BY WEIGHTING SCHEME:")
+                print("\n BEST BY WEIGHTING SCHEME:")
                 for weight in weightings:
                     weight_data = [item for item in data if item["weighting"] == weight]
-                    best = max(
-                        weight_data, key=lambda x: x["quality_scores"]["overall"]
-                    )
+                    best = max(weight_data, key=lambda x: x["quality_scores"]["overall"])
                     print(f"   {weight}: {best['quality_scores']['overall']:.4f}")
 
         except Exception as e:
@@ -153,7 +148,7 @@ def show_key_findings():
     phase2_files = glob.glob(os.path.join(results_dir, "phase2_optimization_*.json"))
 
     if phase2_files:
-        print(f"\n KEY FINDINGS FROM PHASE 2:")
+        print("\n KEY FINDINGS FROM PHASE 2:")
         print("=" * 40)
 
         latest_file = max(phase2_files, key=os.path.getctime)
@@ -195,8 +190,8 @@ def main():
     # Suggest next steps
     prepare_next_phase()
 
-    print(f"\n TIP: Run this monitor script periodically to track progress:")
-    print(f"   python research/monitor_progress.py")
+    print("\n TIP: Run this monitor script periodically to track progress:")
+    print("   python research/monitor_progress.py")
 
 
 if __name__ == "__main__":

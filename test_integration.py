@@ -32,9 +32,7 @@ def test_basic_functionality():
     result = mapping(test_point)
 
     assert len(result) == 3, f"Expected 3 outputs, got {len(result)}"
-    assert abs(sum(result) - 1.0) < 1e-10, (
-        f"Probabilities don't sum to 1: {sum(result)}"
-    )
+    assert abs(sum(result) - 1.0) < 1e-10, f"Probabilities don't sum to 1: {sum(result)}"
 
     print(f"✓ Point mapping works: {test_point} → {result}")
 
@@ -46,9 +44,7 @@ def test_basic_functionality():
         3,
         3,
     ), f"Expected (3,3) shape, got {batch_results.shape}"
-    assert np.allclose(np.sum(batch_results, axis=1), 1.0), (
-        "Batch probabilities don't sum to 1"
-    )
+    assert np.allclose(np.sum(batch_results, axis=1), 1.0), "Batch probabilities don't sum to 1"
 
     print("✓ Batch mapping works")
 
@@ -83,9 +79,7 @@ def test_optimization():
     )
 
     assert result.best_score >= 0, f"Invalid best score: {result.best_score}"
-    assert result.total_evaluations == 5, (
-        f"Expected 5 evaluations, got {result.total_evaluations}"
-    )
+    assert result.total_evaluations == 5, f"Expected 5 evaluations, got {result.total_evaluations}"
     assert result.best_mapping is not None, "No best mapping found"
 
     print(f"✓ Optimization works: best score = {result.best_score:.4f}")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -185,9 +185,7 @@ class RandomSearchOptimizer(Optimizer):
         best_metrics = None
         history = []
 
-        print(
-            f"Starting random search optimization with {max_evaluations} evaluations..."
-        )
+        print(f"Starting random search optimization with {max_evaluations} evaluations...")
 
         for i in range(max_evaluations):
             # Generate random parameters within bounds
@@ -304,15 +302,9 @@ class EvolutionaryOptimizer(Optimizer):
             individual = np.zeros(param_dimension)
 
             for j in range(k):
-                individual[j * 3] = np.random.uniform(
-                    bounds.alpha_min, bounds.alpha_max
-                )
-                individual[j * 3 + 1] = np.random.uniform(
-                    bounds.beta_min, bounds.beta_max
-                )
-                individual[j * 3 + 2] = np.random.uniform(
-                    bounds.gamma_min, bounds.gamma_max
-                )
+                individual[j * 3] = np.random.uniform(bounds.alpha_min, bounds.alpha_max)
+                individual[j * 3 + 1] = np.random.uniform(bounds.beta_min, bounds.beta_max)
+                individual[j * 3 + 2] = np.random.uniform(bounds.gamma_min, bounds.gamma_max)
 
             individual[k * 3] = np.random.uniform(
                 bounds.special_ability_min, bounds.special_ability_max
@@ -332,9 +324,7 @@ class EvolutionaryOptimizer(Optimizer):
         # Evolution loop
         while evaluations_used < max_evaluations:
             generation += 1
-            print(
-                f"Generation {generation} (evaluations: {evaluations_used}/{max_evaluations})"
-            )
+            print(f"Generation {generation} (evaluations: {evaluations_used}/{max_evaluations})")
 
             new_population = []
             new_fitness = []
@@ -345,17 +335,12 @@ class EvolutionaryOptimizer(Optimizer):
             new_fitness.append(fitness[best_idx])
 
             # Generate rest of population
-            while (
-                len(new_population) < self.population_size
-                and evaluations_used < max_evaluations
-            ):
+            while len(new_population) < self.population_size and evaluations_used < max_evaluations:
                 if np.random.random() < self.crossover_rate and len(population) >= 2:
                     # Crossover
                     parent1_idx = self._tournament_selection(fitness)
                     parent2_idx = self._tournament_selection(fitness)
-                    child = self._crossover(
-                        population[parent1_idx], population[parent2_idx]
-                    )
+                    child = self._crossover(population[parent1_idx], population[parent2_idx])
                 else:
                     # Mutation of random individual
                     parent_idx = np.random.randint(len(population))
@@ -379,9 +364,7 @@ class EvolutionaryOptimizer(Optimizer):
                 if child_fitness > best_score:
                     best_score = child_fitness
                     best_individual = child.copy()
-                    print(
-                        f"*** New best in generation {generation}: {best_score:.4f} ***"
-                    )
+                    print(f"*** New best in generation {generation}: {best_score:.4f} ***")
 
             population = new_population
             fitness = new_fitness
@@ -433,9 +416,7 @@ class EvolutionaryOptimizer(Optimizer):
             total_evaluations=evaluations_used,
         )
 
-    def _tournament_selection(
-        self, fitness: List[float], tournament_size: int = 3
-    ) -> int:
+    def _tournament_selection(self, fitness: List[float], tournament_size: int = 3) -> int:
         """Tournament selection for parent selection."""
         candidates = np.random.choice(
             len(fitness), size=min(tournament_size, len(fitness)), replace=False
@@ -467,9 +448,7 @@ class EvolutionaryOptimizer(Optimizer):
                     std = (bounds.gamma_max - bounds.gamma_min) * 0.1
                     mutated[i] += np.random.normal(0, std)
                 else:  # Special ability
-                    std = (
-                        bounds.special_ability_max - bounds.special_ability_min
-                    ) * 0.1
+                    std = (bounds.special_ability_max - bounds.special_ability_min) * 0.1
                     mutated[i] += np.random.normal(0, std)
 
         return mutated
@@ -482,12 +461,8 @@ class EvolutionaryOptimizer(Optimizer):
 
         for j in range(k):
             clipped[j * 3] = np.clip(clipped[j * 3], bounds.alpha_min, bounds.alpha_max)
-            clipped[j * 3 + 1] = np.clip(
-                clipped[j * 3 + 1], bounds.beta_min, bounds.beta_max
-            )
-            clipped[j * 3 + 2] = np.clip(
-                clipped[j * 3 + 2], bounds.gamma_min, bounds.gamma_max
-            )
+            clipped[j * 3 + 1] = np.clip(clipped[j * 3 + 1], bounds.beta_min, bounds.beta_max)
+            clipped[j * 3 + 2] = np.clip(clipped[j * 3 + 2], bounds.gamma_min, bounds.gamma_max)
 
         clipped[k * 3] = np.clip(
             clipped[k * 3], bounds.special_ability_min, bounds.special_ability_max
@@ -522,9 +497,7 @@ def optimize_diffeomorphism(
         bounds = ParameterBounds()
 
     # Create objective function
-    objective = ObjectiveFunction(
-        k=k, quality_weights=quality_weights, random_seed=random_seed
-    )
+    objective = ObjectiveFunction(k=k, quality_weights=quality_weights, random_seed=random_seed)
 
     # Create optimizer
     if optimizer == "random":
@@ -538,7 +511,7 @@ def optimize_diffeomorphism(
     print(f"Optimizing {k}-dimensional diffeomorphism using {optimizer} search...")
     result = opt.optimize(objective, bounds, max_evaluations)
 
-    print(f"\nOptimization complete!")
+    print("\nOptimization complete!")
     print(f"Best score: {result.best_score:.4f}")
     print(f"Best parameters: {result.best_params}")
 
@@ -558,16 +531,16 @@ if __name__ == "__main__":
         random_seed=42,
     )
 
-    print(f"\nFinal Results:")
+    print("\nFinal Results:")
     print(f"Best overall score: {result.best_score:.4f}")
-    print(f"Quality breakdown:")
+    print("Quality breakdown:")
     print(f"  Symmetry: {result.best_metrics.symmetry_score:.4f}")
     print(f"  Volume preservation: {result.best_metrics.volume_preservation_score:.4f}")
     print(f"  Smoothness: {result.best_metrics.smoothness_score:.4f}")
     print(f"  Coverage: {result.best_metrics.coverage_score:.4f}")
     print(f"  Invertibility: {result.best_metrics.invertibility_score:.4f}")
 
-    print(f"\nBest sigmoid parameters:")
+    print("\nBest sigmoid parameters:")
     for i, param in enumerate(result.best_mapping.sigmoid_params):
         print(f"  Dimension {i}: {param}")
     print(f"Special horse ability: {result.best_mapping.special_horse_ability:.4f}")

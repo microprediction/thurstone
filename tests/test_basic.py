@@ -1,6 +1,6 @@
 import numpy as np
 
-from thurstone import AbilityCalibrator, Density, StatePricer, UniformLattice
+from thurstone import AbilityCalibrator, Density, UniformLattice
 
 
 def test_basic_flow():

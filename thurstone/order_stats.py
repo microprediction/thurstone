@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .density import Density, _cdf_from_pdf, _pdf_from_cdf
+from .density import Density, _pdf_from_cdf
 
 EPS = 1e-18
 DEL = 1e-12
@@ -103,13 +103,9 @@ def expected_payoff_with_multiplicity(
     cdf: np.ndarray | None = None,
     cdfAll: np.ndarray | None = None,
 ) -> np.ndarray:
-    cRest, mRest = get_the_rest(
-        density, densityAll, multiplicityAll, cdf=cdf, cdfAll=cdfAll
-    )
+    cRest, mRest = get_the_rest(density, densityAll, multiplicityAll, cdf=cdf, cdfAll=cdfAll)
     pdf = density.p if cdf is None else _pdf_from_cdf(cdf)
-    win, draw, _ = _conditional_win_draw_loss(
-        pdf, _pdf_from_cdf(cRest), density.cdf(), cRest
-    )
+    win, draw, _ = _conditional_win_draw_loss(pdf, _pdf_from_cdf(cRest), density.cdf(), cRest)
     # multiplicity must be finite and >= 0; clamp small negative numerical noise
     mRest = np.maximum(mRest, 0.0)
     if not np.all(np.isfinite(mRest)):

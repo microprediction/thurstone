@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import List, Sequence
 
 import numpy as np
 
-from .density import Density, _cdf_from_pdf, _pdf_from_cdf
-from .lattice import UniformLattice
+from .density import Density, _pdf_from_cdf
 from .order_stats import expected_payoff_with_multiplicity
 from .order_stats import winner_of_many as os_winner_of_many
 
@@ -101,9 +100,7 @@ class Race:
         cdfAll = densityAll.cdf()
         prices = []
         for d in self.densities:
-            ep = expected_payoff_with_multiplicity(
-                d, densityAll, multAll, cdf=None, cdfAll=cdfAll
-            )
+            ep = expected_payoff_with_multiplicity(d, densityAll, multAll, cdf=None, cdfAll=cdfAll)
             prices.append(float(np.sum(ep)))
         p = np.array(prices, dtype=float)
         S = p.sum()
@@ -112,25 +109,17 @@ class Race:
 
 class StatePricer:
     @staticmethod
-    def prices_from_dividends(
-        dividends: Sequence[float], nan_value: float = 2000.0
-    ) -> np.ndarray:
+    def prices_from_dividends(dividends: Sequence[float], nan_value: float = 2000.0) -> np.ndarray:
         inv = []
         for x in dividends:
-            v = (
-                nan_value
-                if (x is None or (isinstance(x, float) and np.isnan(x)))
-                else x
-            )
+            v = nan_value if (x is None or (isinstance(x, float) and np.isnan(x))) else x
             inv.append(0.0 if v <= 0 else 1.0 / float(v))
         p = np.array(inv, dtype=float)
         S = p.sum()
         return p / S if S > 0 else p
 
     @staticmethod
-    def dividends_from_prices(
-        prices: Sequence[float], multiplicity: float = 1.0
-    ) -> np.ndarray:
+    def dividends_from_prices(prices: Sequence[float], multiplicity: float = 1.0) -> np.ndarray:
         p = np.array(prices, dtype=float)
         S = p.sum()
         p = p / S if S > 0 else p

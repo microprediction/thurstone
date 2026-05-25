@@ -51,9 +51,7 @@ class SigmoidParams:
         return parametric_sigmoid(x, self.alpha, self.beta, self.gamma)
 
     def __repr__(self):
-        return (
-            f"SigmoidParams(α={self.alpha:.2f}, β={self.beta:.2f}, γ={self.gamma:.2f})"
-        )
+        return f"SigmoidParams(α={self.alpha:.2f}, β={self.beta:.2f}, γ={self.gamma:.2f})"
 
 
 @dataclass
@@ -149,9 +147,7 @@ class CubeToSimplexMapping:
         """
         cube_points = np.asarray(cube_points)
         if cube_points.ndim != 2 or cube_points.shape[1] != self.k:
-            raise ValueError(
-                f"Expected shape (n_points, {self.k}), got {cube_points.shape}"
-            )
+            raise ValueError(f"Expected shape (n_points, {self.k}), got {cube_points.shape}")
 
         results = []
         for point in cube_points:
@@ -224,9 +220,7 @@ if __name__ == "__main__":
     print("\nTesting individual points:")
     for i, point in enumerate(test_points):
         simplex_point = mapping(point)
-        print(
-            f"Point {i}: {point} → {simplex_point} (sum: {np.sum(simplex_point):.6f})"
-        )
+        print(f"Point {i}: {point} → {simplex_point} (sum: {np.sum(simplex_point):.6f})")
 
     # Test batch processing
     print("\nTesting batch processing:")

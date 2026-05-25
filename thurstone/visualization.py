@@ -7,7 +7,7 @@ lattice point transformations, and quality measures.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -24,7 +24,6 @@ except ImportError:
 
 from .cube_to_simplex import CubeToSimplexMapping
 from .quality_assessment import (
-    assess_invertibility,
     assess_smoothness,
     assess_symmetry,
     assess_uniform_coverage,
@@ -159,9 +158,7 @@ def plot_cube_to_simplex_3d(
 
     # Plot 1: Cube points in 3D (with z=0)
     ax1 = fig.add_subplot(131, projection="3d")
-    ax1.scatter(
-        X.ravel(), Y.ravel(), np.zeros_like(X.ravel()), c="blue", alpha=0.6, s=20
-    )
+    ax1.scatter(X.ravel(), Y.ravel(), np.zeros_like(X.ravel()), c="blue", alpha=0.6, s=20)
     ax1.set_xlabel("x₁")
     ax1.set_ylabel("x₂")
     ax1.set_zlabel("0")
@@ -170,9 +167,7 @@ def plot_cube_to_simplex_3d(
     # Plot 2: Simplex points in 3D (barycentric coordinates)
     ax2 = fig.add_subplot(132, projection="3d")
     p1, p2, p3 = simplex_points[:, 0], simplex_points[:, 1], simplex_points[:, 2]
-    scatter = ax2.scatter(
-        p1, p2, p3, c=np.arange(len(p1)), cmap="plasma", alpha=0.7, s=20
-    )
+    scatter = ax2.scatter(p1, p2, p3, c=np.arange(len(p1)), cmap="plasma", alpha=0.7, s=20)
 
     # Draw simplex vertices and edges
     vertices = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -458,9 +453,7 @@ def plot_quality_summary(
         cube_samples = np.random.uniform(0, 1, (1000, 2))
         simplex_samples = mapping.batch_forward(cube_samples)
 
-        ax5.scatter(
-            simplex_samples[:, 0], simplex_samples[:, 1], alpha=0.5, s=10, c="purple"
-        )
+        ax5.scatter(simplex_samples[:, 0], simplex_samples[:, 1], alpha=0.5, s=10, c="purple")
 
         # Draw simplex boundary
         triangle_x = [0, 1, 0, 0]

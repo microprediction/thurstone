@@ -1,7 +1,6 @@
 import numpy as np
-from numpy.testing import assert_allclose
 
-from thurstone import AbilityCalibrator, Density, MultiRayGlobalCalibrator
+from thurstone import AbilityCalibrator, MultiRayGlobalCalibrator
 
 
 def test_multiray_probability_fit(base):

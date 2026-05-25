@@ -81,9 +81,7 @@ def main():
         p_true = race_prices[r]
         # Align race by per-race median of (local inversion - global theta) as a bias estimate
         local_inv = np.array(calibrators[r].solve_from_prices(p_true), dtype=float)
-        br = float(
-            np.median(local_inv - np.array([gls.theta[h] for h in ids], dtype=float))
-        )
+        br = float(np.median(local_inv - np.array([gls.theta[h] for h in ids], dtype=float)))
         mu_fit = [float(gls.theta[h] + br) for h in ids]
         p_fit = np.array(calibrators[r].state_prices_from_ability(mu_fit), dtype=float)
         l2 = float(np.linalg.norm(p_true - p_fit))

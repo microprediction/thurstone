@@ -8,14 +8,10 @@ import numpy as np
 from .inference import AbilityCalibrator
 
 
-def _interp_price_and_slope_1d(
-    cal: AbilityCalibrator, mu: float
-) -> Tuple[float, float]:
+def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float, float]:
     """Interpolate price and d price / d mu from cached 1D curve."""
     if not cal.lookup_curve_1d_prices:
-        raise ValueError(
-            "AbilityCalibrator has no 1D lookup curve. Run solve_from_prices first."
-        )
+        raise ValueError("AbilityCalibrator has no 1D lookup curve. Run solve_from_prices first.")
     locs = cal.lookup_curve_1d_prices["locs"]
     prices = cal.lookup_curve_1d_prices["prices"]
     dprices = np.gradient(prices, locs)
@@ -97,9 +93,7 @@ class GlobalAbilityCalibrator:
     ) -> None:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
-        if (calibrator.lookup_curve_1d_prices is None) and (
-            not calibrator.lookup_curves_2d_prices
-        ):
+        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
             calibrator.solve_from_prices(prices_arr)
         self.races.append(
             RaceSpec(
@@ -146,9 +140,7 @@ class GlobalAbilityCalibrator:
                     cal = spec.calibrator
                     mu = float(self.theta[hid] + self.biases[r])
                     if spec.scales is not None and len(cal.lookup_curves_2d_prices) > 0:
-                        p, dp = _interp_price_and_slope_2d(
-                            cal, mu, float(spec.scales[i])
-                        )
+                        p, dp = _interp_price_and_slope_2d(cal, mu, float(spec.scales[i]))
                     else:
                         p, dp = _interp_price_and_slope_1d(cal, mu)
                     e = p - float(spec.prices[i])
@@ -169,9 +161,7 @@ class GlobalAbilityCalibrator:
             else:
                 spec.calibrator.rebuild_curves_from_field_1d(mu_r)
 
-    def fit_with_rebuild(
-        self, num_outer_iters: int = 3, num_inner_iters: int = 10
-    ) -> None:
+    def fit_with_rebuild(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
         for _ in range(num_outer_iters):
             self.rebuild_all_curves()
             self.fit(num_inner_iters)
@@ -189,9 +179,7 @@ class GlobalAbilityCalibrator:
                     cal = spec.calibrator
                     mu = float(self.theta[hid] + self.biases[r])
                     if spec.scales is not None and len(cal.lookup_curves_2d_prices) > 0:
-                        p, dp = _interp_price_and_slope_2d(
-                            cal, mu, float(spec.scales[i])
-                        )
+                        p, dp = _interp_price_and_slope_2d(cal, mu, float(spec.scales[i]))
                     else:
                         p, dp = _interp_price_and_slope_1d(cal, mu)
                     e = p - float(spec.prices[i])

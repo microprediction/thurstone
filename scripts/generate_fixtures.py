@@ -10,32 +10,23 @@ Run from repo root:
 from __future__ import annotations
 
 import json
-import math
-import os
 import sys
 from pathlib import Path
-
-import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from thurstone import (
-    STD_A,
-    STD_L,
-    STD_SCALE,
-    STD_UNIT,
     AbilityCalibrator,
     Density,
     Race,
     StatePricer,
     UniformLattice,
 )
-from thurstone.clustering import ClusterSplitter
 from thurstone.global_fit import GlobalAbilityCalibrator
 from thurstone.global_ls import GlobalLSCalibrator
 from thurstone.normaldist import normcdf, normpdf
-from thurstone.order_stats import expected_payoff_with_multiplicity, winner_of_many
+from thurstone.order_stats import winner_of_many
 
 OUT_DIR = ROOT / "docs" / "fixtures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -183,9 +174,7 @@ def fixture_global_fit() -> None:
         {"ids": ["B", "C", "D"], "div": [3.5, 5.5, 7.0]},
         {"ids": ["A", "C", "D"], "div": [3.2, 5.0, 9.0]},
     ]
-    gn = GlobalAbilityCalibrator(
-        ["A", "B", "C", "D"], l2=1e-8, step_bias=0.3, step_theta=0.3
-    )
+    gn = GlobalAbilityCalibrator(["A", "B", "C", "D"], l2=1e-8, step_bias=0.3, step_theta=0.3)
     races_payload = []
     for r in races:
         prices = StatePricer.prices_from_dividends(r["div"]).tolist()

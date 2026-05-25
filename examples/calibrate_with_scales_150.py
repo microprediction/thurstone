@@ -96,7 +96,7 @@ def main():
         ax2.grid(alpha=0.25)
         plt.tight_layout()
         plt.show()
-    except Exception as e:
+    except Exception:
         # Plotting is optional
         pass
 

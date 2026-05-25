@@ -19,9 +19,7 @@ from thurstone import (
 )
 
 
-def softmax_noise(
-    p: np.ndarray, rng, sigma: float = 0.15, eps: float = 1e-12
-) -> np.ndarray:
+def softmax_noise(p: np.ndarray, rng, sigma: float = 0.15, eps: float = 1e-12) -> np.ndarray:
     """Add zero-mean Gaussian noise in log space and re-normalize by softmax."""
     logits = np.log(np.clip(p, eps, 1.0))
     noisy = logits + rng.normal(0.0, sigma, size=p.shape)

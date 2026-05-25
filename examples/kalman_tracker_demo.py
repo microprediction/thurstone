@@ -18,7 +18,7 @@ from typing import List
 import numpy as np
 
 from thurstone import Density, KalmanAbilityTracker, UniformLattice
-from thurstone.sim_world import sigma_true, simulate_world
+from thurstone.sim_world import simulate_world
 
 # Configuration
 RNG_SEED: int = 7

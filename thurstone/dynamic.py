@@ -232,9 +232,7 @@ class DynamicThurstoneCalibrator:
             if len(m) <= 1:
                 theta_smooth[h] = m.copy()
             else:
-                theta_smooth[h] = self._smooth_trajectory(
-                    t, m, sigma_function, obs_var=obs_var
-                )
+                theta_smooth[h] = self._smooth_trajectory(t, m, sigma_function, obs_var=obs_var)
 
         self.theta_ = theta_smooth
         self.times_ = times
@@ -400,9 +398,7 @@ class DynamicThurstoneCalibrator:
             return ability
         winner_idx = int(horse_ids.index(winner_id))
         cal = self._new_calibrator()
-        base_probs = np.asarray(
-            cal.state_prices_from_ability(ability.tolist()), dtype=float
-        )
+        base_probs = np.asarray(cal.state_prices_from_ability(ability.tolist()), dtype=float)
         # loss = -log q_w
         loss0 = -float(np.log(max(base_probs[winner_idx], 1e-15)))
         grad = np.zeros_like(ability, dtype=float)

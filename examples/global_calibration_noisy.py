@@ -22,9 +22,7 @@ NUM_RACES = 500
 RACE_SIZE = 20
 
 
-def softmax_noise(
-    p: np.ndarray, rng, sigma: float = 0.25, eps: float = 1e-12
-) -> np.ndarray:
+def softmax_noise(p: np.ndarray, rng, sigma: float = 0.25, eps: float = 1e-12) -> np.ndarray:
     """Add zero-mean Gaussian noise in log space and re-normalize by softmax."""
     logits = np.log(np.clip(p, eps, 1.0))
     noisy = logits + rng.normal(0.0, sigma, size=p.shape)
@@ -80,9 +78,7 @@ def main():
     theta_accum = {hid: [] for hid in horse_ids}
     for r in range(num_races):
         gcal.add_race(cal_per_race[r], race_horse_ids[r], race_prices_noisy[r])
-        est_r = np.array(
-            cal_per_race[r].solve_from_prices(race_prices_noisy[r]), dtype=float
-        )
+        est_r = np.array(cal_per_race[r].solve_from_prices(race_prices_noisy[r]), dtype=float)
         est_r_c = est_r - np.median(est_r)
         for hid, loc in zip(race_horse_ids[r], est_r_c):
             theta_accum[hid].append(float(loc))

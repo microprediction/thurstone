@@ -12,15 +12,13 @@ from typing import List, Tuple
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
-from mpl_toolkits.mplot3d import Axes3D
 
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import SigmoidParams  # noqa: E402
 from thurstone import (
     CubeToSimplexMapping,
+    SigmoidParams,  # noqa: E402
     comprehensive_quality_assessment,
     optimize_diffeomorphism,
 )
@@ -58,9 +56,7 @@ def create_mapping_examples() -> List[Tuple[str, CubeToSimplexMapping]]:
     mappings.append(
         (
             "Symmetric",
-            CubeToSimplexMapping(
-                sigmoid_params=symmetric_params, special_horse_ability=0.0
-            ),
+            CubeToSimplexMapping(sigmoid_params=symmetric_params, special_horse_ability=0.0),
         )
     )
 
@@ -72,9 +68,7 @@ def create_mapping_examples() -> List[Tuple[str, CubeToSimplexMapping]]:
     mappings.append(
         (
             "Asymmetric",
-            CubeToSimplexMapping(
-                sigmoid_params=asymmetric_params, special_horse_ability=0.4
-            ),
+            CubeToSimplexMapping(sigmoid_params=asymmetric_params, special_horse_ability=0.4),
         )
     )
 
@@ -86,9 +80,7 @@ def create_mapping_examples() -> List[Tuple[str, CubeToSimplexMapping]]:
     mappings.append(
         (
             "Sharp",
-            CubeToSimplexMapping(
-                sigmoid_params=sharp_params, special_horse_ability=-0.2
-            ),
+            CubeToSimplexMapping(sigmoid_params=sharp_params, special_horse_ability=-0.2),
         )
     )
 
@@ -100,9 +92,7 @@ def create_mapping_examples() -> List[Tuple[str, CubeToSimplexMapping]]:
     mappings.append(
         (
             "Smooth",
-            CubeToSimplexMapping(
-                sigmoid_params=smooth_params, special_horse_ability=0.1
-            ),
+            CubeToSimplexMapping(sigmoid_params=smooth_params, special_horse_ability=0.1),
         )
     )
 
@@ -114,9 +104,7 @@ def figure_1_lattice_mappings():
     mappings = create_mapping_examples()
 
     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
-    fig.suptitle(
-        "Figure 1: Cube-to-Simplex Lattice Point Mappings", fontsize=18, y=0.95
-    )
+    fig.suptitle("Figure 1: Cube-to-Simplex Lattice Point Mappings", fontsize=18, y=0.95)
 
     resolution = 21  # 21x21 grid for clear visualization
     x = np.linspace(0, 1, resolution)
@@ -143,9 +131,7 @@ def figure_1_lattice_mappings():
         p1, p2, p3 = simplex_points[:, 0], simplex_points[:, 1], simplex_points[:, 2]
 
         # Color by third coordinate
-        scatter = ax_simplex.scatter(
-            p1, p2, c=p3, cmap="plasma", alpha=0.7, s=15, vmin=0, vmax=1
-        )
+        scatter = ax_simplex.scatter(p1, p2, c=p3, cmap="plasma", alpha=0.7, s=15, vmin=0, vmax=1)
 
         # Draw simplex boundary
         triangle = patches.Polygon(
@@ -154,9 +140,7 @@ def figure_1_lattice_mappings():
         ax_simplex.add_patch(triangle)
 
         # Shade simplex interior
-        triangle_fill = patches.Polygon(
-            [(0, 0), (1, 0), (0, 1)], alpha=0.1, facecolor="gray"
-        )
+        triangle_fill = patches.Polygon([(0, 0), (1, 0), (0, 1)], alpha=0.1, facecolor="gray")
         ax_simplex.add_patch(triangle_fill)
 
         # Label vertices
@@ -220,9 +204,7 @@ def figure_2_3d_visualization():
     # Plot 2: Simplex points
     ax2 = fig.add_subplot(132, projection="3d")
     p1, p2, p3 = simplex_points[:, 0], simplex_points[:, 1], simplex_points[:, 2]
-    scatter2 = ax2.scatter(
-        p1, p2, p3, c=range(len(p1)), cmap="viridis", alpha=0.7, s=25
-    )
+    scatter2 = ax2.scatter(p1, p2, p3, c=range(len(p1)), cmap="viridis", alpha=0.7, s=25)
 
     # Draw simplex vertices and edges
     vertices = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -465,9 +447,7 @@ def figure_3_quality_analysis():
     )
 
     # Draw simplex boundary
-    triangle = patches.Polygon(
-        [(0, 0), (1, 0), (0, 1)], fill=False, edgecolor="white", linewidth=2
-    )
+    triangle = patches.Polygon([(0, 0), (1, 0), (0, 1)], fill=False, edgecolor="white", linewidth=2)
     ax5.add_patch(triangle)
 
     ax5.set_xlim(0, 1)
@@ -574,9 +554,7 @@ def figure_4_optimization_results():
     final_scores = [results[alg].best_score for alg in alg_names]
     colors_bar = [colors[alg] for alg in alg_names]
 
-    bars = ax2.bar(
-        [alg.title() for alg in alg_names], final_scores, color=colors_bar, alpha=0.7
-    )
+    bars = ax2.bar([alg.title() for alg in alg_names], final_scores, color=colors_bar, alpha=0.7)
     ax2.set_ylabel("Best Quality Score")
     ax2.set_title("(b) Final Performance")
     ax2.grid(True, alpha=0.3)
@@ -614,9 +592,7 @@ def figure_4_optimization_results():
     )
 
     # Draw simplex
-    triangle = patches.Polygon(
-        [(0, 0), (1, 0), (0, 1)], fill=False, edgecolor="black", linewidth=2
-    )
+    triangle = patches.Polygon([(0, 0), (1, 0), (0, 1)], fill=False, edgecolor="black", linewidth=2)
     ax3.add_patch(triangle)
 
     ax3.set_xlim(-0.05, 1.05)
@@ -668,9 +644,7 @@ def figure_4_optimization_results():
 
 def main():
     """Generate all paper figures."""
-    print(
-        "Generating publication-quality figures for Thurstone diffeomorphism paper..."
-    )
+    print("Generating publication-quality figures for Thurstone diffeomorphism paper...")
     print("This may take several minutes due to quality assessments and optimizations.")
 
     # Create output directory
@@ -719,7 +693,7 @@ def main():
     )
     figures.append(("Figure 4", fig4))
 
-    print(f"\n All figures generated successfully!")
+    print("\n All figures generated successfully!")
     print(f" Saved to directory: {output_dir}/")
     print(f"  Generated {len(figures)} publication-quality figures:")
 
@@ -727,20 +701,16 @@ def main():
         print(f"   • {name}: {fig.get_figwidth():.1f}x{fig.get_figheight():.1f} inches")
 
     print("\nFigure Summary:")
-    print(
-        f"   • Figure 1: Demonstrates lattice mappings for 4 different parameter configurations"
-    )
-    print(f"   • Figure 2: Shows 3D visualization of the mapping process")
-    print(
-        f"   • Figure 3: Comprehensive quality analysis including radar charts and heatmaps"
-    )
-    print(f"   • Figure 4: Optimization algorithm comparison and best results")
+    print("   • Figure 1: Demonstrates lattice mappings for 4 different parameter configurations")
+    print("   • Figure 2: Shows 3D visualization of the mapping process")
+    print("   • Figure 3: Comprehensive quality analysis including radar charts and heatmaps")
+    print("   • Figure 4: Optimization algorithm comparison and best results")
 
-    print(f"\n📝 These figures are ready for inclusion in the research paper!")
-    print(f"   • High resolution (300 DPI) for publication quality")
-    print(f"   • Clean typography using serif fonts")
-    print(f"   • Clear labels and legends for academic presentation")
-    print(f"   • Consistent color schemes across related visualizations")
+    print("\n📝 These figures are ready for inclusion in the research paper!")
+    print("   • High resolution (300 DPI) for publication quality")
+    print("   • Clean typography using serif fonts")
+    print("   • Clear labels and legends for academic presentation")
+    print("   • Consistent color schemes across related visualizations")
 
     return figures
 

@@ -266,7 +266,7 @@ def analyze_lattice_behavior():
     p2_coords = simplex_points[:, 1]
     p3_coords = simplex_points[:, 2]
 
-    print(f"\nSimplex coordinate statistics:")
+    print("\nSimplex coordinate statistics:")
     print(
         f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, "
         f"range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]"
@@ -290,14 +290,14 @@ def analyze_lattice_behavior():
     min_dist_v2 = np.min([np.linalg.norm(p - vertex2) for p in simplex_points])
     min_dist_v3 = np.min([np.linalg.norm(p - vertex3) for p in simplex_points])
 
-    print(f"\nSimplex coverage analysis:")
+    print("\nSimplex coverage analysis:")
     print(f"Closest approach to vertex (1,0,0): {min_dist_v1:.3f}")
     print(f"Closest approach to vertex (0,1,0): {min_dist_v2:.3f}")
     print(f"Closest approach to vertex (0,0,1): {min_dist_v3:.3f}")
 
     # Check symmetry by examining corner mappings
     corners = [[0, 0], [0, 1], [1, 0], [1, 1]]
-    print(f"\nCorner point mappings:")
+    print("\nCorner point mappings:")
     for corner in corners:
         simplex_point = mapping(corner)
         winner = np.argmax(simplex_point)
@@ -378,7 +378,7 @@ def demonstrate_parameter_sensitivity():
         ),
     ]
 
-    print(f"\nParameter sensitivity results:")
+    print("\nParameter sensitivity results:")
     print(f"{'Variation':<20} {'Score':<8} {'Change':<8} {'Symmetry':<9} {'Smooth':<8}")
     print("-" * 65)
 
@@ -415,13 +415,9 @@ def main():
     """Run the comprehensive demonstration."""
     print("THURSTONE DIFFEOMORPHISM FRAMEWORK DEMONSTRATION")
     print("=" * 60)
-    print(
-        "This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models."
-    )
+    print("This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models.")
     print("The framework creates smooth mappings from [0,1]^k to the k-simplex using")
-    print(
-        "parametric sigmoid functions and optimizes for quality measures like symmetry,"
-    )
+    print("parametric sigmoid functions and optimizes for quality measures like symmetry,")
     print("volume preservation, smoothness, coverage, and invertibility.")
 
     try:

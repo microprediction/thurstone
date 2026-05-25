@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 import numpy as np
 
 from .density import Density
-from .lattice import UniformLattice
 from .order_stats import winner_of_many
 from .pricing import Race
 
@@ -34,9 +33,7 @@ class ClusterSplitter:
     unit_ratio: float = 3.0
     max_depth: int = 3
 
-    def extended_state_prices(
-        self, base: Density, offsets: Sequence[float]
-    ) -> List[float]:
+    def extended_state_prices(self, base: Density, offsets: Sequence[float]) -> List[float]:
         """Offsets may include +/-inf; returns normalized winning probabilities."""
         n = len(offsets)
         if n == 1:
@@ -150,7 +147,5 @@ class ClusterSplitter:
         S = sum(out)
         if S <= 0:
             raise ValueError("Extended state prices have non-positive total mass.")
-        assert 0.999 <= S <= 1.001, (
-            f"State prices not normalized in extended offsets; sum={S}"
-        )
+        assert 0.999 <= S <= 1.001, f"State prices not normalized in extended offsets; sum={S}"
         return [oi / S for oi in out]

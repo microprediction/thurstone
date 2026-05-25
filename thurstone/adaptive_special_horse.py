@@ -126,9 +126,7 @@ class AdaptiveSpecialHorse:
                     scale_multiplier = 3.0
                 else:
                     scale_multiplier = 1.0
-                return self._rng.normal(
-                    self.config.location, self.config.scale * scale_multiplier
-                )
+                return self._rng.normal(self.config.location, self.config.scale * scale_multiplier)
 
         elif self.config.distribution == DistributionType.LAPLACE:
             # Laplace distribution using exponential random variables
@@ -168,9 +166,7 @@ class AdaptiveSpecialHorse:
             return self.config.scale**2
         elif self.config.distribution == DistributionType.STUDENT_T:
             if self.config.shape > 2:
-                return (
-                    self.config.scale**2 * self.config.shape / (self.config.shape - 2)
-                )
+                return self.config.scale**2 * self.config.shape / (self.config.shape - 2)
             else:
                 return float("inf")  # Heavy tails
         elif self.config.distribution == DistributionType.LAPLACE:
@@ -289,18 +285,14 @@ if __name__ == "__main__":
         # Sample multiple performances
         performances = []
         for _ in range(1000):
-            perf = special_horse.sample_performance(
-                test_cube_point, test_other_abilities
-            )
+            perf = special_horse.sample_performance(test_cube_point, test_other_abilities)
             performances.append(perf)
 
         performances = np.array(performances)
 
         print(f"   Mean performance: {np.mean(performances):.3f}")
         print(f"   Std performance: {np.std(performances):.3f}")
-        print(
-            f"   Performance range: [{np.min(performances):.3f}, {np.max(performances):.3f}]"
-        )
+        print(f"   Performance range: [{np.min(performances):.3f}, {np.max(performances):.3f}]")
 
-    print(f"\n✅ Adaptive special horse framework ready!")
+    print("\n✅ Adaptive special horse framework ready!")
     print("Ready to integrate with cube-to-simplex mappings!")

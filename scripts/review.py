@@ -159,9 +159,7 @@ def create_pull_request(pr_title):
     print("🚀 Creating pull request...")
 
     # Push the branch
-    current_branch_result = run_command(
-        "git branch --show-current", "Get current branch"
-    )
+    current_branch_result = run_command("git branch --show-current", "Get current branch")
     branch_name = current_branch_result.stdout.strip()
 
     run_command(f"git push -u origin {branch_name}", "Push branch")
@@ -185,9 +183,7 @@ This PR applies systematic code quality improvements and ensures all tests pass.
 🤖 Generated with systematic review workflow
 """
 
-    run_command(
-        f'gh pr create --title "{pr_title}" --body "{pr_body}"', "Create pull request"
-    )
+    run_command(f'gh pr create --title "{pr_title}" --body "{pr_body}"', "Create pull request")
 
     print("✅ Pull request created successfully!")
 
@@ -195,9 +191,7 @@ This PR applies systematic code quality improvements and ensures all tests pass.
 def main():
     """Main review workflow."""
     parser = argparse.ArgumentParser(description="Systematic review workflow")
-    parser.add_argument(
-        "--branch-name", default="systematic-review", help="Feature branch name"
-    )
+    parser.add_argument("--branch-name", default="systematic-review", help="Feature branch name")
     parser.add_argument(
         "--pr-title",
         default="Apply systematic review workflow",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -48,12 +48,8 @@ class KalmanAbilityTracker:
 
     # Internal state
     _state: Dict[str, HorseFilterState] = field(init=False, default_factory=dict)
-    _history: Dict[str, List[Tuple[float, float]]] = field(
-        init=False, default_factory=dict
-    )
-    _centers: Dict[str, List[Tuple[float, float]]] = field(
-        init=False, default_factory=dict
-    )
+    _history: Dict[str, List[Tuple[float, float]]] = field(init=False, default_factory=dict)
+    _centers: Dict[str, List[Tuple[float, float]]] = field(init=False, default_factory=dict)
 
     def update_race(self, race: RaceObservation) -> None:
         """
@@ -108,9 +104,7 @@ class KalmanAbilityTracker:
         if var_new < self.min_var:
             var_new = self.min_var
 
-        self._state[horse_id] = HorseFilterState(
-            mean=mean_new, var=var_new, last_time=float(time)
-        )
+        self._state[horse_id] = HorseFilterState(mean=mean_new, var=var_new, last_time=float(time))
         self._history.setdefault(horse_id, []).append((float(time), float(y)))
         # _centers updated in update_race
 
@@ -153,9 +147,7 @@ class KalmanAbilityTracker:
         self.obs_var = float(r)
 
     # -------------------------- smoothing output --------------------------
-    def smooth_horse(
-        self, horse_id: str
-    ) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    def smooth_horse(self, horse_id: str) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
         """
         Return (times, smoothed_means, smoothed_vars) for a horse using the current
         process_var_per_time and obs_var. None if horse has no observations.
@@ -265,10 +257,7 @@ class KalmanAbilityTracker:
         anchored: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
         for h, (times, means) in rel.items():
             adj = np.array(
-                [
-                    float(m) - float(time_mean.get(float(t), 0.0))
-                    for t, m in zip(times, means)
-                ],
+                [float(m) - float(time_mean.get(float(t), 0.0)) for t, m in zip(times, means)],
                 dtype=float,
             )
             anchored[h] = (times, adj)
