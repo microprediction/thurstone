@@ -54,7 +54,11 @@ jobs:
       run: |
         black --check --diff .
 
-    - name: Check import sorting with isort
+    - name: Apply isort formatting (auto-fix)
+      run: |
+        isort .
+
+    - name: Check import sorting with isort (after auto-fix)
       run: |
         isort --check-only --diff .
 
