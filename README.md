@@ -1,6 +1,6 @@
 # thurstone
 
-Convert winning probabilities to relative abilities using Thurstone Class V racing models.
+Convert winning probabilities to relative abilities using the fast ability transform. 
 
 [![PyPI version](https://badge.fury.io/py/thurstone.svg)](https://badge.fury.io/py/thurstone)
 [![CI](https://github.com/microprediction/thurstone/actions/workflows/ci.yml/badge.svg)](https://github.com/microprediction/thurstone/actions/workflows/ci.yml)
