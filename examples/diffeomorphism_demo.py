@@ -18,12 +18,9 @@ import numpy as np
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone.cube_to_simplex import CubeToSimplexMapping  # noqa: E402
-from thurstone.cube_to_simplex import SigmoidParams
-from thurstone.optimization import ParameterBounds  # noqa: E402
-from thurstone.optimization import optimize_diffeomorphism
-from thurstone.quality_assessment import QualityMetrics  # noqa: E402
-from thurstone.quality_assessment import comprehensive_quality_assessment
+from thurstone.cube_to_simplex import CubeToSimplexMapping, SigmoidParams  # noqa: E402
+from thurstone.optimization import optimize_diffeomorphism  # noqa: E402
+from thurstone.quality_assessment import comprehensive_quality_assessment  # noqa: E402
 
 
 def create_example_mappings() -> dict:
@@ -193,11 +190,11 @@ def demonstrate_optimization():
     print(f"Best score achieved: {result.best_score:.4f}")
     print(f"Total evaluations: {result.total_evaluations}")
 
-    print(f"\nBest parameters found:")
+    print("\nBest parameters found:")
     for key, value in result.best_params.items():
         print(f"  {key}: {value:.4f}")
 
-    print(f"\nQuality breakdown of best mapping:")
+    print("\nQuality breakdown of best mapping:")
     metrics = result.best_metrics
     print(f"  Symmetry: {metrics.symmetry_score:.4f}")
     print(f"  Volume preservation: {(metrics.volume_preservation_score or 0):.4f}")
@@ -426,16 +423,16 @@ def main():
 
     try:
         # 1. Basic usage
-        example_mapping = demonstrate_basic_usage()
+        _example_mapping = demonstrate_basic_usage()
 
         # 2. Compare different configurations
-        comparison_results = compare_mappings()
+        _comparison_results = compare_mappings()
 
         # 3. Demonstrate optimization
-        optimization_result = demonstrate_optimization()
+        _optimization_result = demonstrate_optimization()
 
         # 4. Analyze lattice behavior
-        cube_points, simplex_points = analyze_lattice_behavior()
+        _cube_points, _simplex_points = analyze_lattice_behavior()
 
         # 5. Parameter sensitivity
         demonstrate_parameter_sensitivity()
