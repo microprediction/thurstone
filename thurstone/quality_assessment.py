@@ -487,7 +487,7 @@ def assess_invertibility(
                         )
                         condition_numbers.append(condition_number)
 
-                except np.linalg.LinAlgError, ZeroDivisionError:
+                except (np.linalg.LinAlgError, ZeroDivisionError):
                     pass
                 break
 
