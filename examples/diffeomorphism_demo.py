@@ -186,7 +186,7 @@ def demonstrate_optimization():
         random_seed=42,
     )
 
-    print(f"\nOptimization Results:")
+    print("\nOptimization Results:")
     print(f"Best score achieved: {result.best_score:.4f}")
     print(f"Total evaluations: {result.total_evaluations}")
 
@@ -212,7 +212,7 @@ def demonstrate_optimization():
         noise_scale=1.0,
     )
 
-    print(f"\nComparing with manual symmetric configuration:")
+    print("\nComparing with manual symmetric configuration:")
     manual_metrics = comprehensive_quality_assessment(
         manual_mapping,
         symmetry_samples=2000,
