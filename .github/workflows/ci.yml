@@ -44,26 +44,19 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install dependencies
+    - name: Install exact same versions as local dev
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black isort
+        pip install -r requirements-dev.txt
         pip install -e .
 
-    - name: Check code formatting with black
+    - name: Check code formatting with ruff
       run: |
-        black --check --diff .
+        ruff format --check --diff .
 
-    - name: Check import sorting with isort
+    - name: Lint with ruff
       run: |
-        isort --check-only --diff .
-
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # treat warnings as errors for consistent code quality
-        flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+        ruff check .
 
   diffeomorphism-tests:
     runs-on: ubuntu-latest

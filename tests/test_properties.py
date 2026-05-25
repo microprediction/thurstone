@@ -15,9 +15,7 @@ def ability_vectors(draw, n_min=2, n_max=8, lo=-20.0, hi=20.0):
     n = draw(st.integers(n_min, n_max))
     vals = draw(
         st.lists(
-            st.floats(
-                min_value=lo, max_value=hi, allow_nan=False, allow_infinity=False
-            ),
+            st.floats(min_value=lo, max_value=hi, allow_nan=False, allow_infinity=False),
             min_size=n,
             max_size=n,
         )

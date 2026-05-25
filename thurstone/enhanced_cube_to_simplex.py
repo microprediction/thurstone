@@ -12,9 +12,9 @@ from typing import List, Optional
 
 import numpy as np
 
-from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
+from .adaptive_special_horse import AdaptiveSpecialHorse
 from .conventions import STD_L, STD_UNIT
-from .cube_to_simplex import SigmoidParams, parametric_sigmoid
+from .cube_to_simplex import SigmoidParams
 from .density import Density
 from .lattice import UniformLattice
 from .pricing import Race
@@ -64,9 +64,7 @@ class EnhancedCubeToSimplexMapping:
         all_abilities = np.concatenate([regular_abilities, [special_ability]])
         return all_abilities
 
-    def create_race_with_sampling(
-        self, cube_point: np.ndarray, n_samples: int = 1
-    ) -> Race:
+    def create_race_with_sampling(self, cube_point: np.ndarray, n_samples: int = 1) -> Race:
         """
         Create a Race object using Monte Carlo sampling for the special horse.
 
@@ -108,9 +106,7 @@ class EnhancedCubeToSimplexMapping:
 
             # Use mean of sampled performances
             mean_special_performance = np.mean(special_performances)
-            all_abilities = np.concatenate(
-                [regular_abilities, [mean_special_performance]]
-            )
+            all_abilities = np.concatenate([regular_abilities, [mean_special_performance]])
 
             # Create densities
             densities = []
@@ -160,9 +156,7 @@ class EnhancedCubeToSimplexMapping:
         """
         cube_points = np.asarray(cube_points)
         if cube_points.ndim != 2 or cube_points.shape[1] != self.k:
-            raise ValueError(
-                f"Expected shape (n_points, {self.k}), got {cube_points.shape}"
-            )
+            raise ValueError(f"Expected shape (n_points, {self.k}), got {cube_points.shape}")
 
         results = []
         for point in cube_points:
@@ -213,14 +207,12 @@ if __name__ == "__main__":
 
         for i, point in enumerate(test_points):
             result = mapping(point)
-            print(
-                f"   Point {i+1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]"
-            )
+            print(f"   Point {i + 1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]")
 
         # Test the special property
         center_point = [0.5, 0.5]
         center_result = mapping(center_point)
         print(f"   Center [0.5, 0.5] → sum = {np.sum(center_result):.6f} ✓")
 
-    print(f"\n✅ Enhanced mapping framework working!")
+    print("\n✅ Enhanced mapping framework working!")
     print("Ready for comprehensive quality comparison!")

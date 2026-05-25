@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 import numpy as np
 
 from .density import Density
-from .lattice import UniformLattice
 from .order_stats import winner_of_many
 from .pricing import Race
 
@@ -34,9 +33,7 @@ class ClusterSplitter:
     unit_ratio: float = 3.0
     max_depth: int = 3
 
-    def extended_state_prices(
-        self, base: Density, offsets: Sequence[float]
-    ) -> List[float]:
+    def extended_state_prices(self, base: Density, offsets: Sequence[float]) -> List[float]:
         """Offsets may include +/-inf; returns normalized winning probabilities."""
         n = len(offsets)
         if n == 1:
@@ -73,8 +70,7 @@ class ClusterSplitter:
         hang_left = [i for i, o in enumerate(centered) if o < lower_bound]
         hang_right = [i for i, o in enumerate(centered) if o > upper_bound]
         if (not hang_left) and (not hang_right):
-            from .inference import (densities_from_offsets,
-                                    state_prices_from_densities)
+            from .inference import densities_from_offsets, state_prices_from_densities
 
             dens = densities_from_offsets(base, centered)
             return state_prices_from_densities(dens)
@@ -100,8 +96,7 @@ class ClusterSplitter:
                 left_idx = [i for i in range(n) if i not in right_idx]
 
         # group representatives via first-order statistics (race between subgroup winners)
-        from .inference import (densities_from_offsets,
-                                state_prices_from_densities)
+        from .inference import densities_from_offsets, state_prices_from_densities
 
         dens_left = densities_from_offsets(base, [centered[i] for i in left_idx])
         dens_right = densities_from_offsets(base, [centered[i] for i in right_idx])
@@ -152,7 +147,5 @@ class ClusterSplitter:
         S = sum(out)
         if S <= 0:
             raise ValueError("Extended state prices have non-positive total mass.")
-        assert (
-            0.999 <= S <= 1.001
-        ), f"State prices not normalized in extended offsets; sum={S}"
+        assert 0.999 <= S <= 1.001, f"State prices not normalized in extended offsets; sum={S}"
         return [oi / S for oi in out]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -129,9 +129,7 @@ class Density:
                 right = n_extra - left
                 p_mid = np.concatenate([np.zeros(left), p, np.zeros(right)])
             else:
-                raise ValueError(
-                    "Resulting convolution too short; set pad=True or increase L."
-                )
+                raise ValueError("Resulting convolution too short; set pad=True or increase L.")
         else:
             p_mid = p
         # correct mean drift via fractional shift
@@ -185,6 +183,4 @@ class Density:
             t = (x - loc) / scale
             return 2.0 / scale * normpdf(t) * normcdf(a * t)
 
-        return cls.from_callable(lattice, f, center=True).shift_fractional(
-            loc / lattice.unit
-        )
+        return cls.from_callable(lattice, f, center=True).shift_fractional(loc / lattice.unit)

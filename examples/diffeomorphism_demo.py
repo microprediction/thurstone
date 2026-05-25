@@ -18,12 +18,12 @@ import numpy as np
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone.cube_to_simplex import CubeToSimplexMapping  # noqa: E402
-from thurstone.cube_to_simplex import SigmoidParams
-from thurstone.optimization import ParameterBounds  # noqa: E402
-from thurstone.optimization import optimize_diffeomorphism
-from thurstone.quality_assessment import QualityMetrics  # noqa: E402
-from thurstone.quality_assessment import comprehensive_quality_assessment
+from thurstone.cube_to_simplex import (
+    CubeToSimplexMapping,  # noqa: E402
+    SigmoidParams,
+)
+from thurstone.optimization import optimize_diffeomorphism  # noqa: E402
+from thurstone.quality_assessment import comprehensive_quality_assessment  # noqa: E402
 
 
 def create_example_mappings() -> dict:
@@ -189,15 +189,15 @@ def demonstrate_optimization():
         random_seed=42,
     )
 
-    print(f"\nOptimization Results:")
+    print("\nOptimization Results:")
     print(f"Best score achieved: {result.best_score:.4f}")
     print(f"Total evaluations: {result.total_evaluations}")
 
-    print(f"\nBest parameters found:")
+    print("\nBest parameters found:")
     for key, value in result.best_params.items():
         print(f"  {key}: {value:.4f}")
 
-    print(f"\nQuality breakdown of best mapping:")
+    print("\nQuality breakdown of best mapping:")
     metrics = result.best_metrics
     print(f"  Symmetry: {metrics.symmetry_score:.4f}")
     print(f"  Volume preservation: {(metrics.volume_preservation_score or 0):.4f}")
@@ -215,7 +215,7 @@ def demonstrate_optimization():
         noise_scale=1.0,
     )
 
-    print(f"\nComparing with manual symmetric configuration:")
+    print("\nComparing with manual symmetric configuration:")
     manual_metrics = comprehensive_quality_assessment(
         manual_mapping,
         symmetry_samples=2000,
@@ -266,7 +266,7 @@ def analyze_lattice_behavior():
     p2_coords = simplex_points[:, 1]
     p3_coords = simplex_points[:, 2]
 
-    print(f"\nSimplex coordinate statistics:")
+    print("\nSimplex coordinate statistics:")
     print(
         f"p₁: mean={np.mean(p1_coords):.3f}, std={np.std(p1_coords):.3f}, "
         f"range=[{np.min(p1_coords):.3f}, {np.max(p1_coords):.3f}]"
@@ -290,19 +290,19 @@ def analyze_lattice_behavior():
     min_dist_v2 = np.min([np.linalg.norm(p - vertex2) for p in simplex_points])
     min_dist_v3 = np.min([np.linalg.norm(p - vertex3) for p in simplex_points])
 
-    print(f"\nSimplex coverage analysis:")
+    print("\nSimplex coverage analysis:")
     print(f"Closest approach to vertex (1,0,0): {min_dist_v1:.3f}")
     print(f"Closest approach to vertex (0,1,0): {min_dist_v2:.3f}")
     print(f"Closest approach to vertex (0,0,1): {min_dist_v3:.3f}")
 
     # Check symmetry by examining corner mappings
     corners = [[0, 0], [0, 1], [1, 0], [1, 1]]
-    print(f"\nCorner point mappings:")
+    print("\nCorner point mappings:")
     for corner in corners:
         simplex_point = mapping(corner)
         winner = np.argmax(simplex_point)
         print(
-            f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner+1} wins]"
+            f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner + 1} wins]"
         )
 
     return cube_points, simplex_points
@@ -378,7 +378,7 @@ def demonstrate_parameter_sensitivity():
         ),
     ]
 
-    print(f"\nParameter sensitivity results:")
+    print("\nParameter sensitivity results:")
     print(f"{'Variation':<20} {'Score':<8} {'Change':<8} {'Symmetry':<9} {'Smooth':<8}")
     print("-" * 65)
 
@@ -415,27 +415,23 @@ def main():
     """Run the comprehensive demonstration."""
     print("THURSTONE DIFFEOMORPHISM FRAMEWORK DEMONSTRATION")
     print("=" * 60)
-    print(
-        "This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models."
-    )
+    print("This demo showcases cube-to-simplex diffeomorphisms using Thurstone racing models.")
     print("The framework creates smooth mappings from [0,1]^k to the k-simplex using")
-    print(
-        "parametric sigmoid functions and optimizes for quality measures like symmetry,"
-    )
+    print("parametric sigmoid functions and optimizes for quality measures like symmetry,")
     print("volume preservation, smoothness, coverage, and invertibility.")
 
     try:
         # 1. Basic usage
-        example_mapping = demonstrate_basic_usage()
+        _example_mapping = demonstrate_basic_usage()
 
         # 2. Compare different configurations
-        comparison_results = compare_mappings()
+        _comparison_results = compare_mappings()
 
         # 3. Demonstrate optimization
-        optimization_result = demonstrate_optimization()
+        _optimization_result = demonstrate_optimization()
 
         # 4. Analyze lattice behavior
-        cube_points, simplex_points = analyze_lattice_behavior()
+        _cube_points, _simplex_points = analyze_lattice_behavior()
 
         # 5. Parameter sensitivity
         demonstrate_parameter_sensitivity()

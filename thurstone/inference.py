@@ -7,7 +7,6 @@ import numpy as np
 
 from .clustering import ClusterSplitter
 from .density import Density
-from .lattice import UniformLattice
 from .order_stats import expected_payoff_with_multiplicity, winner_of_many
 from .pricing import Race, StatePricer
 
@@ -51,12 +50,8 @@ class AbilityCalibrator:
     skew_a: float = 0.0  # skew-normal 'a' used in density_for
     # Cached lookup curves for reuse (global calibration, multi-race)
     # 1D: single-field curve (loc -> price) and inverse (price -> offset)
-    lookup_curve_1d_prices: Optional[Dict[str, np.ndarray]] = field(
-        default=None, repr=False
-    )
-    lookup_curve_1d_inverse: Optional[Dict[str, np.ndarray]] = field(
-        default=None, repr=False
-    )
+    lookup_curve_1d_prices: Optional[Dict[str, np.ndarray]] = field(default=None, repr=False)
+    lookup_curve_1d_inverse: Optional[Dict[str, np.ndarray]] = field(default=None, repr=False)
     # 2D: per-scale curves; keys are scale (float)
     lookup_curves_2d_prices: Dict[float, Tuple[np.ndarray, np.ndarray]] = field(
         default_factory=dict, repr=False
@@ -115,9 +110,7 @@ class AbilityCalibrator:
             "offsets": fp_unique,
         }
 
-    def rebuild_curves_from_field_2d(
-        self, locs: Sequence[float], scales: Sequence[float]
-    ) -> None:
+    def rebuild_curves_from_field_2d(self, locs: Sequence[float], scales: Sequence[float]) -> None:
         """Rebuild 2D lookup curves (per-scale loc -> price and price -> loc) given current field (locs, scales)."""
         locs_arr = np.asarray(locs, dtype=float)
         scales_arr = np.asarray(scales, dtype=float)
@@ -287,9 +280,7 @@ class AbilityCalibrator:
                 loc_estimates = []
                 for s in sg:
                     xp_unique, fp_unique = scale_cache[float(s)]
-                    p_clamped = float(
-                        np.clip(pi_target, xp_unique.min(), xp_unique.max())
-                    )
+                    p_clamped = float(np.clip(pi_target, xp_unique.min(), xp_unique.max()))
                     loc_s = float(np.interp(p_clamped, xp_unique, fp_unique))
                     loc_estimates.append(loc_s)
                 loc_estimates = np.array(loc_estimates, dtype=float)

@@ -22,14 +22,14 @@ Estimation
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
 from thurstone import Density, UniformLattice
 from thurstone.dynamic import DynamicThurstoneCalibrator, RaceObservation
 from thurstone.inference import AbilityCalibrator
-from thurstone.sim_world import sigma_true, simulate_world
+from thurstone.sim_world import simulate_world
 
 # ------------------------------------------------------------------
 # Configuration – central place for key parameters
@@ -192,18 +192,12 @@ def main() -> None:
         bookmaker_sigma=BOOKMAKER_TAU_REL,
     )
     dyn_book.fit_abilities(sigma_function=None)
-    r_book = evaluate_correlation_centered(
-        dyn_book.theta_, dyn_book.times_, true_theta, true_times
-    )
+    r_book = evaluate_correlation_centered(dyn_book.theta_, dyn_book.times_, true_theta, true_times)
     print(f"[Book]    correlation (centered): {r_book:.4f}")
 
     # 1) Static per‑race inverse from (noisy) bookmaker prices, then refine with results
-    dyn.fit_abilities_with_results(
-        refine_steps=1, refine_step_size=0.6, refine_eps=0.05
-    )
-    r_raw = evaluate_correlation_centered(
-        dyn.theta_, dyn.times_, true_theta, true_times
-    )
+    dyn.fit_abilities_with_results(refine_steps=1, refine_step_size=0.6, refine_eps=0.05)
+    r_raw = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Raw+Res] correlation (centered): {r_raw:.4f}")
 
     # 2) Learn σ(Δt) from RAW price‑implied abilities (no refinement),
@@ -234,9 +228,7 @@ def main() -> None:
         return float(SMOOTH_SIGMA_SCALE) * float(sigma_est(float(dt)))
 
     dyn.fit_abilities(sigma_function=sigma_scaled, obs_var=float(meas_var_hat))
-    r_smooth = evaluate_correlation_centered(
-        dyn.theta_, dyn.times_, true_theta, true_times
-    )
+    r_smooth = evaluate_correlation_centered(dyn.theta_, dyn.times_, true_theta, true_times)
     print(f"[Smooth]  correlation (centered): {r_smooth:.4f}")
     # 4) Infer bookmaker error factor band:
     #    - from book-only abilities (pure market comparison)
@@ -246,9 +238,7 @@ def main() -> None:
         f"[BookErr/book]   factor band (10/50/90%): [{q10b:.2f}, {medb:.2f}, {q90b:.2f}]  (target ≈ [0.8, 1.3])"
     )
     q10s, meds, q90s = estimate_book_factor_band(dyn, races, base)
-    print(
-        f"[BookErr/smooth] factor band (10/50/90%): [{q10s:.2f}, {meds:.2f}, {q90s:.2f}]"
-    )
+    print(f"[BookErr/smooth] factor band (10/50/90%): [{q10s:.2f}, {meds:.2f}, {q90s:.2f}]")
 
     # Optional visualization
     try:

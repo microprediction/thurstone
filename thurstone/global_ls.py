@@ -44,9 +44,7 @@ class GlobalLSCalibrator:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
         # Ensure lookup curves exist at least once
-        if (calibrator.lookup_curve_1d_prices is None) and (
-            not calibrator.lookup_curves_2d_prices
-        ):
+        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
             calibrator.solve_from_prices(prices_arr)
         # Precompute local raw locs once for this race
         local_locs = np.array(calibrator.solve_from_prices(prices_arr), dtype=float)
@@ -67,9 +65,7 @@ class GlobalLSCalibrator:
             race.local_locs = est
         return race.local_locs - np.median(race.local_locs)
 
-    def _slope_weight(
-        self, cal: AbilityCalibrator, loc: float, scale: Optional[float]
-    ) -> float:
+    def _slope_weight(self, cal: AbilityCalibrator, loc: float, scale: Optional[float]) -> float:
         """Approximate |dp/dmu| using cached curves; fall back to 1.0."""
         try:
             if scale is not None and len(cal.lookup_curves_2d_prices) > 0:
@@ -114,9 +110,7 @@ class GlobalLSCalibrator:
         This is a "relative-then-average" stitch, fast and robust.
         """
         sum_w_y: Dict[str, float] = {hid: 0.0 for hid in self.horse_ids}
-        sum_w: Dict[str, float] = {
-            hid: ridge for hid in self.horse_ids
-        }  # ridge on diagonal
+        sum_w: Dict[str, float] = {hid: ridge for hid in self.horse_ids}  # ridge on diagonal
 
         for race in self.races:
             centered = self._invert_and_center(race)

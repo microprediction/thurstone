@@ -48,9 +48,7 @@ def main():
     fig2, ax2 = plt.subplots(figsize=(11, 6))
     sample_idx = [0, 30, 60, 90, 120, 149]
     for idx in sample_idx:
-        ax2.plot(
-            x, densities[idx].p, lw=1.5, label=f"runner {idx} (a={abilities[idx]:.2f})"
-        )
+        ax2.plot(x, densities[idx].p, lw=1.5, label=f"runner {idx} (a={abilities[idx]:.2f})")
     ax2.set_title("Representative offset densities (subset overlays)")
     ax2.set_xlabel("Performance (lattice units)")
     ax2.set_ylabel("Density")

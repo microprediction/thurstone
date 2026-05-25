@@ -7,20 +7,20 @@ framework to find optimal parameter configurations.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .adaptive_special_horse import (AdaptiveSpecialHorse, DistributionType,
-                                     SpecialHorseConfig)
-from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
+from .adaptive_special_horse import (
+    AdaptiveSpecialHorse,
+    DistributionType,
+    SpecialHorseConfig,
+)
+from .cube_to_simplex import SigmoidParams
 from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
-from .pure_optimizers import PURE_OPTIMIZERS, pure_optimize, suggest_pure
-from .quality_assessment import (QualityMetrics,
-                                 comprehensive_quality_assessment)
+from .pure_optimizers import pure_optimize
+from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
 
 
 @dataclass
@@ -150,9 +150,7 @@ class EnhancedDiffeomorphismObjective:
             location = location_bounds[0] + x[special_start_idx + 1] * (
                 location_bounds[1] - location_bounds[0]
             )
-            scale = scale_bounds[0] + x[special_start_idx + 2] * (
-                scale_bounds[1] - scale_bounds[0]
-            )
+            scale = scale_bounds[0] + x[special_start_idx + 2] * (scale_bounds[1] - scale_bounds[0])
 
             # Distribution type (discrete choice)
             dist_idx = int(x[special_start_idx + 3] * 5)  # 0-4
@@ -291,7 +289,7 @@ def enhanced_optimize_diffeomorphism(
     )
 
     # Final quality assessment
-    print(f"   Computing final quality assessment...")
+    print("   Computing final quality assessment...")
     best_metrics = comprehensive_quality_assessment(
         best_mapping, random_seed=random_seed, **objective.assessment_samples
     )
@@ -319,12 +317,10 @@ def enhanced_optimize_diffeomorphism(
         optimization_history=[],  # Could be extended to track history
         total_evaluations=objective.evaluation_count,
         optimization_time=optimization_time,
-        parameter_bounds={
-            name: bounds for name, _, bounds in objective.param_structure
-        },
+        parameter_bounds={name: bounds for name, _, bounds in objective.param_structure},
     )
 
-    print(f"\n✅ OPTIMIZATION COMPLETE!")
+    print("\n✅ OPTIMIZATION COMPLETE!")
     print(f"   Best score: {result.best_score:.4f}")
     print(f"   Total evaluations: {result.total_evaluations}")
     print(f"   Runtime: {result.optimization_time:.1f}s")
@@ -421,4 +417,4 @@ if __name__ == "__main__":
     print(f"   Coverage: {(metrics.coverage_score or 0):.4f}")
     print(f"   Invertibility: {(metrics.invertibility_score or 0):.4f}")
 
-    print(f"\n✅ Enhanced optimization framework ready!")
+    print("\n✅ Enhanced optimization framework ready!")

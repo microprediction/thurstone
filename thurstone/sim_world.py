@@ -108,17 +108,13 @@ def simulate_world(
         ids = [horse_ids[h] for h in fld]
         mu_true = np.array([mu_at_race[(h, r_i)] for h in fld], dtype=float)
         # true probabilities (fair)
-        p_true = np.asarray(
-            forward.state_prices_from_ability(mu_true.tolist()), dtype=float
-        )
+        p_true = np.asarray(forward.state_prices_from_ability(mu_true.tolist()), dtype=float)
         # bookmaker noisy ability view:
         #   - relative per-horse noise
         #   - plus a race-level bias (same shift added to all entrants)
         race_bias = float(rng.normal(0.0, bookmaker_bias_tau))
         mu_hat = mu_true + rng.normal(0.0, bookmaker_rel_tau, size=len(fld)) + race_bias
-        p_obs = np.asarray(
-            forward.state_prices_from_ability(mu_hat.tolist()), dtype=float
-        )
+        p_obs = np.asarray(forward.state_prices_from_ability(mu_hat.tolist()), dtype=float)
         winner_idx = int(rng.choice(len(fld), p=p_true / max(np.sum(p_true), 1e-12)))
         winner_id = ids[winner_idx]
         # store bookmaker noisy ability samples at each race time

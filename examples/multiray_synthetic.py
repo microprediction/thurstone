@@ -3,10 +3,13 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
-from thurstone import (AbilityCalibrator, Density, MultiRayGlobalCalibrator,
-                       UniformLattice)
-from thurstone.multiray import (_interp_price_and_slope_1d,
-                                _interp_price_and_slope_2d)
+from thurstone import (
+    AbilityCalibrator,
+    Density,
+    MultiRayGlobalCalibrator,
+    UniformLattice,
+)
+from thurstone.multiray import _interp_price_and_slope_1d
 from thurstone.pricing import Race
 
 
@@ -65,12 +68,8 @@ def main():
 
     # Before fit
     fit.rebuild_all_curves()
-    preds0_train = np.stack(
-        [fit.predict_condition(cid) for cid in train_cond_ids], axis=0
-    )
-    obs_train = np.stack(
-        [prices_obs[cond_ids.index(cid)] for cid in train_cond_ids], axis=0
-    )
+    preds0_train = np.stack([fit.predict_condition(cid) for cid in train_cond_ids], axis=0)
+    obs_train = np.stack([prices_obs[cond_ids.index(cid)] for cid in train_cond_ids], axis=0)
     mse0_train = float(np.mean((preds0_train - obs_train) ** 2))
     print(f"Train MSE before: {mse0_train:.6e}")
 
@@ -79,9 +78,7 @@ def main():
 
     # After fit
     fit.rebuild_all_curves()
-    preds1_train = np.stack(
-        [fit.predict_condition(cid) for cid in train_cond_ids], axis=0
-    )
+    preds1_train = np.stack([fit.predict_condition(cid) for cid in train_cond_ids], axis=0)
     mse1_train = float(np.mean((preds1_train - obs_train) ** 2))
     max_abs_err_train = float(np.max(np.abs(preds1_train - obs_train)))
     print(f"Train MSE after:  {mse1_train:.6e}")
@@ -235,9 +232,7 @@ def main():
     plt.tight_layout()
 
     # ---- Visualization: predicted vs observed probabilities per condition ----
-    fig, axes = plt.subplots(
-        len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=True
-    )
+    fig, axes = plt.subplots(len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=True)
     if len(cond_ids) == 1:
         axes = [axes]
     for j, cid in enumerate(cond_ids):
@@ -259,9 +254,7 @@ def main():
     plt.tight_layout()
 
     # ---- Visualization: ability vs probability along each ray ----
-    fig, axes = plt.subplots(
-        len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=False
-    )
+    fig, axes = plt.subplots(len(cond_ids), 1, figsize=(7, 2.2 * len(cond_ids)), sharex=False)
     if len(cond_ids) == 1:
         axes = [axes]
     for j, cid in enumerate(cond_ids):
@@ -299,9 +292,7 @@ def main():
             alpha=0.95,
             label=f"{cid} obs",
         )
-        ax.scatter(
-            a, p_pred, s=30, color=color, marker="x", alpha=0.95, label=f"{cid} pred"
-        )
+        ax.scatter(a, p_pred, s=30, color=color, marker="x", alpha=0.95, label=f"{cid} pred")
         ax.set_ylabel(cid)
         ax.legend(ncol=2, fontsize=8)
     axes[-1].set_xlabel("a_ij = beta_j + v_j^T z_i")

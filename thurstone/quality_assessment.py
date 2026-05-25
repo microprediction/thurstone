@@ -439,9 +439,7 @@ def assess_invertibility(
     inversion_errors = []
     condition_numbers = []
 
-    for i, (original_cube, target_simplex) in enumerate(
-        zip(cube_test_points, simplex_points)
-    ):
+    for i, (original_cube, target_simplex) in enumerate(zip(cube_test_points, simplex_points)):
         # Simple gradient descent to find inverse
         # Start from a random point in the cube
         current_cube = np.random.uniform(0, 1, k)
@@ -479,12 +477,8 @@ def assess_invertibility(
                     # Use the first k rows (since outputs sum to 1)
                     effective_jacobian = jacobian[:k, :]
                     if np.linalg.matrix_rank(effective_jacobian) == k:
-                        singular_values = np.linalg.svd(
-                            effective_jacobian, compute_uv=False
-                        )
-                        condition_number = np.max(singular_values) / np.min(
-                            singular_values
-                        )
+                        singular_values = np.linalg.svd(effective_jacobian, compute_uv=False)
+                        condition_number = np.max(singular_values) / np.min(singular_values)
                         condition_numbers.append(condition_number)
 
                 except (np.linalg.LinAlgError, ZeroDivisionError):
@@ -575,19 +569,13 @@ def comprehensive_quality_assessment(
     symmetry_score, _ = assess_symmetry(mapping, symmetry_samples, random_seed)
 
     print("Assessing volume preservation...")
-    volume_score, _ = assess_volume_preservation(
-        mapping, volume_samples, random_seed=random_seed
-    )
+    volume_score, _ = assess_volume_preservation(mapping, volume_samples, random_seed=random_seed)
 
     print("Assessing smoothness...")
-    smoothness_score, _ = assess_smoothness(
-        mapping, smoothness_samples, random_seed=random_seed
-    )
+    smoothness_score, _ = assess_smoothness(mapping, smoothness_samples, random_seed=random_seed)
 
     print("Assessing uniform coverage...")
-    coverage_score, _ = assess_uniform_coverage(
-        mapping, coverage_samples, random_seed=random_seed
-    )
+    coverage_score, _ = assess_uniform_coverage(mapping, coverage_samples, random_seed=random_seed)
 
     print("Assessing invertibility...")
     invertibility_score, _ = assess_invertibility(

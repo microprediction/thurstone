@@ -12,7 +12,7 @@ import sys
 import time
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -20,9 +20,12 @@ import pandas as pd
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import (CubeToSimplexMapping, ParameterBounds, SigmoidParams,
-                       comprehensive_quality_assessment,
-                       optimize_diffeomorphism)
+from thurstone import (
+    CubeToSimplexMapping,
+    SigmoidParams,
+    comprehensive_quality_assessment,
+    optimize_diffeomorphism,
+)
 
 
 class StudyManager:
@@ -105,9 +108,9 @@ class StudyManager:
 
 def phase1_parameter_exploration(study: StudyManager, k: int = 2):
     """Phase 1: Systematic parameter space exploration."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 1: PARAMETER SPACE EXPLORATION (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Define parameter grids (optimized for reasonable runtime)
     alpha_values = [1.0, 1.5, 2.0]  # 3 values
@@ -155,7 +158,7 @@ def phase1_parameter_exploration(study: StudyManager, k: int = 2):
                 rate = i / elapsed
                 remaining = (len(param_combinations) - i) / rate / 60
                 print(
-                    f"   Progress: {i:,}/{len(param_combinations):,} ({100*i/len(param_combinations):.1f}%) "
+                    f"   Progress: {i:,}/{len(param_combinations):,} ({100 * i / len(param_combinations):.1f}%) "
                     f"Est. {remaining:.1f}m remaining"
                 )
 
@@ -202,14 +205,10 @@ def phase1_parameter_exploration(study: StudyManager, k: int = 2):
     study.save_results("phase1_grid_search", grid_results)
 
     # Analyze top performers
-    print(f"\n GRID SEARCH ANALYSIS")
+    print("\n GRID SEARCH ANALYSIS")
     for weighting_name in study.quality_weightings.keys():
-        weighting_results = [
-            r for r in grid_results if r["weighting"] == weighting_name
-        ]
-        weighting_results.sort(
-            key=lambda x: x["quality_scores"]["overall"], reverse=True
-        )
+        weighting_results = [r for r in grid_results if r["weighting"] == weighting_name]
+        weighting_results.sort(key=lambda x: x["quality_scores"]["overall"], reverse=True)
 
         top_10 = weighting_results[:10]
         print(f"\n Top 10 for {weighting_name}:")
@@ -224,9 +223,9 @@ def phase1_parameter_exploration(study: StudyManager, k: int = 2):
 
 def phase2_optimization_comparison(study: StudyManager, k: int = 2):
     """Phase 2: Compare optimization algorithms."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 2: OPTIMIZATION ALGORITHM COMPARISON (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     algorithms = ["random", "evolutionary"]
     optimization_results = []
@@ -264,8 +263,7 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
                     "best_params": result.best_params,
                     "quality_breakdown": {
                         "symmetry": result.best_metrics.symmetry_score,
-                        "volume_preservation": result.best_metrics.volume_preservation_score
-                        or 0,
+                        "volume_preservation": result.best_metrics.volume_preservation_score or 0,
                         "smoothness": result.best_metrics.smoothness_score or 0,
                         "coverage": result.best_metrics.coverage_score or 0,
                         "invertibility": result.best_metrics.invertibility_score or 0,
@@ -276,7 +274,7 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
                 alg_results.append(run_result)
                 optimization_results.append(run_result)
 
-                print(f"      Run {run+1}: {result.best_score:.4f} ({runtime:.1f}s)")
+                print(f"      Run {run + 1}: {result.best_score:.4f} ({runtime:.1f}s)")
 
             # Compute statistics for this algorithm/weighting combination
             scores = [r["best_score"] for r in alg_results]
@@ -293,16 +291,14 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
     study.save_results("phase2_optimization_comparison", optimization_results)
 
     # Statistical analysis
-    print(f"\n OPTIMIZATION ALGORITHM COMPARISON")
+    print("\n OPTIMIZATION ALGORITHM COMPARISON")
     df = pd.DataFrame(optimization_results)
 
     for weighting_name in study.quality_weightings.keys():
         print(f"\n {weighting_name} weighting:")
         weighting_df = df[df["weighting"] == weighting_name]
 
-        summary = weighting_df.groupby("algorithm")["best_score"].agg(
-            ["mean", "std", "count"]
-        )
+        summary = weighting_df.groupby("algorithm")["best_score"].agg(["mean", "std", "count"])
         print(summary)
 
         # Find best algorithm for this weighting
@@ -315,9 +311,9 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
 
 def phase3_dimensional_scaling(study: StudyManager):
     """Phase 3: Multi-dimensional analysis."""
-    print(f"\n{'='*60}")
-    print(f"PHASE 3: MULTI-DIMENSIONAL SCALING ANALYSIS")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("PHASE 3: MULTI-DIMENSIONAL SCALING ANALYSIS")
+    print(f"{'=' * 60}")
 
     dimensions = [2, 3, 4]  # Reduced from [2,3,4,5] for demo
     scaling_results = []
@@ -352,8 +348,7 @@ def phase3_dimensional_scaling(study: StudyManager):
             "best_score": result.best_score,
             "quality_breakdown": {
                 "symmetry": result.best_metrics.symmetry_score,
-                "volume_preservation": result.best_metrics.volume_preservation_score
-                or 0,
+                "volume_preservation": result.best_metrics.volume_preservation_score or 0,
                 "smoothness": result.best_metrics.smoothness_score or 0,
                 "coverage": result.best_metrics.coverage_score or 0,
                 "invertibility": result.best_metrics.invertibility_score or 0,
@@ -374,7 +369,7 @@ def phase3_dimensional_scaling(study: StudyManager):
     study.save_results("phase3_dimensional_scaling", scaling_results)
 
     # Analyze scaling patterns
-    print(f"\n DIMENSIONAL SCALING ANALYSIS")
+    print("\n DIMENSIONAL SCALING ANALYSIS")
     print(f"{'Dimension':<10} {'Score':<8} {'Runtime':<10} {'Time/Eval':<12}")
     print("-" * 45)
 
@@ -391,9 +386,9 @@ def phase3_dimensional_scaling(study: StudyManager):
 
 def phase4_application_specific(study: StudyManager, k: int = 2):
     """Phase 4: Application-specific optimization scenarios."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 4: APPLICATION-SPECIFIC OPTIMIZATION (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Define specialized scenarios
     scenarios = {
@@ -446,8 +441,7 @@ def phase4_application_specific(study: StudyManager, k: int = 2):
             "best_score": result.best_score,
             "quality_breakdown": {
                 "symmetry": result.best_metrics.symmetry_score,
-                "volume_preservation": result.best_metrics.volume_preservation_score
-                or 0,
+                "volume_preservation": result.best_metrics.volume_preservation_score or 0,
                 "smoothness": result.best_metrics.smoothness_score or 0,
                 "coverage": result.best_metrics.coverage_score or 0,
                 "invertibility": result.best_metrics.invertibility_score or 0,
@@ -470,7 +464,7 @@ def phase4_application_specific(study: StudyManager, k: int = 2):
     study.save_results("phase4_application_specific", application_results)
 
     # Create application-specific recommendations
-    print(f"\n APPLICATION-SPECIFIC RECOMMENDATIONS")
+    print("\n APPLICATION-SPECIFIC RECOMMENDATIONS")
     for result in application_results:
         scenario = result["scenario"]
         params = result["best_params"]
@@ -484,9 +478,9 @@ def phase4_application_specific(study: StudyManager, k: int = 2):
 
 def generate_study_report(study: StudyManager):
     """Generate comprehensive study report."""
-    print(f"\n{'='*60}")
-    print(f"GENERATING COMPREHENSIVE STUDY REPORT")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("GENERATING COMPREHENSIVE STUDY REPORT")
+    print(f"{'=' * 60}")
 
     # Compile all results
     report = {
@@ -509,16 +503,14 @@ def generate_study_report(study: StudyManager):
     study.save_results("comprehensive_report", report, "complete_study_report.json")
 
     # Generate summary statistics
-    print(f"\n STUDY SUMMARY STATISTICS")
+    print("\n STUDY SUMMARY STATISTICS")
     print(
         f"   • Total parameter configurations evaluated: {len(study.results.get('phase1_grid_search', [])):,}"
     )
     print(
         f"   • Optimization algorithm runs: {len(study.results.get('phase2_optimization_comparison', [])):,}"
     )
-    print(
-        f"   • Dimensions analyzed: {len(study.results.get('phase3_dimensional_scaling', []))}"
-    )
+    print(f"   • Dimensions analyzed: {len(study.results.get('phase3_dimensional_scaling', []))}")
     print(
         f"   • Application scenarios: {len(study.results.get('phase4_application_specific', []))}"
     )
@@ -528,7 +520,7 @@ def generate_study_report(study: StudyManager):
         all_grid = study.results["phase1_grid_search"]
         best_overall = max(all_grid, key=lambda x: x["quality_scores"]["overall"])
 
-        print(f"\n BEST CONFIGURATION FOUND (Grid Search):")
+        print("\n BEST CONFIGURATION FOUND (Grid Search):")
         print(f"   • Overall score: {best_overall['quality_scores']['overall']:.4f}")
         print(f"   • Weighting: {best_overall['weighting']}")
         print(
@@ -539,7 +531,7 @@ def generate_study_report(study: StudyManager):
         opt_results = study.results["phase2_optimization_comparison"]
         best_opt = max(opt_results, key=lambda x: x["best_score"])
 
-        print(f"\n BEST OPTIMIZATION RESULT:")
+        print("\n BEST OPTIMIZATION RESULT:")
         print(f"   • Best score: {best_opt['best_score']:.4f}")
         print(f"   • Algorithm: {best_opt['algorithm']}")
         print(f"   • Weighting: {best_opt['weighting']}")
@@ -576,12 +568,12 @@ def main():
         # Generate comprehensive report
         final_report = generate_study_report(study)
 
-        print(f"\n🎉 SYSTEMATIC STUDY COMPLETED SUCCESSFULLY!")
-        print(f" Generated comprehensive research data for Thurstone diffeomorphisms")
+        print("\n🎉 SYSTEMATIC STUDY COMPLETED SUCCESSFULLY!")
+        print(" Generated comprehensive research data for Thurstone diffeomorphisms")
         print(f" All results saved to: {study.output_dir}/")
 
     except KeyboardInterrupt:
-        print(f"\n⏸️  Study interrupted by user.")
+        print("\n⏸️  Study interrupted by user.")
         print(f" Partial results saved to: {study.output_dir}/")
     except Exception as e:
         print(f"\n❌ Error during study execution: {e}")

@@ -8,9 +8,7 @@ import numpy as np
 from .inference import AbilityCalibrator
 
 
-def _interp_price_and_slope_1d(
-    cal: AbilityCalibrator, mu: float
-) -> Tuple[float, float]:
+def _interp_price_and_slope_1d(cal: AbilityCalibrator, mu: float) -> Tuple[float, float]:
     """Interpolate price and d price / d mu from cached 1D curve."""
     if not cal.lookup_curve_1d_prices:
         raise ValueError(
@@ -131,9 +129,7 @@ class MultiRayGlobalCalibrator:
     ) -> None:
         prices_arr = np.asarray(prices, dtype=float)
         scales_arr = None if scales is None else np.asarray(scales, dtype=float)
-        if (calibrator.lookup_curve_1d_prices is None) and (
-            not calibrator.lookup_curves_2d_prices
-        ):
+        if (calibrator.lookup_curve_1d_prices is None) and (not calibrator.lookup_curves_2d_prices):
             calibrator.solve_from_prices(prices_arr)
         spec = ConditionSpec(
             cond_id=cond_id,
@@ -159,13 +155,9 @@ class MultiRayGlobalCalibrator:
         self._rebuild_cond_index()
 
     def ability(self, cond_id: str, item_id: str) -> float:
-        return float(
-            self.beta[cond_id] + float(np.dot(self.V[cond_id], self.Z[item_id]))
-        )
+        return float(self.beta[cond_id] + float(np.dot(self.V[cond_id], self.Z[item_id])))
 
-    def _predict_and_slopes_for_condition(
-        self, c_idx: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _predict_and_slopes_for_condition(self, c_idx: int) -> Tuple[np.ndarray, np.ndarray]:
         spec = self.conditions[c_idx]
         cal = spec.calibrator
         m = len(spec.item_ids)
@@ -261,9 +253,7 @@ class MultiRayGlobalCalibrator:
                     slope_k = cond_slopes[j][k]
                     # clamp slope
                     if abs(slope_k) < self.slope_floor:
-                        slope_k = (
-                            self.slope_floor if slope_k >= 0 else -self.slope_floor
-                        )
+                        slope_k = self.slope_floor if slope_k >= 0 else -self.slope_floor
                     e_k = cond_p_hat[j][k] - spec.prices[k]
                     yk = -e_k / slope_k
                     rows.append(self.V[spec.cond_id])
@@ -280,9 +270,7 @@ class MultiRayGlobalCalibrator:
                     dz = np.linalg.lstsq(MtM, Mty, rcond=None)[0]
                 self.Z[hid] = self.Z[hid] + self.step_z * dz
 
-    def fit_with_rebuild(
-        self, num_outer_iters: int = 3, num_inner_iters: int = 10
-    ) -> None:
+    def fit_with_rebuild(self, num_outer_iters: int = 3, num_inner_iters: int = 10) -> None:
         for _ in range(num_outer_iters):
             self.rebuild_all_curves()
             self.fit_inner(num_inner_iters)

@@ -23,12 +23,7 @@ def run_command(cmd, description, cwd=None, check=True):
     print(f"🔧 {description}...")
     try:
         result = subprocess.run(
-            cmd,
-            shell=True,
-            check=check,
-            cwd=cwd,
-            capture_output=True,
-            text=True
+            cmd, shell=True, check=check, cwd=cwd, capture_output=True, text=True
         )
         if result.stdout.strip():
             print(f"   {result.stdout.strip()}")
@@ -86,7 +81,7 @@ def apply_linting():
     print("   Running isort...")
     run_command(
         "isort --profile black --line-length=88 --multi-line=3 --trailing-comma .",
-        "Apply import sorting"
+        "Apply import sorting",
     )
 
     # Apply black formatting
@@ -97,11 +92,11 @@ def apply_linting():
     print("   Checking flake8...")
     run_command(
         "flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics",
-        "Check syntax errors"
+        "Check syntax errors",
     )
     run_command(
         "flake8 . --count --max-complexity=10 --max-line-length=127 --statistics",
-        "Check code quality"
+        "Check code quality",
     )
 
     print("✅ Code formatting complete")
@@ -188,10 +183,7 @@ This PR applies systematic code quality improvements and ensures all tests pass.
 🤖 Generated with systematic review workflow
 """
 
-    run_command(
-        f'gh pr create --title "{pr_title}" --body "{pr_body}"',
-        "Create pull request"
-    )
+    run_command(f'gh pr create --title "{pr_title}" --body "{pr_body}"', "Create pull request")
 
     print("✅ Pull request created successfully!")
 
@@ -199,12 +191,17 @@ This PR applies systematic code quality improvements and ensures all tests pass.
 def main():
     """Main review workflow."""
     parser = argparse.ArgumentParser(description="Systematic review workflow")
-    parser.add_argument("--branch-name", default="systematic-review",
-                       help="Feature branch name")
-    parser.add_argument("--pr-title", default="Apply systematic review workflow",
-                       help="Pull request title")
-    parser.add_argument("--skip-pr", action="store_true",
-                       help="Skip PR creation (just do linting and testing)")
+    parser.add_argument("--branch-name", default="systematic-review", help="Feature branch name")
+    parser.add_argument(
+        "--pr-title",
+        default="Apply systematic review workflow",
+        help="Pull request title",
+    )
+    parser.add_argument(
+        "--skip-pr",
+        action="store_true",
+        help="Skip PR creation (just do linting and testing)",
+    )
 
     args = parser.parse_args()
 

@@ -8,7 +8,6 @@ and configuration parameters in JSON format for interactive web visualizations.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -16,8 +15,7 @@ import numpy as np
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 
 try:
-    from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                         SpecialHorseConfig)
+    from .adaptive_special_horse import AdaptiveSpecialHorse, SpecialHorseConfig
     from .enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
     from .quality_assessment import comprehensive_quality_assessment
 
@@ -103,9 +101,7 @@ def export_mapping_data(
         export_data["configuration"]["sigmoid_params"] = sigmoid_config
 
         if hasattr(mapping, "special_horse_ability"):
-            export_data["configuration"][
-                "special_horse_ability"
-            ] = mapping.special_horse_ability
+            export_data["configuration"]["special_horse_ability"] = mapping.special_horse_ability
         elif hasattr(mapping, "special_horse") and ENHANCED_AVAILABLE:
             # Enhanced mapping with adaptive special horse
             config = mapping.special_horse.config
@@ -200,7 +196,7 @@ def export_parameter_study_data(
     }
 
     for i, config in enumerate(parameter_configs):
-        print(f"Processing configuration {i+1}/{len(parameter_configs)}")
+        print(f"Processing configuration {i + 1}/{len(parameter_configs)}")
 
         # Create mapping from configuration
         sigmoid_params = []
@@ -210,9 +206,11 @@ def export_parameter_study_data(
 
         if ENHANCED_AVAILABLE and "special_horse" in config:
             # Enhanced mapping
-            from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                                 DistributionType,
-                                                 SpecialHorseConfig)
+            from .adaptive_special_horse import (
+                AdaptiveSpecialHorse,
+                DistributionType,
+                SpecialHorseConfig,
+            )
 
             special_config_dict = config["special_horse"].copy()
             if "distribution" in special_config_dict and isinstance(
@@ -272,9 +270,7 @@ def create_example_exports():
     symmetric_mapping = CubeToSimplexMapping(
         sigmoid_params=symmetric_params, special_horse_ability=0.0
     )
-    export_mapping_to_file(
-        symmetric_mapping, "docs/interactive/data/symmetric_mapping.json"
-    )
+    export_mapping_to_file(symmetric_mapping, "docs/interactive/data/symmetric_mapping.json")
 
     # Example 2: Asymmetric mapping
     asymmetric_params = [
@@ -284,15 +280,15 @@ def create_example_exports():
     asymmetric_mapping = CubeToSimplexMapping(
         sigmoid_params=asymmetric_params, special_horse_ability=0.4
     )
-    export_mapping_to_file(
-        asymmetric_mapping, "docs/interactive/data/asymmetric_mapping.json"
-    )
+    export_mapping_to_file(asymmetric_mapping, "docs/interactive/data/asymmetric_mapping.json")
 
     if ENHANCED_AVAILABLE:
         # Example 3: Enhanced mapping with adaptive special horse
-        from .adaptive_special_horse import (AdaptiveSpecialHorse,
-                                             DistributionType,
-                                             SpecialHorseConfig)
+        from .adaptive_special_horse import (
+            AdaptiveSpecialHorse,
+            DistributionType,
+            SpecialHorseConfig,
+        )
 
         enhanced_config = SpecialHorseConfig(
             distribution=DistributionType.NORMAL,
@@ -305,9 +301,7 @@ def create_example_exports():
         enhanced_mapping = EnhancedCubeToSimplexMapping(
             sigmoid_params=symmetric_params, special_horse=enhanced_horse
         )
-        export_mapping_to_file(
-            enhanced_mapping, "docs/interactive/data/enhanced_mapping.json"
-        )
+        export_mapping_to_file(enhanced_mapping, "docs/interactive/data/enhanced_mapping.json")
 
     print("Example exports created in docs/interactive/data/")
 
