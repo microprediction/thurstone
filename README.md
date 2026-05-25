@@ -50,9 +50,9 @@ python examples/dynamic_calibration_demo.py     # Time-varying abilities
 python examples/diffeomorphism_demo.py          # Advanced mappings
 ```
 
-## Interactive Demo
+## Documentation
 
-[https://thurstone.microprediction.org/interactive/diffeomorphism-explorer.html](https://thurstone.microprediction.org/interactive/diffeomorphism-explorer.html)
+**📖 [Full Documentation & Interactive Demos](https://thurstone.microprediction.org/)**
 
 ## Citation
 
