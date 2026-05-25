@@ -29,6 +29,19 @@ where = ["."]
 addopts = "-q -ra"
 testpaths = ["tests"]
 
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.format]
+# Use single quotes for strings
+quote-style = "double"
+
+[tool.ruff.lint]
+# Enable essential error detection
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+]

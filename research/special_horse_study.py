@@ -21,9 +21,11 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from thurstone import SigmoidParams, comprehensive_quality_assessment
-from thurstone.adaptive_special_horse import (AdaptiveSpecialHorse,
-                                              DistributionType,
-                                              SpecialHorseConfig)
+from thurstone.adaptive_special_horse import (
+    AdaptiveSpecialHorse,
+    DistributionType,
+    SpecialHorseConfig,
+)
 from thurstone.enhanced_cube_to_simplex import EnhancedCubeToSimplexMapping
 
 
@@ -90,7 +92,7 @@ class SpecialHorseStudyManager:
 def run_special_horse_study(k: int = 2):
     """Run systematic study of special horse configurations."""
     print(f" SPECIAL HORSE SYSTEMATIC STUDY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Focus: Optimize (k+1)-th horse with fixed symmetric sigmoids")
     print(f"Dimension: k={k}")
 
@@ -154,7 +156,7 @@ def run_special_horse_study(k: int = 2):
                                 else 0
                             )
                             print(
-                                f"   Progress: {eval_count}/{total_combinations} ({100*eval_count/total_combinations:.1f}%) "
+                                f"   Progress: {eval_count}/{total_combinations} ({100 * eval_count / total_combinations:.1f}%) "
                                 f"Est. {remaining:.1f}m remaining"
                             )
 
@@ -178,7 +180,6 @@ def run_special_horse_study(k: int = 2):
 
                         # Test with each quality weighting
                         for weighting_name, weights in study.quality_weightings.items():
-
                             # Assess quality (minimal samples for systematic study speed)
                             metrics = comprehensive_quality_assessment(
                                 mapping,
@@ -255,7 +256,7 @@ def run_special_horse_study(k: int = 2):
     print(f"   Best score: {best_result['quality_scores']['overall']:.4f}")
 
     total_time = time.time() - start_time
-    print(f"\n Special horse study completed in {total_time/60:.1f} minutes!")
+    print(f"\n Special horse study completed in {total_time / 60:.1f} minutes!")
 
     return results
 

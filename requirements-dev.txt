@@ -1,0 +1,5 @@
+# Development dependencies - keep in sync with CI
+ruff>=0.6.0
+pytest>=7.0
+hypothesis>=6.0
+pytest-benchmark>=4.0

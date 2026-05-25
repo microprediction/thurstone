@@ -14,8 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from .quality_assessment import (QualityMetrics,
-                                 comprehensive_quality_assessment)
+from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
 
 
 @dataclass
@@ -237,7 +236,7 @@ class RandomSearchOptimizer(Optimizer):
                     **objective.assessment_samples,
                 )
 
-                print(f"*** New best at evaluation {i+1}: {best_score:.4f} ***")
+                print(f"*** New best at evaluation {i + 1}: {best_score:.4f} ***")
 
             # Record history
             history.append(

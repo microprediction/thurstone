@@ -20,9 +20,13 @@ import pandas as pd
 # Add the parent directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone import (CubeToSimplexMapping, ParameterBounds, SigmoidParams,
-                       comprehensive_quality_assessment,
-                       optimize_diffeomorphism)
+from thurstone import (
+    CubeToSimplexMapping,
+    ParameterBounds,
+    SigmoidParams,
+    comprehensive_quality_assessment,
+    optimize_diffeomorphism,
+)
 
 
 class StudyManager:
@@ -105,9 +109,9 @@ class StudyManager:
 
 def phase1_parameter_exploration(study: StudyManager, k: int = 2):
     """Phase 1: Systematic parameter space exploration."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 1: PARAMETER SPACE EXPLORATION (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Define parameter grids (optimized for reasonable runtime)
     alpha_values = [1.0, 1.5, 2.0]  # 3 values
@@ -155,7 +159,7 @@ def phase1_parameter_exploration(study: StudyManager, k: int = 2):
                 rate = i / elapsed
                 remaining = (len(param_combinations) - i) / rate / 60
                 print(
-                    f"   Progress: {i:,}/{len(param_combinations):,} ({100*i/len(param_combinations):.1f}%) "
+                    f"   Progress: {i:,}/{len(param_combinations):,} ({100 * i / len(param_combinations):.1f}%) "
                     f"Est. {remaining:.1f}m remaining"
                 )
 
@@ -224,9 +228,9 @@ def phase1_parameter_exploration(study: StudyManager, k: int = 2):
 
 def phase2_optimization_comparison(study: StudyManager, k: int = 2):
     """Phase 2: Compare optimization algorithms."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 2: OPTIMIZATION ALGORITHM COMPARISON (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     algorithms = ["random", "evolutionary"]
     optimization_results = []
@@ -276,7 +280,7 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
                 alg_results.append(run_result)
                 optimization_results.append(run_result)
 
-                print(f"      Run {run+1}: {result.best_score:.4f} ({runtime:.1f}s)")
+                print(f"      Run {run + 1}: {result.best_score:.4f} ({runtime:.1f}s)")
 
             # Compute statistics for this algorithm/weighting combination
             scores = [r["best_score"] for r in alg_results]
@@ -315,9 +319,9 @@ def phase2_optimization_comparison(study: StudyManager, k: int = 2):
 
 def phase3_dimensional_scaling(study: StudyManager):
     """Phase 3: Multi-dimensional analysis."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 3: MULTI-DIMENSIONAL SCALING ANALYSIS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     dimensions = [2, 3, 4]  # Reduced from [2,3,4,5] for demo
     scaling_results = []
@@ -391,9 +395,9 @@ def phase3_dimensional_scaling(study: StudyManager):
 
 def phase4_application_specific(study: StudyManager, k: int = 2):
     """Phase 4: Application-specific optimization scenarios."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"PHASE 4: APPLICATION-SPECIFIC OPTIMIZATION (k={k})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Define specialized scenarios
     scenarios = {
@@ -484,9 +488,9 @@ def phase4_application_specific(study: StudyManager, k: int = 2):
 
 def generate_study_report(study: StudyManager):
     """Generate comprehensive study report."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"GENERATING COMPREHENSIVE STUDY REPORT")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Compile all results
     report = {

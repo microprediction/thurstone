@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 from thurstone import Density, UniformLattice
-from thurstone.order_stats import (expected_payoff_with_multiplicity,
-                                   winner_of_many)
+from thurstone.order_stats import expected_payoff_with_multiplicity, winner_of_many
 from thurstone.pricing import expected_payoff_vs_rest
 
 
@@ -27,9 +26,9 @@ def test_multiplicity_matches_number_of_tied_contestants():
     densityAll, multiplicityAll = winner_of_many(densities)
     m_center = float(multiplicityAll[center_idx])
 
-    assert m_center == pytest.approx(
-        k, rel=0.05
-    ), f"Expected multiplicity ≈ {k} at tie point, got {m_center}"
+    assert m_center == pytest.approx(k, rel=0.05), (
+        f"Expected multiplicity ≈ {k} at tie point, got {m_center}"
+    )
     # multiplicity shouldn't be < 1 anywhere
     assert np.all(multiplicityAll >= 1.0 - 1e-9)
 
@@ -53,6 +52,6 @@ def test_multiplicity_changes_draw_payoff_vs_flat_halfpoint():
     payoff_flat = expected_payoff_vs_rest(d, all_min_cdf)
     p_flat = float(np.sum(payoff_flat))
 
-    assert not np.isclose(
-        p_mult, p_flat, rtol=1e-6
-    ), "Multiplicity-aware payoff should differ from naive half-point tie model"
+    assert not np.isclose(p_mult, p_flat, rtol=1e-6), (
+        "Multiplicity-aware payoff should differ from naive half-point tie model"
+    )

@@ -23,9 +23,13 @@ except ImportError:
     plt = None
 
 from .cube_to_simplex import CubeToSimplexMapping
-from .quality_assessment import (assess_invertibility, assess_smoothness,
-                                 assess_symmetry, assess_uniform_coverage,
-                                 assess_volume_preservation)
+from .quality_assessment import (
+    assess_invertibility,
+    assess_smoothness,
+    assess_symmetry,
+    assess_uniform_coverage,
+    assess_volume_preservation,
+)
 
 
 def _ensure_matplotlib():
@@ -400,7 +404,7 @@ def plot_quality_summary(
     mean_probs = symmetry_details["mean_probabilities"]
     expected_prob = symmetry_details["expected_probability"]
 
-    horse_labels = [f"Horse {i+1}" for i in range(len(mean_probs))]
+    horse_labels = [f"Horse {i + 1}" for i in range(len(mean_probs))]
     ax2.bar(horse_labels, mean_probs, alpha=0.7, color="skyblue")
     ax2.axhline(
         y=expected_prob,
@@ -477,7 +481,7 @@ def plot_quality_summary(
     param_values = []
 
     for i, param in enumerate(mapping.sigmoid_params):
-        param_names.extend([f"α{i+1}", f"β{i+1}", f"γ{i+1}"])
+        param_names.extend([f"α{i + 1}", f"β{i + 1}", f"γ{i + 1}"])
         param_values.extend([param.alpha, param.beta, param.gamma])
 
     param_names.append("Special\nAbility")

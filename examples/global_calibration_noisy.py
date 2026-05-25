@@ -120,9 +120,9 @@ def main():
         total_l2 += l2
         print(f"\nRace {r}:")
         print(f"  horses: {ids}")
-        print(f"  true:   {np.array2string(p_true,  precision=4, floatmode='fixed')}")
+        print(f"  true:   {np.array2string(p_true, precision=4, floatmode='fixed')}")
         print(f"  noisy:  {np.array2string(p_noisy, precision=4, floatmode='fixed')}")
-        print(f"  fitted: {np.array2string(p_fit,   precision=4, floatmode='fixed')}")
+        print(f"  fitted: {np.array2string(p_fit, precision=4, floatmode='fixed')}")
         print(f"  L2(true,fitted): {l2:.6e}")
     print(f"\nAggregate L2(true,fitted) across races: {total_l2:.6e}")
 

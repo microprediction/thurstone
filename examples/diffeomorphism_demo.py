@@ -18,8 +18,10 @@ import numpy as np
 # Add the parent directory to Python path to import thurstone modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from thurstone.cube_to_simplex import (CubeToSimplexMapping,  # noqa: E402
-                                       SigmoidParams)
+from thurstone.cube_to_simplex import (
+    CubeToSimplexMapping,  # noqa: E402
+    SigmoidParams,
+)
 from thurstone.optimization import optimize_diffeomorphism  # noqa: E402
 from thurstone.quality_assessment import comprehensive_quality_assessment  # noqa: E402
 
@@ -300,7 +302,7 @@ def analyze_lattice_behavior():
         simplex_point = mapping(corner)
         winner = np.argmax(simplex_point)
         print(
-            f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner+1} wins]"
+            f"  {corner} → ({simplex_point[0]:.3f}, {simplex_point[1]:.3f}, {simplex_point[2]:.3f}) [Horse {winner + 1} wins]"
         )
 
     return cube_points, simplex_points

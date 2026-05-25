@@ -214,7 +214,7 @@ if __name__ == "__main__":
         for i, point in enumerate(test_points):
             result = mapping(point)
             print(
-                f"   Point {i+1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]"
+                f"   Point {i + 1} {point} → [{result[0]:.3f}, {result[1]:.3f}, {result[2]:.3f}]"
             )
 
         # Test the special property
