@@ -78,9 +78,9 @@ print(f"Best quality score: {result.best_score:.4f}")
 
 Explore Thurstone models directly in your browser:
 
-- **[Diffeomorphism Explorer](docs/interactive/diffeomorphism-explorer.html)** - Real-time parameter tuning
-- **[Multi-dimensional Analysis](docs/interactive/multi-dimensional.html)** - Advanced visualization tools
-- **[All Interactive Demos](docs/interactive/)** - Complete collection
+- **[Diffeomorphism Explorer](https://thurstone.microprediction.org/interactive/diffeomorphism-explorer.html)** - Real-time parameter tuning
+- **[Multi-dimensional Analysis](https://thurstone.microprediction.org/interactive/multi-dimensional.html)** - Advanced visualization tools
+- **[All Interactive Demos](https://thurstone.microprediction.org/interactive/)** - Complete collection
 
 ```bash
 # Run locally
