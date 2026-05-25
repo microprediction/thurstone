@@ -1,96 +1,219 @@
+# thurstone
 
-# thurstone 
+A comprehensive **object-oriented toolkit** for lattice-based performance models, the horse-race inverse problem, and **advanced diffeomorphism optimization**. This package modernizes Thurstone Class V models with fast algorithms, clean APIs, and cutting-edge mathematical frameworks for mapping between probability spaces.
 
-An object‑oriented toolkit for **lattice‑based performance models** and the **horse‑race inverse problem** (inferring relative ability from market prices, a.k.a. the ability transform). This package seeks to revitalize Thurstone Class V models which have tended to play a poor cousin to Plackett-Luce and other alternatives due to lack of tractability. It implements a relatively recent fast algorithm. 
+[![PyPI version](https://badge.fury.io/py/thurstone.svg)](https://badge.fury.io/py/thurstone)
+[![CI](https://github.com/microprediction/thurstone/actions/workflows/ci.yml/badge.svg)](https://github.com/microprediction/thurstone/actions/workflows/ci.yml)
 
-## Uses 
-(Beyond horseracing)
+## ✨ Major Features
 
-See the [notebook](https://github.com/microprediction/winning/blob/main/Ability_Transforms_Updated.ipynb) for examples of the use of this ability transform. 
+### 🏆 Core Racing Models
+- **Uniform lattices** with explicit `L` and `unit` parameters
+- **Normalized densities** with safe shifts, convolution, and dilation
+- **Multiplicity-aware state pricing** for realistic tie handling
+- **Fast inverse calibration** from market prices to relative abilities
 
-See the [paper](https://github.com/microprediction/winning/blob/main/docs/Horse_Race_Problem__SIAM_.pdf) for why this is useful in lots of places, according to a wise man. For instance, the algorithm may also find use anywhere winning probabilities or frequencies are apparent, such as with e-commerce product placement, in web search, or, as is shown in the paper: addressing a fundamental problem of trade. 
+### 🎯 Diffeomorphism Framework *(New!)*
+- **Cube-to-simplex mappings** using parametric sigmoid functions
+- **Quality assessment** with symmetry, volume preservation, and smoothness metrics  
+- **Enhanced optimization** with 22+ pure Python algorithms (genetic, particle swarm, etc.)
+- **Adaptive special horses** with configurable probability distributions
+- **Interactive visualizations** for exploring parameter spaces
 
+### 🔬 Research Tools
+- **Systematic parameter studies** with comprehensive quality analysis
+- **Paper-quality figure generation** for academic publications
+- **Performance benchmarking** and statistical validation
+- **Monte Carlo validation** frameworks
 
-## Highlights
+### 🛠️ Developer Experience  
+- **Modern tooling** with ruff formatting and comprehensive CI/CD
+- **Clean APIs** with full type hints and documentation
+- **Extensive test suite** with property-based testing (Hypothesis)
+- **Automated PyPI deployment** with semantic versioning
 
-This is the successor to the `winning` package. Essentially a clean up and mild generalization. New and inherited functionality includes:
+## 🚀 Quick Start
 
-- Uniform lattice with explicit `L` and `unit` (`UniformLattice`).
-- Normalized `Density` with safe integer/fractional shifts, centering, convolution, and dilation. Negative mass is rejected; zero‑mass vectors are allowed as an explicit off‑lattice sentinel in extreme shifts.
-- Clean `Race` and `StatePricer` API for risk‑neutral **state prices** (winning probabilities), now multiplicity‑aware.
-- `AbilityCalibrator` solves the **inverse problem** with per‑runner monotone interpolation (sorted price→offset tables) and returns abilities in physical units.
-- `ClusterSplitter` handles offsets that hang off the lattice (both directions) with symmetric clustering and coarse‑to‑fine recursion, including walkover behavior and an equal‑share rule only when all offsets hang on one side and are tightly bunched (spread < support width).
-- `order_stats` module: multiplicity‑aware `winner_of_many` and `expected_payoff_with_multiplicity` (draws split by 1/(1 + multiplicity)).
-- Tie handling via pluggable `TieModel` (default: 0.5 split).
+```bash
+pip install thurstone
+```
 
-## Quickstart
-
+### Basic Racing Model
 ```python
 from thurstone import UniformLattice, Density, AbilityCalibrator, STD_L, STD_UNIT
 
-lat = UniformLattice(L=STD_L, unit=STD_UNIT)
-base = Density.skew_normal(lat, loc=0.0, scale=1.0, a=0.0)  # symmetric base
+# Set up lattice and base density
+lattice = UniformLattice(L=STD_L, unit=STD_UNIT)
+base = Density.skew_normal(lattice, loc=0.0, scale=1.0, a=0.0)
 
-# Inverse calibration from dividends -> abilities (physical units)
-from thurstone import StatePricer
+# Inverse calibration: market prices → relative abilities
 dividends = [3.2, 4.8, 12.0, 7.5, 20.0]
-cal = AbilityCalibrator(base)
-ability = cal.solve_from_dividends(dividends)     # abilities in same units as lattice grid
-prices = cal.state_prices_from_ability(ability)   # forward map (prices sum to 1)
+calibrator = AbilityCalibrator(base)
+abilities = calibrator.solve_from_dividends(dividends)
+probabilities = calibrator.state_prices_from_ability(abilities)
 ```
 
-## Design notes
-- Fractional shifts are performed on the CDF then differenced back to preserve mass and monotonicity.
-- The inverse loop builds per‑runner `(price, offset)` tables (holding others fixed), sorts them by price, uniques on the price key, clips, and uses `np.interp`.
-- `ClusterSplitter` splits at the largest gap near the center, evaluates **both sides**, and combines refined within‑group prices using coarse group shares from a dilated lattice. It exhibits:
-  - Walkover: sufficiently better (left) runners take ~1, sufficiently worse (right) get ~0.
-  - Equal‑share only when all runners hang on the same side and are indistinguishable at resolution (spread < support width).
-- Forward pricing and inverse calibration use multiplicity‑aware payoffs: `win + draw/(1 + multiplicity_rest)`. This improves accuracy in dense/tie regimes.
+### Advanced Diffeomorphism Optimization
+```python
+from thurstone import CubeToSimplexMapping, SigmoidParams, optimize_diffeomorphism
 
-## Testing
-- Optional test extras: `pip install -e ".[test]"`
-- Run tests: `pytest -q`
-- Property tests (Hypothesis) are auto‑skipped if Hypothesis is not installed.
-- A performance benchmark (pytest‑benchmark) is included and auto‑skips if the plugin is missing.
-- Multiplicity tests ensure clone ties scale multiplicity correctly and that multiplicity‑aware payoffs differ from naive half‑point splits.
+# Create cube-to-simplex mapping with sigmoid parameters
+params = [
+    SigmoidParams(alpha=1.2, beta=4.0, gamma=0.5),
+    SigmoidParams(alpha=0.8, beta=3.5, gamma=0.3)
+]
+mapping = CubeToSimplexMapping(params)
 
-## Examples
-- Plot offset densities for 150 runners:
-  - Requires matplotlib: `pip install matplotlib`
-  - Run: `python examples/plot_offset_densities_150.py`
-- 2D calibration with per‑runner scales (150 runners, scales 15→20):
-  - Run: `python examples/calibrate_with_scales_150.py`
+# Optimize mapping quality
+result = optimize_diffeomorphism(
+    mapping,
+    max_evaluations=100,
+    quality_weights={"symmetry": 0.4, "smoothness": 0.3, "coverage": 0.3}
+)
 
-## Interactive Visualizations
-Explore Thurstone models interactively in your browser:
+print(f"Best quality score: {result.best_score:.4f}")
+```
 
-- **[Diffeomorphism Explorer](docs/interactive/diffeomorphism-explorer.html)**: Interactive visualization of cube-to-simplex mappings using racing dynamics with real-time parameter controls
-- **[All Interactive Demos](docs/interactive/)**: Collection of browser-based visualizations and educational tools
+## 📊 Interactive Visualizations
 
-Run locally: `python -m http.server 8000 --directory docs` then visit `http://localhost:8000`
+Explore Thurstone models directly in your browser:
 
-## Cite
-See 
+- **[Diffeomorphism Explorer](docs/interactive/diffeomorphism-explorer.html)** - Real-time parameter tuning
+- **[Multi-dimensional Analysis](docs/interactive/multi-dimensional.html)** - Advanced visualization tools
+- **[All Interactive Demos](docs/interactive/)** - Complete collection
 
-- Cotton, Peter. “Inferring Relative Ability from Winning Probability in Multientrant Contests,” SIAM Journal on Financial Mathematics, 12(1), 295–317 (2021). DOI: `https://doi.org/10.1137/19M1276261`
-- Original reference implementation and additional context: `https://github.com/microprediction/winning`
+```bash
+# Run locally
+python -m http.server 8000 --directory docs
+# Visit http://localhost:8000/interactive/
+```
 
-BibTeX:
+## 🧪 Examples & Research
+
+### Core Examples
+```bash
+# Comprehensive diffeomorphism demo
+python examples/diffeomorphism_demo.py
+
+# Global ability calibration with 500 horses
+python examples/global_calibration_demo.py
+
+# Dynamic calibration with time-varying abilities  
+python examples/dynamic_calibration_demo.py
+
+# Multi-ray synthetic data analysis
+python examples/multiray_synthetic.py
+```
+
+### Research Scripts
+```bash
+# Generate publication-quality figures
+python research/generate_paper_figures.py
+
+# Run systematic parameter study
+python research/run_systematic_study.py
+
+# Analyze adaptive special horse performance
+python research/special_horse_study.py
+```
+
+## 🔧 Development
+
+### Setup
+```bash
+git clone https://github.com/microprediction/thurstone.git
+cd thurstone
+pip install -e ".[test,viz]"
+```
+
+### Code Quality
+```bash
+# Format code (matches CI exactly)
+python scripts/format-code.py
+
+# Check formatting without changes
+python scripts/format-code.py --check
+
+# Run tests
+pytest
+
+# Full development workflow
+python scripts/review.py  # rebase → lint → test → PR
+```
+
+## 📈 What's New in v0.1.0
+
+- ✅ **Complete ruff migration** - unified formatting and linting
+- ✅ **Diffeomorphism framework** - advanced probability space mappings  
+- ✅ **22 optimization algorithms** - pure Python implementations
+- ✅ **Quality assessment metrics** - comprehensive mapping evaluation
+- ✅ **Interactive visualizations** - browser-based exploration tools
+- ✅ **Research infrastructure** - systematic studies and figure generation
+- ✅ **Modern CI/CD** - automated testing and PyPI deployment
+- ✅ **Enhanced documentation** - comprehensive examples and guides
+
+## 🎯 Applications
+
+Beyond horse racing, this toolkit enables:
+
+- **E-commerce recommendation** - product ranking and placement optimization
+- **Web search algorithms** - relevance scoring and result ranking  
+- **Financial modeling** - relative performance analysis and risk assessment
+- **Game theory** - multi-agent competition and strategy analysis
+- **Machine learning** - probability calibration and uncertainty quantification
+
+See the [research paper](https://github.com/microprediction/winning/blob/main/docs/Horse_Race_Problem__SIAM_.pdf) for theoretical foundations and [notebook examples](https://github.com/microprediction/winning/blob/main/Ability_Transforms_Updated.ipynb) for detailed applications.
+
+## 🏗️ Architecture
+
+### Core Components
+- **`UniformLattice`** - Discrete probability space foundation
+- **`Density`** - Mass-preserving probability distributions  
+- **`AbilityCalibrator`** - Inverse problem solver with monotone interpolation
+- **`Race` & `StatePricer`** - Forward pricing with multiplicity awareness
+
+### Advanced Framework  
+- **`CubeToSimplexMapping`** - Diffeomorphism between probability spaces
+- **`SigmoidParams`** - Parametric transformation functions
+- **`comprehensive_quality_assessment`** - Multi-metric evaluation suite
+- **`optimize_diffeomorphism`** - Meta-optimization with multiple algorithms
+
+### Research Tools
+- **`StudyManager`** - Systematic parameter exploration
+- **`AdaptiveSpecialHorse`** - Advanced racing model variants
+- **Visualization suite** - Publication-quality plotting and analysis
+
+## 📚 Citation
 
 ```bibtex
-@article{doi:10.1137/19M1276261,
-  author = {Cotton, Peter},
-  title = {Inferring Relative Ability from Winning Probability in Multientrant Contests},
-  journal = {SIAM Journal on Financial Mathematics},
-  volume = {12},
-  number = {1},
-  pages = {295-317},
-  year = {2021},
-  doi = {10.1137/19M1276261},
-  URL = {https://doi.org/10.1137/19M1276261}
+@article{cotton2021inferring,
+  title={Inferring Relative Ability from Winning Probability in Multientrant Contests},
+  author={Cotton, Peter},
+  journal={SIAM Journal on Financial Mathematics},
+  volume={12},
+  number={1},  
+  pages={295--317},
+  year={2021},
+  publisher={SIAM},
+  doi={10.1137/19M1276261}
 }
 ```
 
-## Contribute
+## 🤝 Contributing
 
-The most obvious improvement would be a rust implementation. 
+We welcome contributions! The codebase uses modern Python practices:
+
+- **Code formatting**: `ruff` with 100-character lines
+- **Type hints**: Full typing coverage
+- **Testing**: `pytest` with `hypothesis` property-based tests  
+- **CI/CD**: Comprehensive GitHub Actions workflows
+
+Priority areas for contribution:
+- 🦀 **Rust implementation** for performance-critical components
+- 🎨 **Additional visualizations** for complex probability spaces  
+- 🧮 **Extended optimization algorithms** and quality metrics
+- 📖 **Documentation** and tutorial content
+
+---
+
+**thurstone v0.1.0** - Modernizing probabilistic inference with clean code and cutting-edge mathematics. 🏆
