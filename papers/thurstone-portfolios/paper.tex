@@ -1,0 +1,272 @@
+\documentclass[11pt]{article}
+
+\input{../shared/preamble.tex}
+
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{cleveref}
+
+\title{Thurstone Portfolios:\\
+       Long-Only Allocation by Inverting Winning Probabilities}
+\author{Peter Cotton}
+\date{\today}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator*{\argminop}{arg\,min}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We develop \emph{Thurstone portfolios}, a long-only asset-allocation scheme in
+which portfolio weights are the winning probabilities of a Thurstonian race
+among assets. Starting from a variance-only (diagonal) allocation, we invert the
+weights into latent \emph{abilities} using the calibration map of
+\textcite{cotton2021}, re-run the contest with correlation reintroduced, and
+read off each asset's probability of being the ``winner'' as its new weight. The
+construction is long-only and budget-feasible by design, requires no covariance
+inversion, and degrades gracefully when the covariance matrix is ill-conditioned
+or singular. A single scaling parameter $\phi$ interpolates between ignoring
+correlation and using it in full, giving a one-dimensional dial that plays the
+role of---but is more stable than---shrinkage in mean--variance optimization. We
+position the method against the Capital Asset Pricing Model (CAPM), whose
+implied market-capitalization weighting we argue is a \emph{Lucian} (proportional
+choice) special case that a Thurstonian model need not, and empirically does not,
+reproduce. We outline a backtesting protocol and report on two empirical studies
+(REITs and Russell-index equities tilted by language-model ``AI-benefit''
+scores) used to evaluate the approach.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Modern passive investing rests on an equilibrium argument: under the CAPM
+\parencite{sharpe1964}, the market-capitalization-weighted portfolio is mean--variance
+efficient, so a rational investor should simply hold the index. There is a less
+remarked structural assumption underneath. Capitalization weighting treats the
+relative ``attractiveness'' of two assets as a fixed ratio that is preserved
+when other assets are added to or removed from the universe. This is precisely
+Luce's choice axiom \parencite{luce1959}, the independence-of-irrelevant-alternatives
+property that underlies the Bradley--Terry \parencite{bradleyterry1952} and
+Plackett--Luce \parencite{plackett1975} models of choice and ranking. We will call a
+weighting scheme with this property \emph{Lucian}.
+
+The Lucian assumption is convenient but neither logically necessary nor
+empirically robust. Investors do not observe the true covariance of returns;
+they estimate it, and good practice is to \emph{shrink} those estimates toward a
+structured target \parencite{ledoitwolf2004}. Shrinkage breaks the
+wisdom-of-crowds aggregation that would make the capitalization-weighted
+portfolio efficient, and tracking the index then carries a cost in
+risk-adjusted return unless the index is itself optimal \parencite{roll1992}.
+This invites a question: if the market need not reveal itself as exactly Lucian,
+what is a natural non-Lucian alternative?
+
+Thurstone's law of comparative judgment \parencite{thurstone1927} supplies one.
+In a Thurstonian model each asset $i$ carries a latent \emph{ability} $a_i$ and a
+noisy \emph{performance} $X_i = a_i + \varepsilon_i$; the asset with the extreme
+performance ``wins.'' Unlike the Lucian model, the probability that $i$ beats $j$
+depends on the rest of the field and---crucially for finance---on the
+\emph{correlation} of the performances. The contribution of this paper is to use
+the Thurstonian winning probabilities themselves as portfolio weights, and to
+show that the inverse problem (recovering abilities from a target allocation, and
+re-deriving weights once correlation is injected) admits a fast, stable solution.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item We define the \emph{ability tilt}: a map from a baseline diagonal
+        portfolio to a correlation-aware long-only portfolio, via inversion to
+        Thurstone abilities and a correlated race (\Cref{sec:method}).
+  \item We give the construction both as a Monte-Carlo / quasi-Monte-Carlo
+        sampler (as implemented in the \texttt{winningport} package) and as a
+        deterministic lattice computation using the \texttt{thurstone} package's
+        order-statistics machinery (\Cref{sec:computation}).
+  \item We articulate the \emph{Indispensable Markets Hypothesis} as a
+        non-Lucian alternative to the CAPM and locate capitalization weighting
+        as its degenerate, zero-correlation limit (\Cref{sec:capm}).
+  \item We specify a backtesting protocol and summarize two empirical studies
+        used to evaluate the method (\Cref{sec:experiments}).
+\end{enumerate}
+
+\section{The Thurstonian Model of a Field}
+\label{sec:model}
+
+Consider a universe of $n$ assets. Each asset has a latent ability $a_i\in\R$ and
+a performance
+\begin{equation}
+  X_i = a_i + \varepsilon_i, \qquad (\varepsilon_1,\dots,\varepsilon_n) \sim
+  \mathcal{N}(0, \Sigma_\varepsilon),
+  \label{eq:performance}
+\end{equation}
+where we adopt the convention that the \emph{minimum} performance wins, so that a
+smaller ability denotes a stronger competitor. The \emph{state price} (winning
+probability) of asset $i$ is
+\begin{equation}
+  p_i \;=\; \Prob\!\left( X_i = \min_{k} X_k \right).
+  \label{eq:stateprice}
+\end{equation}
+When the performances are independent ($\Sigma_\varepsilon$ diagonal) the
+$p_i$ are determined by the abilities alone through the distribution of the first
+order statistic, and $p$ is a smooth, monotone function of $a$
+\parencite{cotton2021}. Two maps are then of interest:
+\begin{align}
+  \text{forward:}\quad & a \;\longmapsto\; p, \label{eq:forward}\\
+  \text{inverse:}\quad & p \;\longmapsto\; a. \label{eq:inverse}
+\end{align}
+The inverse \eqref{eq:inverse}---the \emph{Fast Ability Transform}---recovers
+abilities (up to an additive constant) from a target set of winning
+probabilities, and is the engine of the construction below.
+
+\section{Thurstone Portfolios via the Ability Tilt}
+\label{sec:method}
+
+We treat portfolio \emph{weights} as winning probabilities and \emph{assets} as
+competitors. The procedure ``polishes'' a baseline allocation by reintroducing
+correlation through a Thurstonian race.
+
+\begin{algorithm}[h]
+\caption{Ability tilt (Thurstone portfolio)}
+\label{alg:tilt}
+\begin{algorithmic}[1]
+\Require Covariance estimate $\Sigma\in\R^{n\times n}$; correlation scale
+         $\phi\in[0,1]$.
+\State $w \gets \textsc{DiagonalPortfolio}(\Sigma)$
+       \Comment{variance-only long-only weights}
+\State $a \gets \textsc{StatePriceImpliedAbility}(w)$
+       \Comment{inverse map \eqref{eq:inverse}}
+\State $C \gets \textsc{Corr}(\Sigma)$; \quad
+       $C_\phi \gets \textsc{ScaleOffDiagonal}(C, \phi)$
+\State $C_\phi \gets \textsc{NearestValidCorrelation}(C_\phi)$
+\State Draw correlated performances $X^{(1)},\dots,X^{(M)} \sim
+       \mathcal{N}(a, C_\phi)$
+\State $w'_i \gets \dfrac{1}{M}\sum_{m=1}^{M}
+       \mathbf{1}\!\left[\, i = \argminop_k X^{(m)}_k \,\right]$
+       \Comment{win frequency}
+\State \Return $w'$
+\end{algorithmic}
+\end{algorithm}
+
+Several properties follow directly from \Cref{alg:tilt}:
+\begin{itemize}
+  \item \textbf{Long-only and budget-feasible.} Each $w'_i \ge 0$ and
+        $\sum_i w'_i = 1$ because the weights are empirical winning frequencies.
+        No constraints or projections are needed.
+  \item \textbf{No covariance inversion.} The method never inverts $\Sigma$. It
+        needs only a valid correlation matrix for sampling, repaired if
+        necessary by projection to the nearest correlation matrix. This is what
+        lets it tolerate ill-conditioned or singular $\Sigma$.
+  \item \textbf{One interpretable dial.} At $\phi = 0$ the off-diagonals vanish
+        and the race recovers (a Monte-Carlo estimate of) the diagonal portfolio;
+        at $\phi = 1$ the full estimated correlation is used. Intermediate $\phi$
+        plays the role of shrinkage, but acts on the \emph{correlation injected
+        into the race} rather than on the covariance estimate itself.
+  \item \textbf{Diversification pressure.} An asset that is highly correlated
+        with strong competitors wins the minimum less often once correlation is
+        switched on, so the tilt down-weights redundant exposures and up-weights
+        diversifiers---without an explicit risk penalty.
+\end{itemize}
+
+\section{Computation}
+\label{sec:computation}
+
+\paragraph{Sampling implementation.}
+The \texttt{winningport} package realizes \Cref{alg:tilt} with quasi-Monte-Carlo
+sampling: performances are drawn with a randomized Sobol' sequence
+(\texttt{MultivariateNormalQMC}) and weights are the argmin frequencies. The
+sample budget $M$ is rounded to a power of two for the Sobol' construction, and
+$\phi$ scales the off-diagonal correlation entries before a
+nearest-correlation repair.
+
+\paragraph{Deterministic lattice implementation.}
+The \texttt{thurstone} package computes winning probabilities exactly on a
+discrete lattice rather than by sampling, building the distribution of the first
+order statistic by convolving competitor densities and tracking conditional
+multiplicity for ties \parencite{cotton2021}. In the independent case this gives
+the forward map \eqref{eq:forward} and its inverse \eqref{eq:inverse} without
+Monte-Carlo error and in time linear in $n$. Extending the deterministic path to
+the correlated race (e.g.\ via a Gaussian-copula common-factor reduction) is the
+natural bridge between the legacy sampling code and the current package, and we
+treat it as the reference implementation for reproducibility.
+
+\section{The Indispensable Markets Hypothesis}
+\label{sec:capm}
+
+The CAPM implies capitalization weighting, which is Lucian: relative weights are
+fixed ratios independent of the rest of the universe and of correlation. The
+ability tilt at $\phi = 0$ inherits this independence and is, in that limit, a
+Lucian allocator. Turning $\phi$ up makes the allocator non-Lucian: weights now
+respond to the correlation structure of the field.
+
+We state the \emph{Indispensable Markets Hypothesis} informally as the claim that
+markets reveal, through prices, a Thurstonian ability structure that is
+\emph{not} recoverable from capitalization alone, and that a portfolio built from
+inferred abilities and the correlation-aware race can earn a higher long-run
+risk-adjusted return than the capitalization-weighted index. The hypothesis is
+falsifiable: it predicts that the advantage of the tilt over capitalization
+weighting grows with the heterogeneity of pairwise correlations and vanishes as
+the correlation structure flattens. \Cref{sec:experiments} describes the tests.
+
+\section{Empirical Protocol and Studies}
+\label{sec:experiments}
+
+\paragraph{Protocol.}
+For each rebalancing date we estimate $\Sigma$ from a trailing window, form the
+diagonal portfolio, apply \Cref{alg:tilt} at a grid of $\phi$ values and sample
+budgets $M$, and hold the resulting weights until the next rebalance. We report
+annualized return, an adjusted Sharpe ratio, and maximum drawdown, benchmarked
+against equal-weight and capitalization-weight portfolios.
+
+\paragraph{Study 1: REITs.}
+A panel of real-estate investment trusts (daily returns and market caps) is used
+to compare the ability tilt against equal- and capitalization-weighted
+baselines across sample budgets $M\in\{10^3,10^5\}$ and correlation scales
+$\phi\in\{0,\tfrac12,1\}$. \emph{Results to be inserted.}
+
+\paragraph{Study 2: Russell indices with AI-benefit tilts.}
+Russell 1000/2000/3000 constituents are scored by language models for expected
+benefit from AI adoption; the scores define the field that is then allocated by
+the ability tilt and compared with capitalization weighting and with simple
+top-quantile score tilts. \emph{Results to be inserted.}
+
+\begin{table}[h]
+  \centering
+  \caption{Backtest summary (placeholder).}
+  \label{tab:results}
+  \begin{tabular}{lccc}
+    \toprule
+    Portfolio & Ann.\ return & Adj.\ Sharpe & Max drawdown \\
+    \midrule
+    Equal weight        & --- & --- & --- \\
+    Cap weight          & --- & --- & --- \\
+    Diagonal ($\phi{=}0$) & --- & --- & --- \\
+    Ability tilt ($\phi{=}\tfrac12$) & --- & --- & --- \\
+    Ability tilt ($\phi{=}1$) & --- & --- & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The ability tilt is a small idea with a few useful properties: it is long-only
+and feasible without optimization, it avoids covariance inversion, and it exposes
+a single correlation dial in place of the many knobs of constrained
+mean--variance optimization. Open questions include the choice and stability of
+$\phi$ over time, the deterministic correlated-race computation, the treatment of
+estimation error in abilities (a Thurstonian analogue of covariance shrinkage),
+and turnover once the method is rebalanced on real data.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Thurstone portfolios weight assets by their probability of winning a correlated
+race among latent abilities inferred from a baseline allocation. The construction
+is a natural non-Lucian alternative to capitalization weighting and is cheap and
+robust to compute. Whether it pays for itself out of sample is an empirical
+question, and the protocol and studies above are designed to answer it.
+
+\printbibliography
+
+\end{document}

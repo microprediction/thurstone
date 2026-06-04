@@ -23,7 +23,7 @@ papers/
 
 | Slug | Title | Status |
 |------|-------|--------|
-| _(none yet)_ | | |
+| [thurstone-portfolios](thurstone-portfolios/) | Thurstone Portfolios: Long-Only Allocation by Inverting Winning Probabilities | draft |
 
 ## Starting a new paper
 
