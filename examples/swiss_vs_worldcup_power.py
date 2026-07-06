@@ -245,6 +245,61 @@ def run_swiss(rng, theta, model: MatchModel, rounds: int, seed_order=None):
     return snapshots, games
 
 
+def swiss_final_drama(rng, theta, model: MatchModel, rounds: int, seed_order=None):
+    """How often does an ordinary Swiss actually deliver a 'final'?
+
+    Plays a full Swiss, then inspects the last-round top board (board 1 = the
+    game containing the standings leader). Returns a dict of indicators:
+      champ_on_board : the champion played on board 1;
+      leaders_meet   : the top-2 standings leaders actually face each other
+                       (often they don't -- they already met earlier, so
+                       rematch-avoidance pairs #1 with #3);
+      decisive       : forcing the board-1 result either way changes the
+                       champion -- i.e. that one game decides the title
+                       (a genuine 'final'), rather than a dead rubber.
+    """
+    n = len(theta)
+    order = np.argsort(-theta) if seed_order is None else np.asarray(seed_order)
+    seed_of = {int(idx): s for s, idx in enumerate(order)}
+    st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
+    for r in range(rounds - 1):
+        ranked = ([int(i) for i in order] if r == 0
+                  else [s.idx for s in _sort_key([st[i] for i in range(n)])])
+        if r == 0:
+            half = n // 2
+            pairs = [(ranked[k], ranked[half + k]) for k in range(half)]
+        else:
+            pairs = _greedy_pairs(ranked, st)
+        for a, b in pairs:
+            m, res = model.play(rng, theta[a], theta[b])
+            st[a].add(b, res, m); st[b].add(a, -res, -m)
+
+    pre = [s.idx for s in _sort_key([st[i] for i in range(n)])]
+    leader, second = pre[0], pre[1]
+    pairs = _greedy_pairs(pre, st)
+    board1 = next(p for p in pairs if leader in p)
+    base = {i: (st[i].points, st[i].gd, list(st[i].opponents)) for i in range(n)}
+
+    def champ_with(force):
+        for i in range(n):
+            st[i].points, st[i].gd, st[i].opponents = base[i][0], base[i][1], list(base[i][2])
+        for a, b in pairs:
+            if (a, b) == board1 and force is not None:
+                res, m = force, float(force)
+            else:
+                m, res = model.play(rng, theta[a], theta[b])
+            st[a].add(b, res, m); st[b].add(a, -res, -m)
+        return [s.idx for s in _sort_key([st[i] for i in range(n)])][0]
+
+    champ = champ_with(None)
+    decisive = champ_with(+1) != champ_with(-1)
+    return {
+        "champ_on_board": int(champ in board1),
+        "leaders_meet": int(set(board1) == {leader, second}),
+        "decisive": int(decisive),
+    }
+
+
 def _greedy_pairs(ranked, st):
     """Pair adjacent teams in the standings, skipping rematches greedily."""
     remaining = list(ranked)
@@ -824,7 +879,8 @@ def main():
     # "Sent home too early?" diagnostic -- how often the TRUE best team is
     # discarded before the deciding stage in each elimination-based format.
     diag = {"reps48": 0, "wc_group_out": 0, "wc_no_final": 0, "elim_cut_early": 0,
-            "champ_from_topboard": 0, "best_on_topboard": 0}
+            "best_on_topboard": 0, "champ_on_board": 0, "leaders_meet": 0,
+            "decisive_final": 0}
 
     for _ in range(args.reps):
         theta = sample_abilities(rng, n, args.model, args.ability_sd, args.elo_sd)
@@ -873,12 +929,13 @@ def main():
         smr = bt_ranking(n, s_games)
         swiss_mle.update(smr[0], smr, true_rank_of, best_id)
 
-        # 'Top board' diagnostic: entering the final round the standings leaders
-        # (snaps[R-2][:2]) are paired on board 1. How often is the eventual
-        # champion -- and the true best -- actually on that board?
+        # 'Top board' / 'do we have a final?' diagnostic.
         top_board = set(snaps[R - 2][:2]) if R >= 2 else set(snaps[0][:2])
-        diag["champ_from_topboard"] += int(snaps[R - 1][0] in top_board)
         diag["best_on_topboard"] += int(best_id in top_board)
+        drama = swiss_final_drama(rng, theta, model, R, seed_order)
+        diag["champ_on_board"] += drama["champ_on_board"]
+        diag["leaders_meet"] += drama["leaders_meet"]
+        diag["decisive_final"] += drama["decisive"]
 
         # --- Adaptive Thurstone: model-based pairing + MLE ranking ---
         a_snaps, _ = run_adaptive(rng, theta, model, R, seed_order)
@@ -990,12 +1047,21 @@ def main():
               f"{diag['elim_cut_early']/d:5.1%}")
         print(f"      Adaptive / full Swiss: nobody is eliminated  0.0%  "
               f"(the best is always still measurable)")
-        print("  TOP BOARD -- final-round board 1 pairs the two standings leaders:")
-        print(f"      P(champion comes from the top board)        "
-              f"{diag['champ_from_topboard']/args.reps:5.1%}")
+        print("  DO WE EVEN GET A 'FINAL'? -- last-round top board (board 1):")
+        print(f"      P(champion played on the top board)         "
+              f"{diag['champ_on_board']/args.reps:5.1%}")
+        print(f"      P(the two leaders actually MEET on board 1) "
+              f"{diag['leaders_meet']/args.reps:5.1%}   "
+              f"(usually they already played -> rematch avoided)")
+        print(f"      P(board 1 is DECISIVE -> a genuine final)   "
+              f"{diag['decisive_final']/args.reps:5.1%}   "
+              f"(else the title is already clinched)")
         print(f"      P(true best is on the top board)            "
               f"{diag['best_on_topboard']/args.reps:5.1%}   "
               f"(parity ceiling on any 'final decides it' rule)")
+        print("      -> plain Swiss delivers a real final only ~2/3 of the time; the")
+        print("         'protect top-2 until the final' rule manufactures one every time,")
+        print("         at ~zero power cost -- its value is DRAMA, not accuracy.")
         print("-" * 78)
 
     # ----------------------------------------------------------------------- #
