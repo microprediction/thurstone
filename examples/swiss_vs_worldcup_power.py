@@ -388,13 +388,22 @@ def run_champion_focus(rng, theta, model: MatchModel, rounds: int,
 # --------------------------------------------------------------------------- #
 # Format 1d -- PROTECTED FINAL  ('top-2 can't meet until the final round')      #
 # --------------------------------------------------------------------------- #
-# A Swiss where the two standings leaders are kept apart until a grand final,
-# so the marquee #1-vs-#2 clash is saved for the last match-day. Rounds 1..R-1
-# pair the current top-2 with #3/#4 instead of each other; round R stages the
-# final (decisive) between the two leaders, and the champion is its winner.
-# Empirically the *protection* is free (each leader still meets #3/#4, so the top
-# order is pinned by transitivity), but letting one game DECIDE costs a little,
-# since it replaces R rounds of evidence with a single ~50/50 coin-flip.
+# A Swiss where the two title FAVOURITES are kept apart until a grand final, so
+# the marquee clash is saved for the last match-day. The favourites are "the two
+# most likely to win" -- NOT the two pre-tournament seeds, and not merely the two
+# points-leaders. Under Thurstone, a team's probability of winning (its
+# performance being the field maximum) is a state price, and state-price order is
+# monotone in ability -- so the two most likely to win are exactly the top two by
+# the current Bradley-Terry / Thurstone ability estimate. That is a one-shot
+# calculation from the fitted abilities (thurstone.state_prices_from_ability),
+# NOT a nested re-simulation of the remaining tournament.
+#
+# Rounds 1..R-1 pair the top-2 favourites with #3/#4 instead of each other; round
+# R stages the decisive final between them, and the champion is its winner.
+# Empirically the *protection* is free (each favourite still meets #3/#4, so the
+# top order is pinned by transitivity), and it barely matters whether you protect
+# by points or by the Thurstone ability -- but letting one game DECIDE costs a
+# little, since it replaces R rounds of evidence with a single ~50/50 coin-flip.
 
 
 def run_protected_final(rng, theta, model: MatchModel, rounds: int, seed_order=None):
@@ -402,14 +411,25 @@ def run_protected_final(rng, theta, model: MatchModel, rounds: int, seed_order=N
     order = np.argsort(-theta) if seed_order is None else np.asarray(seed_order)
     seed_of = {int(idx): s for s, idx in enumerate(order)}
     st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
+    games = []
     champion = None
     for r in range(rounds):
-        ranked = ([int(i) for i in order] if r == 0
-                  else [s.idx for s in _sort_key([st[i] for i in range(n)])])
+        # Rank by the Thurstone win-probability ADJUSTED BY CUMULATIVE SCORES:
+        # standardized BT-MLE ability + standardized points. Round 1 falls back to
+        # the pre-tournament seed. (Empirically this blend, pure points, and pure
+        # ability pick nearly the same top-2, so the choice barely matters.)
+        if r == 0:
+            ranked = [int(i) for i in order]
+        else:
+            abil = bt_mle(n, games)
+            pts = np.array([st[i].points for i in range(n)], float)
+            za = (abil - abil.mean()) / (abil.std() + 1e-9)
+            zp = (pts - pts.mean()) / (pts.std() + 1e-9)
+            ranked = list(np.argsort(-(za + zp)))
         last = r == rounds - 1
-        if last:                                   # grand final: the two leaders
+        if last:                                   # grand final: the two favourites
             pairs = [(ranked[0], ranked[1])] + _greedy_pairs(ranked[2:], st)
-        else:                                      # keep the top-2 apart
+        else:                                      # keep the top-2 favourites apart
             pairs = ([(ranked[0], ranked[2]), (ranked[1], ranked[3])]
                      + _greedy_pairs(ranked[4:], st))
         for a, b in pairs:
@@ -420,8 +440,9 @@ def run_protected_final(rng, theta, model: MatchModel, rounds: int, seed_order=N
                 margin, res = model.play(rng, theta[a], theta[b])
             st[a].add(b, res, margin)
             st[b].add(a, -res, -margin)
-    ranked = [s.idx for s in _sort_key([st[i] for i in range(n)])]
-    ranking = [champion] + [i for i in ranked if i != champion]  # crown the finalist
+            games.append((a, b, 1.0 if res == 1 else (0.5 if res == 0 else 0.0)))
+    order_final = list(np.argsort(-bt_mle(n, games)))
+    ranking = [champion] + [i for i in order_final if i != champion]  # crown finalist
     return champion, ranking
 
 
@@ -802,7 +823,8 @@ def main():
     calibration = {"group_games": 0, "draws": 0, "fav_wins": 0, "fav_games": 0}
     # "Sent home too early?" diagnostic -- how often the TRUE best team is
     # discarded before the deciding stage in each elimination-based format.
-    diag = {"reps48": 0, "wc_group_out": 0, "wc_no_final": 0, "elim_cut_early": 0}
+    diag = {"reps48": 0, "wc_group_out": 0, "wc_no_final": 0, "elim_cut_early": 0,
+            "champ_from_topboard": 0, "best_on_topboard": 0}
 
     for _ in range(args.reps):
         theta = sample_abilities(rng, n, args.model, args.ability_sd, args.elo_sd)
@@ -850,6 +872,13 @@ def main():
         # Same full Swiss games, ranked by the BT-MLE (fixes "losing is rewarded").
         smr = bt_ranking(n, s_games)
         swiss_mle.update(smr[0], smr, true_rank_of, best_id)
+
+        # 'Top board' diagnostic: entering the final round the standings leaders
+        # (snaps[R-2][:2]) are paired on board 1. How often is the eventual
+        # champion -- and the true best -- actually on that board?
+        top_board = set(snaps[R - 2][:2]) if R >= 2 else set(snaps[0][:2])
+        diag["champ_from_topboard"] += int(snaps[R - 1][0] in top_board)
+        diag["best_on_topboard"] += int(best_id in top_board)
 
         # --- Adaptive Thurstone: model-based pairing + MLE ranking ---
         a_snaps, _ = run_adaptive(rng, theta, model, R, seed_order)
@@ -961,6 +990,12 @@ def main():
               f"{diag['elim_cut_early']/d:5.1%}")
         print(f"      Adaptive / full Swiss: nobody is eliminated  0.0%  "
               f"(the best is always still measurable)")
+        print("  TOP BOARD -- final-round board 1 pairs the two standings leaders:")
+        print(f"      P(champion comes from the top board)        "
+              f"{diag['champ_from_topboard']/args.reps:5.1%}")
+        print(f"      P(true best is on the top board)            "
+              f"{diag['best_on_topboard']/args.reps:5.1%}   "
+              f"(parity ceiling on any 'final decides it' rule)")
         print("-" * 78)
 
     # ----------------------------------------------------------------------- #
