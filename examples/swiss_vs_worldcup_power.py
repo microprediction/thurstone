@@ -115,8 +115,8 @@ from scipy.stats import norm
 # +200 ~ 76%, +300 ~ 85% single-game win probability. This is the "sensible
 # head-to-head" calibration; pass --elo-sd to widen/narrow the field.
 LOGIT_TO_PROBIT = 1.702
-THURSTONE_PER_ELO = (np.log(10.0) / 400.0) / LOGIT_TO_PROBIT   # ~0.003383
-CALIBRATED_SIGMA = 1.0 / np.sqrt(2.0)                          # -> sqrt(2)*sigma = 1
+THURSTONE_PER_ELO = (np.log(10.0) / 400.0) / LOGIT_TO_PROBIT  # ~0.003383
+CALIBRATED_SIGMA = 1.0 / np.sqrt(2.0)  # -> sqrt(2)*sigma = 1
 
 
 def sample_abilities(rng, n, model, ability_sd, elo_sd):
@@ -129,6 +129,7 @@ def sample_abilities(rng, n, model, ability_sd, elo_sd):
     if model == "elo":
         return rng.normal(0.0, elo_sd, size=n) * THURSTONE_PER_ELO
     return rng.normal(0.0, ability_sd, size=n)
+
 
 # --------------------------------------------------------------------------- #
 # Match model  (Thurstone Case V -- this repo's model)                         #
@@ -151,9 +152,7 @@ class MatchModel:
 
     def play(self, rng, theta_i, theta_j):
         """Return (margin, result) with result in {+1 i wins, 0 draw, -1 j wins}."""
-        margin = (theta_i - theta_j) + rng.normal(0.0, self.sigma) - rng.normal(
-            0.0, self.sigma
-        )
+        margin = (theta_i - theta_j) + rng.normal(0.0, self.sigma) - rng.normal(0.0, self.sigma)
         if abs(margin) < self.draw_band:
             return margin, 0
         return margin, 1 if margin > 0 else -1
@@ -173,11 +172,11 @@ class MatchModel:
 
 @dataclass
 class Standing:
-    idx: int              # team id (index into the ability vector)
-    theta: float          # latent ability
-    seed: int             # seeding rank (0 = strongest), = FIFA-ranking analogue
+    idx: int  # team id (index into the ability vector)
+    theta: float  # latent ability
+    seed: int  # seeding rank (0 = strongest), = FIFA-ranking analogue
     points: int = 0
-    gd: float = 0.0       # accumulated margin (goal-difference proxy)
+    gd: float = 0.0  # accumulated margin (goal-difference proxy)
     opponents: list = field(default_factory=list)
 
     def add(self, opp_idx, result, margin):
@@ -221,7 +220,7 @@ def run_swiss(rng, theta, model: MatchModel, rounds: int, seed_order=None):
     st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
 
     snapshots = []
-    games = []          # (i, j, score_for_i) for downstream BT-MLE ranking
+    games = []  # (i, j, score_for_i) for downstream BT-MLE ranking
     for r in range(rounds):
         if r == 0:
             ranked = [int(i) for i in order]
@@ -263,8 +262,11 @@ def swiss_final_drama(rng, theta, model: MatchModel, rounds: int, seed_order=Non
     seed_of = {int(idx): s for s, idx in enumerate(order)}
     st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
     for r in range(rounds - 1):
-        ranked = ([int(i) for i in order] if r == 0
-                  else [s.idx for s in _sort_key([st[i] for i in range(n)])])
+        ranked = (
+            [int(i) for i in order]
+            if r == 0
+            else [s.idx for s in _sort_key([st[i] for i in range(n)])]
+        )
         if r == 0:
             half = n // 2
             pairs = [(ranked[k], ranked[half + k]) for k in range(half)]
@@ -272,7 +274,8 @@ def swiss_final_drama(rng, theta, model: MatchModel, rounds: int, seed_order=Non
             pairs = _greedy_pairs(ranked, st)
         for a, b in pairs:
             m, res = model.play(rng, theta[a], theta[b])
-            st[a].add(b, res, m); st[b].add(a, -res, -m)
+            st[a].add(b, res, m)
+            st[b].add(a, -res, -m)
 
     pre = [s.idx for s in _sort_key([st[i] for i in range(n)])]
     leader, second = pre[0], pre[1]
@@ -288,7 +291,8 @@ def swiss_final_drama(rng, theta, model: MatchModel, rounds: int, seed_order=Non
                 res, m = force, float(force)
             else:
                 m, res = model.play(rng, theta[a], theta[b])
-            st[a].add(b, res, m); st[b].add(a, -res, -m)
+            st[a].add(b, res, m)
+            st[b].add(a, -res, -m)
         return [s.idx for s in _sort_key([st[i] for i in range(n)])][0]
 
     champ = champ_with(None)
@@ -354,7 +358,7 @@ def _brick_pairs(ranked, offset):
     if offset == 0:
         return [(ranked[k], ranked[k + 1]) for k in range(0, n - 1, 2)]
     pairs = [(ranked[k], ranked[k + 1]) for k in range(1, n - 1, 2)]
-    pairs.append((ranked[n - 1], ranked[0]))   # wrap: one long-range calibration link
+    pairs.append((ranked[n - 1], ranked[0]))  # wrap: one long-range calibration link
     return pairs
 
 
@@ -417,8 +421,7 @@ def _circle_pairs(pool, t):
 FUNNEL = (48, 24, 16, 12, 8, 8, 6, 4)
 
 
-def run_champion_focus(rng, theta, model: MatchModel, rounds: int,
-                       seed_order=None, funnel=FUNNEL):
+def run_champion_focus(rng, theta, model: MatchModel, rounds: int, seed_order=None, funnel=FUNNEL):
     n = len(theta)
     order = np.argsort(-theta) if seed_order is None else np.asarray(seed_order)
     games = []
@@ -482,11 +485,10 @@ def run_protected_final(rng, theta, model: MatchModel, rounds: int, seed_order=N
             zp = (pts - pts.mean()) / (pts.std() + 1e-9)
             ranked = list(np.argsort(-(za + zp)))
         last = r == rounds - 1
-        if last:                                   # grand final: the two favourites
+        if last:  # grand final: the two favourites
             pairs = [(ranked[0], ranked[1])] + _greedy_pairs(ranked[2:], st)
-        else:                                      # keep the top-2 favourites apart
-            pairs = ([(ranked[0], ranked[2]), (ranked[1], ranked[3])]
-                     + _greedy_pairs(ranked[4:], st))
+        else:  # keep the top-2 favourites apart
+            pairs = [(ranked[0], ranked[2]), (ranked[1], ranked[3])] + _greedy_pairs(ranked[4:], st)
         for a, b in pairs:
             if last and a == ranked[0] and b == ranked[1]:
                 margin, res = model.play_decisive(rng, theta[a], theta[b])
@@ -537,7 +539,7 @@ def run_world_cup(rng, theta, model: MatchModel, seed_order=None):
     st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
 
     # Group stage
-    games = []          # (i, j, score_for_i) for downstream BT-MLE ranking
+    games = []  # (i, j, score_for_i) for downstream BT-MLE ranking
     group_tables = []
     for g in groups:
         for a, b in [(0, 1), (2, 3), (0, 2), (1, 3), (0, 3), (1, 2)]:
@@ -556,9 +558,7 @@ def run_world_cup(rng, theta, model: MatchModel, seed_order=None):
         reverse=True,
     )
     best_thirds = [s.idx for s in thirds[:8]]
-    eliminated_group = [t[3].idx for t in group_tables] + [
-        s.idx for s in thirds[8:]
-    ]
+    eliminated_group = [t[3].idx for t in group_tables] + [s.idx for s in thirds[8:]]
 
     # 32 qualifiers, seeded for the bracket by (group finish, then points).
     q_winners = sorted(winners, key=lambda i: -st[i].points)
@@ -642,22 +642,21 @@ def run_round_robin(rng, theta, model: MatchModel):
 #   'gentle'     holds the field longer, then cuts.
 ELIM_SCHEDULES = {
     "aggressive": (48, 32, 24, 16, 10, 6, 4, 2),
-    "matched":    (48, 44, 36, 28, 20, 14, 10, 8),
-    "gentle":     (48, 48, 44, 34, 22, 12, 8, 4),
+    "matched": (48, 44, 36, 28, 20, 14, 10, 8),
+    "gentle": (48, 48, 44, 34, 22, 12, 8, 4),
 }
-ELIM_SCHEDULE = ELIM_SCHEDULES["matched"]   # representative, for the diagnostic
+ELIM_SCHEDULE = ELIM_SCHEDULES["matched"]  # representative, for the diagnostic
 
 
-def run_swiss_elim(rng, theta, model: MatchModel, schedule=ELIM_SCHEDULE,
-                   seed_order=None):
+def run_swiss_elim(rng, theta, model: MatchModel, schedule=ELIM_SCHEDULE, seed_order=None):
     n = len(theta)
     order = np.argsort(-theta) if seed_order is None else np.asarray(seed_order)
     seed_of = {int(idx): s for s, idx in enumerate(order)}
     st = {i: Standing(idx=i, theta=float(theta[i]), seed=seed_of[i]) for i in range(n)}
 
-    alive = [int(i) for i in order]           # seeded order to start
-    elim_order = []                            # teams as they are cut (earliest first)
-    cut_md = {}                                # team -> match-day it was cut
+    alive = [int(i) for i in order]  # seeded order to start
+    elim_order = []  # teams as they are cut (earliest first)
+    cut_md = {}  # team -> match-day it was cut
     games = []
 
     for md, size in enumerate(schedule):
@@ -668,7 +667,7 @@ def run_swiss_elim(rng, theta, model: MatchModel, schedule=ELIM_SCHEDULE,
             cut = ranked_alive[size:]
             for c in cut:
                 cut_md[c] = md
-            elim_order.extend(reversed(cut))   # higher-ranked cuts placed later
+            elim_order.extend(reversed(cut))  # higher-ranked cuts placed later
             alive = keep
 
         # Pair the survivors Swiss-style and play the round.
@@ -717,18 +716,22 @@ def bt_mle(n, games, alpha=0.5, iters=100, tol=1e-7):
     b = np.fromiter((g[1] for g in games), dtype=int, count=len(games))
     s = np.fromiter((g[2] for g in games), dtype=float, count=len(games))
 
-    W = (np.bincount(a, weights=s, minlength=n)
-         + np.bincount(b, weights=1.0 - s, minlength=n)
-         + alpha)                         # alpha virtual wins vs anchor(=1)
+    W = (
+        np.bincount(a, weights=s, minlength=n)
+        + np.bincount(b, weights=1.0 - s, minlength=n)
+        + alpha
+    )  # alpha virtual wins vs anchor(=1)
 
     p = np.ones(n)
     for _ in range(iters):
         inv = 1.0 / (p[a] + p[b])
-        denom = (np.bincount(a, weights=inv, minlength=n)
-                 + np.bincount(b, weights=inv, minlength=n)
-                 + 2.0 * alpha / (p + 1.0))   # 2*alpha games vs strength-1 anchor
+        denom = (
+            np.bincount(a, weights=inv, minlength=n)
+            + np.bincount(b, weights=inv, minlength=n)
+            + 2.0 * alpha / (p + 1.0)
+        )  # 2*alpha games vs strength-1 anchor
         p_new = W / denom
-        p_new /= np.exp(np.log(p_new).mean())   # fix scale (geometric mean 1)
+        p_new /= np.exp(np.log(p_new).mean())  # fix scale (geometric mean 1)
         if np.max(np.abs(np.log(p_new) - np.log(p))) < tol:
             p = p_new
             break
@@ -814,28 +817,49 @@ def mcnemar_p(a_wins, b_wins):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--reps", type=int, default=2000, help="Monte-Carlo replications")
     ap.add_argument("--teams", type=int, default=48, help="field size (WC needs 48)")
-    ap.add_argument("--model", choices=["elo", "gaussian"], default="elo",
-                    help="ability model: 'elo' calibrates to head-to-head reality")
-    ap.add_argument("--elo-sd", type=float, default=130.0,
-                    help="std dev of the field's Elo ratings (elo model)")
-    ap.add_argument("--noise", type=float, default=None,
-                    help="Thurstone noise sigma (gaussian model; elo fixes it)")
-    ap.add_argument("--draw-band", type=float, default=0.32,
-                    help="margin magnitude below which a group game is a draw")
-    ap.add_argument("--ability-sd", type=float, default=1.0,
-                    help="std dev of latent ability (gaussian model)")
-    ap.add_argument("--seed-noise", type=float, default=0.12,
-                    help="noise (theta units) in the shared pre-tournament seeding")
-    ap.add_argument("--swiss-rounds", type=int, default=8,
-                    help="max Swiss rounds (snapshots taken after each)")
+    ap.add_argument(
+        "--model",
+        choices=["elo", "gaussian"],
+        default="elo",
+        help="ability model: 'elo' calibrates to head-to-head reality",
+    )
+    ap.add_argument(
+        "--elo-sd", type=float, default=130.0, help="std dev of the field's Elo ratings (elo model)"
+    )
+    ap.add_argument(
+        "--noise",
+        type=float,
+        default=None,
+        help="Thurstone noise sigma (gaussian model; elo fixes it)",
+    )
+    ap.add_argument(
+        "--draw-band",
+        type=float,
+        default=0.32,
+        help="margin magnitude below which a group game is a draw",
+    )
+    ap.add_argument(
+        "--ability-sd", type=float, default=1.0, help="std dev of latent ability (gaussian model)"
+    )
+    ap.add_argument(
+        "--seed-noise",
+        type=float,
+        default=0.12,
+        help="noise (theta units) in the shared pre-tournament seeding",
+    )
+    ap.add_argument(
+        "--swiss-rounds", type=int, default=8, help="max Swiss rounds (snapshots taken after each)"
+    )
     ap.add_argument("--seed", type=int, default=20260706)
     ap.add_argument("--no-rr", action="store_true", help="skip round-robin reference")
-    ap.add_argument("--plot", type=str, default=None,
-                    help="path to save the power-vs-match-day figure")
+    ap.add_argument(
+        "--plot", type=str, default=None, help="path to save the power-vs-match-day figure"
+    )
     args = ap.parse_args()
 
     n = args.teams
@@ -845,46 +869,45 @@ def main():
     rng = np.random.default_rng(args.seed)
 
     # Calendar / games accounting.
-    WC_MATCHDAYS = 8            # 3 group + R32,R16,QF,SF,Final
+    WC_MATCHDAYS = 8  # 3 group + R32,R16,QF,SF,Final
     WC_TOTAL_GAMES = 12 * 6 + (16 + 8 + 4 + 2 + 1)  # 72 + 31 = 103
-    WC_GPT = WC_TOTAL_GAMES * 2 / n                  # avg games per team
+    WC_GPT = WC_TOTAL_GAMES * 2 / n  # avg games per team
 
     R = args.swiss_rounds
     wc = Accum("World Cup (bracket rank)", WC_MATCHDAYS, WC_GPT, WC_TOTAL_GAMES)
     wc_mle = Accum("World Cup + BT-MLE rank", WC_MATCHDAYS, WC_GPT, WC_TOTAL_GAMES)
     elim = {
-        name: Accum(f"Swiss-elim: {name}", len(s),
-                    sum(x // 2 for x in s) * 2 / n, sum(x // 2 for x in s))
+        name: Accum(
+            f"Swiss-elim: {name}", len(s), sum(x // 2 for x in s) * 2 / n, sum(x // 2 for x in s)
+        )
         for name, s in ELIM_SCHEDULES.items()
     }
-    swiss = {
-        r: Accum(f"Swiss ({r}r, points)", r, float(r), r * (n // 2))
-        for r in range(1, R + 1)
-    }
+    swiss = {r: Accum(f"Swiss ({r}r, points)", r, float(r), r * (n // 2)) for r in range(1, R + 1)}
     swiss_mle = Accum(f"Swiss ({R}r) + BT-MLE", R, float(R), R * (n // 2))
     adapt = {
-        r: Accum(f"Adaptive Thurstone ({r}r)", r, float(r), r * (n // 2))
-        for r in range(1, R + 1)
+        r: Accum(f"Adaptive Thurstone ({r}r)", r, float(r), r * (n // 2)) for r in range(1, R + 1)
     }
-    focus = {
-        r: Accum(f"Champion-focus ({r}r)", r, float(r), r * (n // 2))
-        for r in range(1, R + 1)
-    }
+    focus = {r: Accum(f"Champion-focus ({r}r)", r, float(r), r * (n // 2)) for r in range(1, R + 1)}
     protected = Accum("Protected + grand final", R, float(R), R * (n // 2))
-    rr = None if args.no_rr else Accum(
-        "Round robin (full)", n - 1, float(n - 1), n * (n - 1) // 2
-    )
+    rr = None if args.no_rr else Accum("Round robin (full)", n - 1, float(n - 1), n * (n - 1) // 2)
 
     calibration = {"group_games": 0, "draws": 0, "fav_wins": 0, "fav_games": 0}
     # "Sent home too early?" diagnostic -- how often the TRUE best team is
     # discarded before the deciding stage in each elimination-based format.
-    diag = {"reps48": 0, "wc_group_out": 0, "wc_no_final": 0, "elim_cut_early": 0,
-            "best_on_topboard": 0, "champ_on_board": 0, "leaders_meet": 0,
-            "decisive_final": 0}
+    diag = {
+        "reps48": 0,
+        "wc_group_out": 0,
+        "wc_no_final": 0,
+        "elim_cut_early": 0,
+        "best_on_topboard": 0,
+        "champ_on_board": 0,
+        "leaders_meet": 0,
+        "decisive_final": 0,
+    }
 
     for _ in range(args.reps):
         theta = sample_abilities(rng, n, args.model, args.ability_sd, args.elo_sd)
-        true_order = np.argsort(-theta)           # best-first
+        true_order = np.argsort(-theta)  # best-first
         true_rank_of = np.empty(n, dtype=int)
         for pos, i in enumerate(true_order):
             true_rank_of[int(i)] = pos
@@ -898,8 +921,7 @@ def main():
 
         # --- World Cup (only defined for 48) ---
         if n == 48:
-            champ, wc_full, wc_games, group_out = run_world_cup(
-                rng, theta, model, seed_order)
+            champ, wc_full, wc_games, group_out = run_world_cup(rng, theta, model, seed_order)
             wc.update(champ, wc_full, true_rank_of, best_id)
             # Same World-Cup games, but ranked by the Bradley-Terry MLE.
             mr = bt_ranking(n, wc_games)
@@ -907,18 +929,18 @@ def main():
 
             # --- Swiss + elimination: several cut schedules, all 8 match-days ---
             for name, sched in ELIM_SCHEDULES.items():
-                champ, ranking, _, cut_md = run_swiss_elim(
-                    rng, theta, model, sched, seed_order)
+                champ, ranking, _, cut_md = run_swiss_elim(rng, theta, model, sched, seed_order)
                 elim[name].update(champ, ranking, true_rank_of, best_id)
                 if name == "matched":
                     matched_cut_md = cut_md
 
             # Diagnostic: did each elimination format send the true best home early?
             diag["reps48"] += 1
-            diag["wc_group_out"] += int(best_id in group_out)     # out in group stage
+            diag["wc_group_out"] += int(best_id in group_out)  # out in group stage
             diag["wc_no_final"] += int(best_id not in wc_full[:2])  # never made the final
             diag["elim_cut_early"] += int(
-                matched_cut_md.get(best_id, len(ELIM_SCHEDULE)) < len(ELIM_SCHEDULE) - 1)
+                matched_cut_md.get(best_id, len(ELIM_SCHEDULE)) < len(ELIM_SCHEDULE) - 1
+            )
 
         # --- Swiss: one run, snapshot every round (points ranking) ---
         snaps, s_games = run_swiss(rng, theta, model, R, seed_order)
@@ -977,8 +999,9 @@ def main():
     print(f"  Field size          : {n} teams")
     print(f"  Match model         : performance = ability + N(0,σ²), higher wins")
     if args.model == "elo":
-        print(f"  Ability calibration : Elo, field sd {args.elo_sd:.0f} pts "
-              f"(head-to-head calibrated)")
+        print(
+            f"  Ability calibration : Elo, field sd {args.elo_sd:.0f} pts (head-to-head calibrated)"
+        )
 
         def elo_winp(gap):
             return norm.cdf(gap * THURSTONE_PER_ELO / (np.sqrt(2) * sigma))
@@ -988,24 +1011,29 @@ def main():
         print(f"  Implied win prob    : {implied}   (single game, Elo edge)")
     else:
         print(f"  Ability calibration : Gaussian, sd {args.ability_sd}, σ {sigma:.3f}")
-    print(f"  Seeding             : shared noisy pre-tournament rating "
-          f"(seed-noise {args.seed_noise})")
+    print(
+        f"  Seeding             : shared noisy pre-tournament rating (seed-noise {args.seed_noise})"
+    )
     dr = calibration["draws"] / calibration["group_games"]
     fw = calibration["fav_wins"] / calibration["fav_games"]
     print(f"  Realized draw rate  : {dr:5.1%}  (rank-11 vs rank-21 sample)")
     print(f"  Mid-favourite win % : {fw:5.1%}")
     print("-" * 78)
 
-    header = (f"  {'format':<26}{'m-days':>7}{'g/team':>8}{'games':>7}"
-              f"{'P(best)':>9}{'±95%':>7}{'top4':>7}{'E[rank]':>8}{'ρ':>7}")
+    header = (
+        f"  {'format':<26}{'m-days':>7}{'g/team':>8}{'games':>7}"
+        f"{'P(best)':>9}{'±95%':>7}{'top4':>7}{'E[rank]':>8}{'ρ':>7}"
+    )
     print(header)
     print("-" * 78)
 
     def show(acc):
         r = acc.row()
-        print(f"  {r['label']:<26}{r['matchdays']:>7}{r['gpt']:>8.1f}"
-              f"{r['games']:>7}{r['p_best']:>9.3f}{r['p_best_ci']:>7.3f}"
-              f"{r['p_top4']:>7.2f}{r['mean_champ_rank']:>8.2f}{r['rho']:>7.3f}")
+        print(
+            f"  {r['label']:<26}{r['matchdays']:>7}{r['gpt']:>8.1f}"
+            f"{r['games']:>7}{r['p_best']:>9.3f}{r['p_best_ci']:>7.3f}"
+            f"{r['p_top4']:>7.2f}{r['mean_champ_rank']:>8.2f}{r['rho']:>7.3f}"
+        )
 
     if n == 48:
         print("  No-elimination formats, 8 match-days (equal calendar):")
@@ -1039,26 +1067,35 @@ def main():
     if n == 48 and diag["reps48"]:
         d = diag["reps48"]
         print("  DIAGNOSTIC -- how often the TRUE best team is discarded early:")
-        print(f"      World Cup: eliminated in the GROUP stage   "
-              f"{diag['wc_group_out']/d:5.1%}")
-        print(f"      World Cup: never even reaches the final     "
-              f"{diag['wc_no_final']/d:5.1%}")
-        print(f"      Swiss+elim: cut before the final round      "
-              f"{diag['elim_cut_early']/d:5.1%}")
-        print(f"      Adaptive / full Swiss: nobody is eliminated  0.0%  "
-              f"(the best is always still measurable)")
+        print(f"      World Cup: eliminated in the GROUP stage   {diag['wc_group_out'] / d:5.1%}")
+        print(f"      World Cup: never even reaches the final     {diag['wc_no_final'] / d:5.1%}")
+        print(
+            f"      Swiss+elim: cut before the final round      {diag['elim_cut_early'] / d:5.1%}"
+        )
+        print(
+            f"      Adaptive / full Swiss: nobody is eliminated  0.0%  "
+            f"(the best is always still measurable)"
+        )
         print("  DO WE EVEN GET A 'FINAL'? -- last-round top board (board 1):")
-        print(f"      P(champion played on the top board)         "
-              f"{diag['champ_on_board']/args.reps:5.1%}")
-        print(f"      P(the two leaders actually MEET on board 1) "
-              f"{diag['leaders_meet']/args.reps:5.1%}   "
-              f"(usually they already played -> rematch avoided)")
-        print(f"      P(board 1 is DECISIVE -> a genuine final)   "
-              f"{diag['decisive_final']/args.reps:5.1%}   "
-              f"(else the title is already clinched)")
-        print(f"      P(true best is on the top board)            "
-              f"{diag['best_on_topboard']/args.reps:5.1%}   "
-              f"(parity ceiling on any 'final decides it' rule)")
+        print(
+            f"      P(champion played on the top board)         "
+            f"{diag['champ_on_board'] / args.reps:5.1%}"
+        )
+        print(
+            f"      P(the two leaders actually MEET on board 1) "
+            f"{diag['leaders_meet'] / args.reps:5.1%}   "
+            f"(usually they already played -> rematch avoided)"
+        )
+        print(
+            f"      P(board 1 is DECISIVE -> a genuine final)   "
+            f"{diag['decisive_final'] / args.reps:5.1%}   "
+            f"(else the title is already clinched)"
+        )
+        print(
+            f"      P(true best is on the top board)            "
+            f"{diag['best_on_topboard'] / args.reps:5.1%}   "
+            f"(parity ceiling on any 'final decides it' rule)"
+        )
         print("      -> plain Swiss delivers a real final only ~2/3 of the time; the")
         print("         'protect top-2 until the final' rule manufactures one every time,")
         print("         at ~zero power cost -- its value is DRAMA, not accuracy.")
@@ -1074,36 +1111,32 @@ def main():
         s8_r = s8.row()
 
         # Paired McNemar test on champion identification (same abilities/rep).
-        a_only = sum(
-            1 for sw, w in zip(s8._champ_is_best, wc._champ_is_best)
-            if sw == 1 and w == 0
-        )
-        b_only = sum(
-            1 for sw, w in zip(s8._champ_is_best, wc._champ_is_best)
-            if sw == 0 and w == 1
-        )
+        a_only = sum(1 for sw, w in zip(s8._champ_is_best, wc._champ_is_best) if sw == 1 and w == 0)
+        b_only = sum(1 for sw, w in zip(s8._champ_is_best, wc._champ_is_best) if sw == 0 and w == 1)
         p = mcnemar_p(a_only, b_only)
 
         # Representative elimination schedule (the aggressive, fewest-games one).
         elim_agg = elim["aggressive"]
         elim_agg_r = elim_agg.row()
-        ea = sum(1 for e, w in zip(elim_agg._champ_is_best, wc._champ_is_best)
-                 if e == 1 and w == 0)
-        eb = sum(1 for e, w in zip(elim_agg._champ_is_best, wc._champ_is_best)
-                 if e == 0 and w == 1)
+        ea = sum(1 for e, w in zip(elim_agg._champ_is_best, wc._champ_is_best) if e == 1 and w == 0)
+        eb = sum(1 for e, w in zip(elim_agg._champ_is_best, wc._champ_is_best) if e == 0 and w == 1)
         ep = mcnemar_p(ea, eb)
 
         print("\n  VERDICT")
         print("  " + "-" * 74)
         lift = s8_r["p_best"] - wc_r["p_best"]
-        print(f"  [1] EQUAL CALENDAR ({WC_MATCHDAYS} match-days) -- the binding World-Cup"
-              f" constraint:")
-        print(f"      World Cup   P(crown the best team) = {wc_r['p_best']:.3f}"
-              f"   ρ = {wc_r['rho']:.3f}")
-        print(f"      Swiss-{args.swiss_rounds}     P(crown the best team) = "
-              f"{s8_r['p_best']:.3f}   ρ = {s8_r['rho']:.3f}")
-        print(f"                  Δ = +{lift:.3f}  "
-              f"({lift / wc_r['p_best'] * 100:.0f}% relative)")
+        print(
+            f"  [1] EQUAL CALENDAR ({WC_MATCHDAYS} match-days) -- the binding World-Cup constraint:"
+        )
+        print(
+            f"      World Cup   P(crown the best team) = {wc_r['p_best']:.3f}"
+            f"   ρ = {wc_r['rho']:.3f}"
+        )
+        print(
+            f"      Swiss-{args.swiss_rounds}     P(crown the best team) = "
+            f"{s8_r['p_best']:.3f}   ρ = {s8_r['rho']:.3f}"
+        )
+        print(f"                  Δ = +{lift:.3f}  ({lift / wc_r['p_best'] * 100:.0f}% relative)")
         print(f"      Paired McNemar test on champion ID:  p = {p:.2e}")
         print(f"          (Swiss-right/WC-wrong={a_only},  WC-right/Swiss-wrong={b_only})")
         print("      -> Swiss is the clearly more powerful estimator per match-day: no")
@@ -1113,10 +1146,8 @@ def main():
         # Decomposition of the reader's three critiques into the clever fix.
         s8_mle_r = swiss_mle.row()
         ad_r = adapt[R].row()
-        aa = sum(1 for x, w in zip(adapt[R]._champ_is_best, wc._champ_is_best)
-                 if x == 1 and w == 0)
-        ab = sum(1 for x, w in zip(adapt[R]._champ_is_best, wc._champ_is_best)
-                 if x == 0 and w == 1)
+        aa = sum(1 for x, w in zip(adapt[R]._champ_is_best, wc._champ_is_best) if x == 1 and w == 0)
+        ab = sum(1 for x, w in zip(adapt[R]._champ_is_best, wc._champ_is_best) if x == 0 and w == 1)
         ap_ = mcnemar_p(aa, ab)
         rr_r = rr.row() if rr is not None else None
 
@@ -1124,15 +1155,23 @@ def main():
         print("      (a) 'losing is rewarded' -- classic Swiss ranks by POINTS, so a loss")
         print("          buys softer opponents and cheap points. Fix: rank by the")
         print("          Bradley-Terry / Thurstone MLE (credits quality of opponents).")
-        print(f"              Swiss, points ranking   P(best) = {s8_r['p_best']:.3f}"
-              f"   ρ = {s8_r['rho']:.3f}")
-        print(f"              Swiss, BT-MLE ranking    P(best) = {s8_mle_r['p_best']:.3f}"
-              f"   ρ = {s8_mle_r['rho']:.3f}   <- same games, better estimator")
+        print(
+            f"              Swiss, points ranking   P(best) = {s8_r['p_best']:.3f}"
+            f"   ρ = {s8_r['rho']:.3f}"
+        )
+        print(
+            f"              Swiss, BT-MLE ranking    P(best) = {s8_mle_r['p_best']:.3f}"
+            f"   ρ = {s8_mle_r['rho']:.3f}   <- same games, better estimator"
+        )
         print("      (b) 'sent home too early' -- see the diagnostic above: the World Cup")
-        print(f"          dumps the true best in the group stage {diag['wc_group_out']/d:.0%} of the"
-              f" time; the elim")
-        print(f"          schedule cuts it early {diag['elim_cut_early']/d:.0%}. Fix: DON'T eliminate"
-              f" -- games run")
+        print(
+            f"          dumps the true best in the group stage {diag['wc_group_out'] / d:.0%} of the"
+            f" time; the elim"
+        )
+        print(
+            f"          schedule cuts it early {diag['elim_cut_early'] / d:.0%}. Fix: DON'T eliminate"
+            f" -- games run"
+        )
         print("          in parallel, so keep all 48 playing every match-day.")
         print("      (c) 'too random' -- I tried to beat plain Swiss by being clever:")
         print("          pairing ONLY near-equals off the posterior (Adaptive) and")
@@ -1140,21 +1179,30 @@ def main():
         print()
         fc_r = focus[R].row()
         print("  [3] WINNER-IDENTIFICATION POWER AT 8 MATCH-DAYS  (the honest scoreboard):")
-        rows8 = [("World Cup (RR + KO)", wc_r), ("Swiss (points)", s8_r),
-                 ("Swiss + BT-MLE", s8_mle_r), ("Adaptive Thurstone", ad_r),
-                 ("Champion-focus (best-arm)", fc_r)]
+        rows8 = [
+            ("World Cup (RR + KO)", wc_r),
+            ("Swiss (points)", s8_r),
+            ("Swiss + BT-MLE", s8_mle_r),
+            ("Adaptive Thurstone", ad_r),
+            ("Champion-focus (best-arm)", fc_r),
+        ]
         for name, rr2 in rows8:
             bar = "#" * int(round(rr2["p_best"] * 100))
-            print(f"        {name:<27} P(best) = {rr2['p_best']:.3f} ± "
-                  f"{rr2['p_best_ci']:.3f}  {bar}")
+            print(
+                f"        {name:<27} P(best) = {rr2['p_best']:.3f} ± {rr2['p_best_ci']:.3f}  {bar}"
+            )
         if rr_r is not None:
-            print(f"        {'Round-robin CEILING':<27} P(best) = {rr_r['p_best']:.3f}"
-                  f"          (47 match-days, 1128 games)")
+            print(
+                f"        {'Round-robin CEILING':<27} P(best) = {rr_r['p_best']:.3f}"
+                f"          (47 match-days, 1128 games)"
+            )
         print("  " + "-" * 74)
         print("  FINDINGS (what actually held up at scale):")
         print(f"    1. Swiss >> World Cup, robustly (p = {p:.1e}). The decisive lever is")
         print(f"       simply NOT eliminating: the World Cup discards the true best team")
-        print(f"       before the final {diag['wc_no_final']/d:.0%} of the time, on 1-3 games of data.")
+        print(
+            f"       before the final {diag['wc_no_final'] / d:.0%} of the time, on 1-3 games of data."
+        )
         mle_gap = s8_mle_r["p_best"] - s8_r["p_best"]
         print(f"    2. 'Losing is rewarded' is REAL but SMALL: BT-MLE moves P(best) by only")
         print(f"       {mle_gap:+.3f} vs points -- Swiss pairing already balances schedules, so")
@@ -1164,19 +1212,27 @@ def main():
         print(f"       ~50/50 coin-flips, which REMOVES separating signal.")
         if rr_r is not None:
             print(f"    4. Hard ceiling from parity: even a 1128-game round-robin crowns the")
-            print(f"       true best only {rr_r['p_best']:.0%} of the time -- the top teams sit within a")
+            print(
+                f"       true best only {rr_r['p_best']:.0%} of the time -- the top teams sit within a"
+            )
             print(f"       coin-flip, so there is little headroom above plain Swiss at 8 days.")
         print(f"    5. You CAN eliminate and STILL beat the knockout. Swiss-elim (even the")
-        print(f"       aggressive {elim_agg_r['games']}-game schedule -- FEWER games than the World Cup's")
-        print(f"       {WC_TOTAL_GAMES}) crowns the best {elim_agg_r['p_best']:.3f} vs the knockout's "
-              f"{wc_r['p_best']:.3f} (McNemar p = {ep:.1e}).")
+        print(
+            f"       aggressive {elim_agg_r['games']}-game schedule -- FEWER games than the World Cup's"
+        )
+        print(
+            f"       {WC_TOTAL_GAMES}) crowns the best {elim_agg_r['p_best']:.3f} vs the knockout's "
+            f"{wc_r['p_best']:.3f} (McNemar p = {ep:.1e})."
+        )
         print(f"       It cuts on ACCUMULATED record, not one game, so no single upset or")
         print(f"       unlucky group ends a contender -- and it ~ties full Swiss, so for")
         print(f"       winner-ID the elimination is essentially free.")
         prot_r = protected.row()
         print(f"    6. A 'top-2 can't meet until the final' rule is nearly free: reserving")
         print(f"       the marquee clash for a grand final that DECIDES the title scores")
-        print(f"       {prot_r['p_best']:.3f} vs plain Swiss's {s8_r['p_best']:.3f} -- a small cost, because one")
+        print(
+            f"       {prot_r['p_best']:.3f} vs plain Swiss's {s8_r['p_best']:.3f} -- a small cost, because one"
+        )
         print(f"       coin-flip game replaces 8 rounds of evidence. Keep the drama, but let")
         print(f"       the final be a tie-break, not winner-take-all. (Still >> the knockout.)")
         print("  " + "-" * 74)
@@ -1192,6 +1248,7 @@ def main():
 
 def _make_plot(args, wc, swiss, adapt, rr):
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -1206,8 +1263,7 @@ def _make_plot(args, wc, swiss, adapt, rr):
     ax1.plot(rounds, p_adapt, "o-", color="#1f77b4", label="Adaptive Thurstone")
     ax1.plot(rounds, p_swiss, "s--", color="#7f7f7f", label="Swiss (points)")
     if wc is not None:
-        ax1.axhline(wc.row()["p_best"], color="#d62728", ls="--",
-                    label="World Cup (8 match-days)")
+        ax1.axhline(wc.row()["p_best"], color="#d62728", ls="--", label="World Cup (8 match-days)")
         ax1.axvline(8, color="gray", ls=":", alpha=0.6)
     ax1.set_xlabel("match-days (rounds)")
     ax1.set_ylabel("P(crown the true best team)")
@@ -1220,16 +1276,14 @@ def _make_plot(args, wc, swiss, adapt, rr):
     if wc is not None:
         ax2.axhline(wc.row()["rho"], color="#d62728", ls="--", label="World Cup")
     if rr is not None:
-        ax2.axhline(rr.row()["rho"], color="#2ca02c", ls="-.",
-                    label="Round robin (ceiling)")
+        ax2.axhline(rr.row()["rho"], color="#2ca02c", ls="-.", label="Round robin (ceiling)")
     ax2.set_xlabel("match-days (rounds)")
     ax2.set_ylabel("Spearman ρ vs true ranking")
     ax2.set_title("Full-field ranking fidelity")
     ax2.legend()
     ax2.grid(alpha=0.3)
 
-    fig.suptitle("Swiss vs FIFA World Cup format — Thurstone Monte-Carlo",
-                 fontweight="bold")
+    fig.suptitle("Swiss vs FIFA World Cup format — Thurstone Monte-Carlo", fontweight="bold")
     fig.tight_layout()
     fig.savefig(args.plot, dpi=130)
     print(f"  [plot saved to {args.plot}]\n")
