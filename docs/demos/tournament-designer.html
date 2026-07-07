@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tournament designer &mdash; thurstone</title>
+  <title>Tournament designer</title>
   <link rel="stylesheet" href="../styles/main.css?v=2" />
   <style>
     /* All designer styles are scoped under .td-app so they cannot touch site tokens. */
@@ -18,21 +18,22 @@
       margin:8px 0 0;
     }
     .td-app .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
-    .td-app .grid{display:grid;grid-template-columns:250px 1fr;gap:20px;align-items:start}
-    @media (max-width:760px){ .td-app .grid{grid-template-columns:1fr} }
+    .td-app > .panel + .panel{margin-top:16px}
     .td-app .panel{background:var(--td-panel);border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--td-shadow)}
-    .td-app .controls{padding:16px}
+    .td-app .controls{display:flex;flex-wrap:wrap;gap:18px 24px;align-items:end;padding:16px 18px}
     .td-app .hd{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--td-muted);font-weight:700;margin:0 0 12px}
-    .td-app .ctl{margin-bottom:16px}
-    .td-app .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;margin-bottom:6px}
-    .td-app .ctl label .val{color:var(--td-accent);font-weight:700}
+    .td-app .ctl{margin:0;flex:1 1 180px;min-width:165px}
+    .td-app .ctl.actions{display:flex;flex-direction:column;gap:9px}
+    .td-app .ctl > label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:600;margin-bottom:7px}
+    .td-app .ctl label > span:first-child{min-width:0}
+    .td-app .ctl label .val{flex:0 0 auto;white-space:nowrap;color:var(--td-accent);font-weight:700}
     .td-app input[type=range]{width:100%;accent-color:var(--td-accent);height:20px}
     .td-app .seg{display:flex;border:1px solid var(--td-line);border-radius:9px;overflow:hidden}
     .td-app .seg button{flex:1;border:0;background:var(--td-panel);color:var(--td-muted);padding:8px 6px;font-size:12px;font-weight:600;cursor:pointer}
     .td-app .seg button[aria-pressed=true]{background:var(--td-panel-2);color:var(--td-ink);box-shadow:inset 0 0 0 1.5px var(--td-accent)}
-    .td-app .switch{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:13px;font-weight:600;line-height:1.35}
+    .td-app .ctl > label.switch{display:flex;justify-content:flex-start;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;line-height:1.35;margin-bottom:0}
     .td-app .switch input{position:absolute;opacity:0;width:0;height:0}
-    .td-app .track{flex:0 0 auto;width:38px;height:22px;border-radius:999px;background:var(--td-line);position:relative;transition:background .18s}
+    .td-app .track{flex:0 0 auto;width:40px;height:23px;border-radius:999px;background:#c9cdd6;border:1px solid rgba(0,0,0,.12);position:relative;transition:background .18s}
     .td-app .track::after{content:"";position:absolute;top:2.5px;left:2.5px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
     .td-app .switch input:checked + .track{background:var(--td-accent)}
     .td-app .switch input:checked + .track::after{transform:translateX(16px)}
@@ -45,9 +46,7 @@
     .td-app .btn.ghost:hover{border-color:var(--td-accent)}
     .td-app .btn:disabled{opacity:.55;cursor:progress}
     .td-app .cal{font-size:12px;color:var(--td-muted);text-align:center;margin-top:2px}
-    .td-app .cal b{color:var(--td-ink)}
-    .td-app .hint{font-size:11.5px;color:var(--td-muted);margin-top:6px;line-height:1.5}
-    .td-app .hint b{color:var(--td-ink);font-weight:700}
+    .td-app .cal span{color:var(--td-ink);font-weight:600}
     .td-app .stage{padding:18px}
     .td-app .circles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     @media (max-width:560px){ .td-app .circles{grid-template-columns:repeat(2,1fr)} }
@@ -95,6 +94,10 @@
     .td-explainer .ex-body strong{color:var(--text)}
     .td-explainer .ex-body ol{margin:.4em 0;padding-left:1.3em}
     .td-explainer .ex-body li{margin:.3em 0}
+    .td-explainer .ex-sub{margin:1.1em 0 .3em;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+    .td-explainer .ex-terms{margin:.2em 0 0}
+    .td-explainer .ex-terms dt{font-weight:600;color:var(--text);margin-top:.7em}
+    .td-explainer .ex-terms dd{margin:.15em 0 0}
   </style>
 </head>
 <body>
@@ -116,169 +119,147 @@
   <main class="container">
     <h1>Tournament designer</h1>
     <p>
-      A tournament is an <em>estimator</em>: nature fixes a ranking, each match is a noisy pairwise
-      comparison, and the format is a rule for turning a budget of comparisons into a guess at
-      &ldquo;who is best.&rdquo; This page runs the same Thurstone Case&nbsp;V model as the rest of the
-      site &mdash; performance&nbsp;=&nbsp;ability&nbsp;+&nbsp;Gaussian noise, highest performance wins,
-      Elo-calibrated so a +100 rating edge is about a 63% single-game chance &mdash; to ask which
-      <strong>48-team World Cup format</strong> most reliably crowns the truly best team, for the same
+      A tournament is an <em>estimator</em>. Nature fixes a ranking, each match is a noisy pairwise
+      comparison, and the format is a rule for turning a budget of comparisons into a guess at who is best.
+      This page runs the same Thurstone Case&nbsp;V model as the rest of the site (performance is ability plus
+      Gaussian noise, highest performance wins, Elo-calibrated so a +100 rating edge is about a 63% single-game
+      chance) to ask which 48-team World Cup format most reliably crowns the truly best team, for the same
       calendar length.
     </p>
     <p>
-      Tune the rules, <strong>draw a bracket</strong> to play one tournament, then <strong>simulate</strong>
-      to Monte-Carlo the format against the real World Cup and a pure Swiss league &mdash; all in your
-      browser.
+      Tune the rules, draw a bracket to play one tournament, then simulate to run the format against the real
+      World Cup and a pure Swiss league many times over, all in your browser.
     </p>
 
     <details class="td-explainer">
-      <summary>How does a Swiss tournament work?</summary>
+      <summary>How a Swiss works, and what every dial means</summary>
       <div class="ex-body">
         <p>
-          A <strong>Swiss</strong> tournament (born in 1890s chess) avoids both the round-robin&rsquo;s
-          &ldquo;everyone plays everyone&rdquo; game-count and the knockout&rsquo;s &ldquo;lose once and
-          you&rsquo;re out&rdquo;. Instead, every round it <strong>pairs teams on equal records</strong>:
+          A Swiss tournament (from 1890s chess) sits between two extremes. A round robin makes everyone play
+          everyone: accurate, but far too many games. A knockout sends you home after one loss: dramatic, but it
+          throws away information. A Swiss keeps every team in and, each round, pairs teams on equal records.
         </p>
         <ol>
-          <li><strong>Round 1</strong> is seeded &mdash; the top half of the field plays the bottom half.</li>
-          <li><strong>Every round after</strong>, teams are sorted by points and paired with the nearest team
-              they haven&rsquo;t met: winners meet winners, so leaders are quickly tested against each other and
-              stragglers drift down. Nobody is eliminated.</li>
-          <li>After a handful of rounds, <strong>the standings themselves are the ranking</strong> &mdash; no
-              bracket required.</li>
+          <li>Round 1 is seeded: the top half of the field plays the bottom half.</li>
+          <li>After that, teams are sorted by points and paired with the nearest team they haven&rsquo;t met, so
+              winners meet winners and stragglers drift down. Nobody is eliminated.</li>
+          <li>After a handful of rounds the standings are the ranking, with no bracket required.</li>
         </ol>
         <p>
-          Because opponents are always near-equals, almost every game is a coin-toss on paper &mdash; which is
-          exactly what makes it <strong>informative</strong>: a 50/50 match tells you far more about who is
-          better than a 5&ndash;0 mismatch. Over the same number of match-days as the World Cup, that packs in
-          many more useful comparisons per team, so the final table tracks true ability far more closely than
-          three group games plus a knockout ladder. This tool bolts a short knockout (semis + final) onto a Swiss
-          group phase to keep the drama of a real final while keeping the accuracy.
+          Because opponents are always near-equals, almost every game is a coin-toss on paper, which is exactly
+          what makes it informative: a 50/50 match tells you far more than a 5&ndash;0 mismatch. Over the same
+          number of match-days as the World Cup you pack in many more useful comparisons, so the table tracks
+          true ability much better than three group games and a knockout ladder. This tool adds a short knockout
+          (semi-finals, then a final) onto a Swiss group phase, to keep a real final while keeping the accuracy.
         </p>
-        <p><strong>The words on the dials:</strong></p>
-        <ol>
-          <li><strong>Seed</strong> &mdash; a team&rsquo;s pre-tournament rank by rating; used to build balanced
-              groups and to decide who &ldquo;defends&rdquo; a drawn knockout game.</li>
-          <li><strong>Record</strong> &mdash; the points a team has piled up in its group games so far
-              (3 for a win, 1 for a draw).</li>
-          <li><strong>Group winner</strong> &mdash; the team top of its 12-team group after the Swiss rounds;
-              the four winners go to the semi-finals.</li>
-          <li><strong>Semi-final / final</strong> &mdash; the knockout: four teams, seeded 1&nbsp;v&nbsp;4 and
-              2&nbsp;v&nbsp;3 (&ldquo;strongest plays weakest&rdquo;), winners meet in the final.</li>
-          <li><strong>Record defends vs Penalties</strong> &mdash; two ways to settle a <em>drawn</em> knockout
-              game: let the higher-seeded team through, or flip a coin (a stand-in for a penalty shoot-out).</li>
-          <li><strong>Elo rating</strong> &mdash; a strength number for each team; a +100 gap is about a 63%
-              chance of winning a single game.</li>
-          <li><strong>The true best team</strong> &mdash; whichever team actually has the highest ability once a
-              tournament&rsquo;s form is added; the team a flawless format would always crown. The bars below
-              show how often each format manages to.</li>
-        </ol>
+        <h4 class="ex-sub">What the dials mean</h4>
+        <dl class="ex-terms">
+          <dt>Competitive balance</dt>
+          <dd>How evenly matched the 48 teams are. Slide right and the ratings squeeze together, so weaker teams upset stronger ones more often.</dd>
+          <dt>Swiss rounds per group</dt>
+          <dd>How many games each team plays in its group. Rounds, plus a semi-final and a final, give the total match-days: the same calendar the real World Cup fills.</dd>
+          <dt>Send teams home when eliminated</dt>
+          <dd>Once a team can no longer reach the top 4 of its group it stops playing. It only drops teams that already cannot reach the semis, so it never changes who can win; it just thins the field for drama.</dd>
+          <dt>Record defends vs Penalties</dt>
+          <dd>Two ways to settle a drawn knockout game. &ldquo;Record defends&rdquo; sends through the team that finished higher in the group phase, rewarding a strong group run. &ldquo;Penalties&rdquo; decides a draw with a 50/50 shoot-out. You can set the semis and the final separately.</dd>
+          <dt>Seed</dt>
+          <dd>A team&rsquo;s pre-tournament rank by rating, used to build balanced groups and to decide who defends a drawn game.</dd>
+          <dt>Record</dt>
+          <dd>The points a team has so far: 3 for a win, 1 for a draw.</dd>
+          <dt>Elo rating</dt>
+          <dd>A strength number for each team; a +100 gap is about a 63% chance of winning a single game.</dd>
+          <dt>The true best team</dt>
+          <dd>Whichever team actually has the highest ability once a tournament&rsquo;s form is added: the team a flawless format would always crown. The bars show how often each format manages it.</dd>
+        </dl>
       </div>
     </details>
 
     <div class="td-app">
-      <div class="grid">
-        <aside class="panel controls">
-          <h2 class="hd">The rules</h2>
+      <div class="panel controls">
+        <div class="ctl">
+          <label for="td-parity"><span>Competitive balance</span><span class="val" id="td-parityV">even</span></label>
+          <input type="range" id="td-parity" min="0" max="100" value="62">
+        </div>
 
-          <div class="ctl">
-            <label for="td-parity">Competitive balance <span class="val" id="td-parityV">even</span></label>
-            <input type="range" id="td-parity" min="0" max="100" value="62">
-            <div class="hint">How evenly matched the 48 teams are. Slide right and the ratings squeeze
-              together, so weaker teams upset stronger ones more often.</div>
+        <div class="ctl">
+          <label for="td-rounds"><span>Swiss rounds per group</span><span class="val" id="td-roundsV">6</span></label>
+          <input type="range" id="td-rounds" min="4" max="6" value="6">
+          <div class="cal"><span id="td-matchdays">8</span> match-days total</div>
+        </div>
+
+        <div class="ctl">
+          <label>When a team is out</label>
+          <label class="switch"><input type="checkbox" id="td-elim" checked><span class="track"></span><span>Send it home</span></label>
+        </div>
+
+        <div class="ctl">
+          <label>Semi-finals</label>
+          <div class="seg" id="td-semiSeg" role="group" aria-label="Semi-final tie rule">
+            <button data-v="tiebreak" aria-pressed="true">Record defends</button>
+            <button data-v="pens" aria-pressed="false">Penalties</button>
           </div>
+        </div>
 
-          <div class="ctl">
-            <label for="td-rounds">Swiss rounds per group <span class="val" id="td-roundsV">6</span></label>
-            <input type="range" id="td-rounds" min="4" max="6" value="6">
-            <div class="cal">Calendar: <b id="td-matchdays">8</b> match-days (rounds + semi + final)</div>
-            <div class="hint">How many group games each team plays before the knockout. Rounds + a semi-final
-              + a final is the total number of <b>match-days</b> &mdash; the same calendar the real World Cup fills.</div>
+        <div class="ctl">
+          <label>The final</label>
+          <div class="seg" id="td-finalSeg" role="group" aria-label="Final tie rule">
+            <button data-v="tiebreak" aria-pressed="false">Record defends</button>
+            <button data-v="pens" aria-pressed="true">Penalties</button>
           </div>
+        </div>
 
-          <div class="ctl">
-            <label class="switch"><input type="checkbox" id="td-elim" checked><span class="track"></span>
-              Send teams home when eliminated</label>
-            <div class="hint"><b>Arithmetic elimination:</b> the moment a team can no longer reach the top 4
-              of its group, it is out and stops playing. Because it only drops teams that already can&rsquo;t
-              reach the semis, it never changes who can win &mdash; it just thins the field for drama.</div>
-          </div>
-
-          <div class="ctl">
-            <label>Semi-finals</label>
-            <div class="seg" id="td-semiSeg" role="group" aria-label="Semi-final tie rule">
-              <button data-v="tiebreak" aria-pressed="true">Record defends</button>
-              <button data-v="pens" aria-pressed="false">Penalties</button>
-            </div>
-            <div class="hint">How a <b>drawn</b> semi-final is settled. <b>Record defends</b>: the team that
-              finished higher in the group phase goes through, so a strong group run is rewarded.
-              <b>Penalties</b>: a draw is decided by a 50/50 shoot-out.</div>
-          </div>
-
-          <div class="ctl">
-            <label>The final</label>
-            <div class="seg" id="td-finalSeg" role="group" aria-label="Final tie rule">
-              <button data-v="tiebreak" aria-pressed="false">Record defends</button>
-              <button data-v="pens" aria-pressed="true">Penalties</button>
-            </div>
-            <div class="hint">Same choice for the title game. <b>Record defends</b> favours the higher-seeded
-              finalist if it&rsquo;s a draw; <b>Penalties</b> makes the final a pure winner-take-all shoot-out.</div>
-          </div>
-
-          <div class="btns">
-            <button class="btn primary" id="td-drawBtn">Draw a tournament</button>
-            <button class="btn ghost" id="td-simBtn">Simulate 500 tournaments</button>
-          </div>
-        </aside>
-
-        <div>
-          <section class="panel stage">
-            <div class="hd">The draw &mdash; four Swiss groups of twelve</div>
-            <div class="circles" id="td-circles"></div>
-            <div class="flow">Group winners advance</div>
-            <div class="bracket" id="td-bracket"></div>
-            <div class="verdict" id="td-verdict">
-              <span class="badge ok" id="td-vbadge">Ready</span>
-              <span id="td-vtext">Press <b>Draw a tournament</b> to play one tournament under these rules.</span>
-            </div>
-          </section>
-
-          <section class="panel results">
-            <div class="hd">How often is the true best team crowned?</div>
-            <div class="rrow">
-              <div class="rlabel">This design<small id="td-dsub">groups &rarr; semis</small></div>
-              <div class="bar design"><span id="td-barD"></span></div><div class="pct" id="td-pctD">&mdash;</div>
-            </div>
-            <div class="rrow">
-              <div class="rlabel">World Cup 2026<small>groups of 4 + knockout</small></div>
-              <div class="bar wc"><span id="td-barW"></span></div><div class="pct" id="td-pctW">&mdash;</div>
-            </div>
-            <div class="rrow">
-              <div class="rlabel">Pure Swiss<small>8 rounds, no final</small></div>
-              <div class="bar swiss"><span id="td-barS"></span></div><div class="pct" id="td-pctS">&mdash;</div>
-            </div>
-            <p class="rnote" id="td-rnote">Press <b>Simulate 500 tournaments</b> to fill these bars. Each is the
-            share of tournaments whose champion is the single strongest team on the day &mdash; higher means the
-            format rewards ability over luck.</p>
-          </section>
+        <div class="ctl actions">
+          <button class="btn primary" id="td-drawBtn">Draw a tournament</button>
+          <button class="btn ghost" id="td-simBtn">Simulate 500 tournaments</button>
         </div>
       </div>
+
+      <section class="panel stage">
+        <div class="hd">The draw: four Swiss groups of twelve</div>
+        <div class="circles" id="td-circles"></div>
+        <div class="flow">Group winners advance</div>
+        <div class="bracket" id="td-bracket"></div>
+        <div class="verdict" id="td-verdict">
+          <span class="badge ok" id="td-vbadge">Ready</span>
+          <span id="td-vtext">Press Draw a tournament to play one tournament under these rules.</span>
+        </div>
+      </section>
+
+      <section class="panel results">
+        <div class="hd">How often is the true best team crowned?</div>
+        <div class="rrow">
+          <div class="rlabel">This design<small id="td-dsub">groups then semis</small></div>
+          <div class="bar design"><span id="td-barD"></span></div><div class="pct" id="td-pctD">&middot;</div>
+        </div>
+        <div class="rrow">
+          <div class="rlabel">World Cup 2026<small>groups of 4 plus knockout</small></div>
+          <div class="bar wc"><span id="td-barW"></span></div><div class="pct" id="td-pctW">&middot;</div>
+        </div>
+        <div class="rrow">
+          <div class="rlabel">Pure Swiss<small>8 rounds, no final</small></div>
+          <div class="bar swiss"><span id="td-barS"></span></div><div class="pct" id="td-pctS">&middot;</div>
+        </div>
+        <p class="rnote" id="td-rnote">Press Simulate 500 tournaments to fill these bars. Each is the share of
+        tournaments whose champion is the single strongest team on the day; higher means the format rewards
+        ability over luck.</p>
+      </section>
     </div>
 
     <h2>What the model is telling you</h2>
     <p>
       Across thousands of Monte-Carlo tournaments, every Swiss-style format beats the group-of-4-plus-knockout
-      World Cup by a wide margin. The lever is <strong>not eliminating teams on thin evidence</strong>: the
+      World Cup by a wide margin. The lever is simply <em>not</em> eliminating teams on thin evidence: the
       real World Cup sends the true best team home before the final about two-thirds of the time, on a single
-      knockout upset or a three-game group. You can still send teams home for drama &mdash; just cut on an
-      accumulated record, protect the top two into the final (the &ldquo;most-plays-least&rdquo; bracket), and
-      let the semis be <code>Record defends</code> so a whole run of results is not coin-flipped away. Team names
+      knockout upset or a three-game group. You can still send teams home for drama, as long as you cut on an
+      accumulated record, protect the top two into the final (the &ldquo;most plays least&rdquo; bracket), and
+      let the semis be &ldquo;Record defends&rdquo; so a whole run of results is not coin-flipped away. Team names
       are the real 2026 field, carried by approximate World-Football-Elo ratings; each tournament re-draws only
       a dose of &ldquo;form,&rdquo; so favourites usually top their groups but upsets still happen.
     </p>
   </main>
 
   <footer class="site-footer">
-    Built on the <a href="https://github.com/microprediction/thurstone">thurstone</a> package &mdash; the
+    Built on the <a href="https://github.com/microprediction/thurstone">thurstone</a> package. The
     match model is the same Thurstone transform used throughout this site.
     <a href="./index.html">Back to demos</a>.
   </footer>
@@ -293,16 +274,16 @@
   // The 48-team 2026 field with approximate World-Football-Elo ratings.
   // (A few late play-off spots are best-effort; ratings are illustrative.)
   const TEAMS = [
-    ["Argentina",2085],["Spain",2120],["France",2075],["England",2040],["Brazil",2015],
-    ["Portugal",2000],["Netherlands",1990],["Germany",1955],["Belgium",1945],["Italy",1940],
-    ["Croatia",1925],["Colombia",1920],["Morocco",1900],["Uruguay",1895],["Switzerland",1860],
-    ["Japan",1850],["Denmark",1845],["Norway",1830],["Senegal",1825],["Ecuador",1815],
-    ["Austria",1815],["Serbia",1810],["Mexico",1805],["Ivory Coast",1805],["Iran",1795],
-    ["USA",1795],["Nigeria",1790],["Ukraine",1785],["Poland",1785],["Egypt",1780],
-    ["Korea Rep.",1775],["Algeria",1775],["Paraguay",1760],["Canada",1745],["Venezuela",1715],
-    ["Australia",1715],["South Africa",1715],["Ghana",1715],["Tunisia",1710],["Panama",1700],
-    ["Uzbekistan",1695],["Qatar",1675],["Costa Rica",1670],["Saudi Arabia",1635],["Cape Verde",1610],
-    ["Jordan",1600],["New Zealand",1595],["Curacao",1560]
+    ["Argentina",2060],["Spain",2125],["France",2095],["England",2040],["Brazil",2010],
+    ["Portugal",1995],["Netherlands",1980],["Germany",1945],["Belgium",1940],["Croatia",1900],
+    ["Morocco",1890],["Colombia",1890],["Uruguay",1880],["Switzerland",1860],["Japan",1850],
+    ["Ecuador",1820],["Austria",1810],["Senegal",1810],["Norway",1805],["Turkey",1800],
+    ["Iran",1795],["Ivory Coast",1790],["Mexico",1790],["USA",1780],["Korea Rep.",1775],
+    ["Scotland",1770],["Sweden",1770],["Egypt",1770],["Algeria",1765],["Canada",1760],
+    ["Czechia",1755],["Paraguay",1740],["Australia",1720],["Tunisia",1710],["Ghana",1710],
+    ["South Africa",1710],["DR Congo",1705],["Bosnia",1700],["Panama",1695],["Uzbekistan",1690],
+    ["Qatar",1680],["Iraq",1650],["Saudi Arabia",1630],["Cape Verde",1605],["New Zealand",1600],
+    ["Jordan",1600],["Haiti",1585],["Curacao",1575]
   ];
   const NAMES = TEAMS.map(t=>t[0]);
   const ELO   = TEAMS.map(t=>t[1]);
@@ -535,8 +516,8 @@
     $('td-vbadge').className='badge '+(ok?'ok':'no');
     $('td-vbadge').textContent=ok?'Best crowned':'Upset';
     $('td-vtext').innerHTML= ok
-      ? `<b>${NAMES[result.champ]}</b> lifted the trophy &mdash; and they really were the strongest team on the day.`
-      : `<b>${NAMES[result.champ]}</b> lifted the trophy, but <b style="color:var(--td-ink)">${NAMES[best]}</b> was the strongest team &mdash; an upset. Draw again, or simulate to see how often that happens.`;
+      ? `<em>${NAMES[result.champ]}</em> lifted the trophy, and they really were the strongest team on the day.`
+      : `<em>${NAMES[result.champ]}</em> lifted the trophy, but <em>${NAMES[best]}</em> was the strongest team, an upset. Draw again, or simulate to see how often that happens.`;
   }
   function simulate(){
     const btn=$('td-simBtn'); btn.disabled=true; const prev=btn.textContent; btn.textContent='Simulating…';
@@ -555,10 +536,10 @@
       $('td-barW').style.width=(pW/mx*100)+'%'; $('td-pctW').textContent=Math.round(pW*100)+'%';
       $('td-barS').style.width=(pS/mx*100)+'%'; $('td-pctS').textContent=Math.round(pS*100)+'%';
       const lift=pW>0?Math.round((pD-pW)/pW*100):0;
-      $('td-rnote').innerHTML=`Over 500 tournaments, this design crowned the true best team <b>${Math.round(pD*100)}%</b> of the time &mdash; `
-        + (lift>=0?`<b style="color:var(--td-accent-2)">+${lift}%</b> better than`:`${lift}% versus`)
-        + ` the real World Cup&rsquo;s <b>${Math.round(pW*100)}%</b>, and level with pure Swiss&rsquo;s <b>${Math.round(pS*100)}%</b>. `
-        + `The knockout costs a little accuracy for a real final &mdash; and <code>Record defends</code> semis buy most of it back.`;
+      $('td-rnote').innerHTML=`Over 500 tournaments, this design crowned the true best team <em>${Math.round(pD*100)}%</em> of the time, `
+        + (lift>=0?`<em>+${lift}%</em> better than`:`${lift}% versus`)
+        + ` the real World Cup&rsquo;s ${Math.round(pW*100)}%, and level with pure Swiss&rsquo;s ${Math.round(pS*100)}%. `
+        + `The knockout costs a little accuracy for a real final, and &ldquo;Record defends&rdquo; semis buy most of it back.`;
       btn.disabled=false; btn.textContent=prev;
     },40);
   }
