@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tournament designer</title>
+  <link rel="stylesheet" href="../styles/main.css?v=2" />
+  <style>
+    /* All designer styles are scoped under .td-app so they cannot touch site tokens. */
+    .td-app{
+      --td-turf:#e6efe3; --td-turf-line:#bcd0b6;
+      --td-panel:#ffffff; --td-panel-2:#f3f6f2; --td-line:#e2e2e2;
+      --td-ink:#1a1a1a; --td-muted:#5a5a5a;
+      --td-accent:#4a3aff; --td-accent-2:#00897b;
+      --td-gold:#b9820f; --td-gold-soft:#f6e7c0; --td-danger:#c0392b;
+      --td-swatch-lo:#9fb2a4; --td-swatch-hi:#dda40f;
+      --td-shadow:0 1px 2px rgba(20,30,20,.06),0 8px 22px rgba(20,30,20,.06);
+      margin:8px 0 0;
+    }
+    .td-app .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+    .td-app > .panel + .panel{margin-top:16px}
+    .td-app .panel{background:var(--td-panel);border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--td-shadow)}
+    .td-app .controls{display:flex;flex-wrap:wrap;gap:18px 24px;align-items:end;padding:16px 18px}
+    .td-app .hd{font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--td-muted);font-weight:700;margin:0 0 12px}
+    .td-app .ctl{margin:0;flex:1 1 180px;min-width:165px}
+    .td-app .ctl.actions{display:flex;flex-direction:column;gap:9px}
+    .td-app .ctl > label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;font-weight:600;margin-bottom:7px}
+    .td-app .ctl label > span:first-child{min-width:0}
+    .td-app .ctl label .val{flex:0 0 auto;white-space:nowrap;color:var(--td-accent);font-weight:700}
+    .td-app input[type=range]{width:100%;accent-color:var(--td-accent);height:20px}
+    .td-app .seg{display:flex;border:1px solid var(--td-line);border-radius:9px;overflow:hidden}
+    .td-app .seg button{flex:1;border:0;background:var(--td-panel);color:var(--td-muted);padding:8px 6px;font-size:12px;font-weight:600;cursor:pointer}
+    .td-app .seg button[aria-pressed=true]{background:var(--td-panel-2);color:var(--td-ink);box-shadow:inset 0 0 0 1.5px var(--td-accent)}
+    .td-app .ctl > label.switch{display:flex;justify-content:flex-start;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;line-height:1.35;margin-bottom:0}
+    .td-app .switch input{position:absolute;opacity:0;width:0;height:0}
+    .td-app .track{flex:0 0 auto;width:40px;height:23px;border-radius:999px;background:#c9cdd6;border:1px solid rgba(0,0,0,.12);position:relative;transition:background .18s}
+    .td-app .track::after{content:"";position:absolute;top:2.5px;left:2.5px;width:17px;height:17px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+    .td-app .switch input:checked + .track{background:var(--td-accent)}
+    .td-app .switch input:checked + .track::after{transform:translateX(16px)}
+    .td-app .switch input:focus-visible + .track{outline:2px solid var(--td-accent);outline-offset:2px}
+    .td-app .btns{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+    .td-app .btn{border:0;border-radius:10px;padding:11px 14px;font-size:13.5px;font-weight:700;cursor:pointer}
+    .td-app .btn.primary{background:var(--td-accent);color:#fff}
+    .td-app .btn.primary:hover{filter:brightness(1.08)}
+    .td-app .btn.ghost{background:var(--td-panel-2);color:var(--td-ink);border:1px solid var(--td-line)}
+    .td-app .btn.ghost:hover{border-color:var(--td-accent)}
+    .td-app .btn:disabled{opacity:.55;cursor:progress}
+    .td-app .cal{font-size:12px;color:var(--td-muted);text-align:center;margin-top:2px}
+    .td-app .cal span{color:var(--td-ink);font-weight:600}
+    .td-app .stage{padding:18px}
+    .td-app .circles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media (max-width:560px){ .td-app .circles{grid-template-columns:repeat(2,1fr)} }
+    .td-app .circle{margin:0}
+    .td-app .circle figcaption{text-align:center;margin-top:0;font-size:12px}
+    .td-app .circle .gname{letter-spacing:.13em;text-transform:uppercase;color:var(--td-muted);font-weight:700;font-size:10px}
+    .td-app .circle .wname{font-weight:700;font-size:12px;margin-top:1px;color:var(--td-ink)}
+    .td-app .circle svg .dot{transition:opacity .3s}
+    .td-app .glabel{fill:var(--td-muted);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+    .td-app .flow{display:flex;align-items:center;gap:10px;color:var(--td-muted);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;margin:16px 2px 8px}
+    .td-app .flow::before,.td-app .flow::after{content:"";height:1px;background:var(--td-line);flex:1}
+    .td-app .bracket{width:100%;overflow-x:auto}
+    .td-app .bracket svg{display:block;width:100%;min-width:520px;height:auto}
+    .td-app .bx-name{font-size:12px;font-weight:700;fill:var(--td-ink)}
+    .td-app .bx-tag{font-size:9px;fill:var(--td-muted);font-family:ui-monospace,monospace;letter-spacing:.03em}
+    .td-app .bx-rating{font-size:9.5px;fill:var(--td-muted);font-family:ui-monospace,monospace}
+    .td-app .verdict{margin-top:14px;padding:12px 14px;border-radius:11px;background:var(--td-panel-2);border:1px solid var(--td-line);font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .td-app .badge{font-weight:800;font-size:11px;letter-spacing:.05em;padding:4px 10px;border-radius:999px;text-transform:uppercase}
+    .td-app .badge.ok{background:rgba(0,137,123,.16);color:var(--td-accent-2)}
+    .td-app .badge.no{background:rgba(192,57,43,.14);color:var(--td-danger)}
+    .td-app .verdict b{color:var(--td-gold)}
+    .td-app .results{margin-top:20px;padding:18px}
+    .td-app .rrow{display:grid;grid-template-columns:140px 1fr 58px;gap:12px;align-items:center;margin:11px 0}
+    .td-app .rlabel{font-size:13px;font-weight:600}
+    .td-app .rlabel small{display:block;color:var(--td-muted);font-weight:500;font-size:11px}
+    .td-app .bar{height:21px;background:var(--td-panel-2);border-radius:6px;overflow:hidden;border:1px solid var(--td-line)}
+    .td-app .bar > span{display:block;height:100%;width:0;transition:width .5s cubic-bezier(.2,.7,.2,1)}
+    .td-app .bar.design > span{background:linear-gradient(90deg,var(--td-accent-2),var(--td-gold))}
+    .td-app .bar.wc > span{background:var(--td-danger)}
+    .td-app .bar.swiss > span{background:var(--td-muted)}
+    .td-app .pct{font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;font-weight:700;text-align:right;font-size:13.5px}
+    .td-app .rnote{color:var(--td-muted);font-size:12.5px;margin-top:12px;line-height:1.55}
+    .td-app .rnote code{background:var(--td-panel-2);padding:1px 5px;border-radius:5px;font-size:11.5px}
+    .td-app .champpop{animation:tdpop .45s ease-out}
+    @keyframes tdpop{0%{opacity:0}100%{opacity:1}}
+    @media (prefers-reduced-motion:reduce){ .td-app *{animation:none!important;transition:none!important} }
+
+    .td-explainer{margin:4px 0 22px;border:1px solid var(--border);border-radius:12px;background:var(--panel);overflow:hidden}
+    .td-explainer summary{cursor:pointer;padding:13px 16px;font-weight:700;list-style:none;display:flex;align-items:center;gap:10px}
+    .td-explainer summary::-webkit-details-marker{display:none}
+    .td-explainer summary::before{content:"\25B8";color:var(--accent);transition:transform .15s;display:inline-block}
+    .td-explainer[open] summary::before{transform:rotate(90deg)}
+    .td-explainer .ex-body{padding:2px 16px 16px;color:var(--muted);font-size:14.5px;line-height:1.6}
+    .td-explainer .ex-body p{margin:.55em 0}
+    .td-explainer .ex-body strong{color:var(--text)}
+    .td-explainer .ex-body ol{margin:.4em 0;padding-left:1.3em}
+    .td-explainer .ex-body li{margin:.3em 0}
+    .td-explainer .ex-sub{margin:1.1em 0 .3em;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+    .td-explainer .ex-terms{margin:.2em 0 0}
+    .td-explainer .ex-terms dt{font-weight:600;color:var(--text);margin-top:.7em}
+    .td-explainer .ex-terms dd{margin:.15em 0 0}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="../index.html">thurstone</a>
+      <nav>
+        <a href="../pages/thurstone.html">Thurstone models</a>
+        <a href="../pages/fast-transform.html">Fast ability transform</a>
+        <a href="../pages/rating-systems.html">Rating systems</a>
+        <a href="../pages/multi-dimensional.html">Multi-dimensional</a>
+        <a href="../pages/api-reference.html">API Reference</a>
+        <a href="./index.html">Demos</a>
+        <a href="https://github.com/microprediction/thurstone">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Tournament designer</h1>
+    <p>
+      A tournament is an <em>estimator</em>. Nature fixes a ranking, each match is a noisy pairwise
+      comparison, and the format is a rule for turning a budget of comparisons into a guess at who is best.
+      This page runs the same Thurstone Case&nbsp;V model as the rest of the site (performance is ability plus
+      Gaussian noise, highest performance wins, Elo-calibrated so a +100 rating edge is about a 63% single-game
+      chance) to ask which 48-team World Cup format most reliably crowns the truly best team, for the same
+      calendar length.
+    </p>
+    <p>
+      Tune the rules, draw a bracket to play one tournament, then simulate to run the format against the real
+      World Cup and a pure Swiss league many times over, all in your browser.
+    </p>
+
+    <details class="td-explainer">
+      <summary>How a Swiss works, and what every dial means</summary>
+      <div class="ex-body">
+        <p>
+          A Swiss tournament (from 1890s chess) sits between two extremes. A round robin makes everyone play
+          everyone: accurate, but far too many games. A knockout sends you home after one loss: dramatic, but it
+          throws away information. A Swiss keeps every team in and, each round, pairs teams on equal records.
+        </p>
+        <ol>
+          <li>Round 1 is seeded: the top half of the field plays the bottom half.</li>
+          <li>After that, teams are sorted by points and paired with the nearest team they haven&rsquo;t met, so
+              winners meet winners and stragglers drift down. Nobody is eliminated.</li>
+          <li>After a handful of rounds the standings are the ranking, with no bracket required.</li>
+        </ol>
+        <p>
+          Because opponents are always near-equals, almost every game is a coin-toss on paper, which is exactly
+          what makes it informative: a 50/50 match tells you far more than a 5&ndash;0 mismatch. Over the same
+          number of match-days as the World Cup you pack in many more useful comparisons, so the table tracks
+          true ability much better than three group games and a knockout ladder. This tool adds a short knockout
+          (semi-finals, then a final) onto a Swiss group phase, to keep a real final while keeping the accuracy.
+        </p>
+        <h4 class="ex-sub">What the dials mean</h4>
+        <dl class="ex-terms">
+          <dt>Competitive balance</dt>
+          <dd>How evenly matched the 48 teams are. Slide right and the ratings squeeze together, so weaker teams upset stronger ones more often.</dd>
+          <dt>Swiss rounds per group</dt>
+          <dd>How many games each team plays in its group. Rounds, plus a semi-final and a final, give the total match-days: the same calendar the real World Cup fills.</dd>
+          <dt>Send teams home when eliminated</dt>
+          <dd>Once a team can no longer reach the top 4 of its group it stops playing. It only drops teams that already cannot reach the semis, so it never changes who can win; it just thins the field for drama.</dd>
+          <dt>Record defends vs Penalties</dt>
+          <dd>Two ways to settle a drawn knockout game. &ldquo;Record defends&rdquo; sends through the team that finished higher in the group phase, rewarding a strong group run. &ldquo;Penalties&rdquo; decides a draw with a 50/50 shoot-out. You can set the semis and the final separately.</dd>
+          <dt>Seed</dt>
+          <dd>A team&rsquo;s pre-tournament rank by rating, used to build balanced groups and to decide who defends a drawn game.</dd>
+          <dt>Record</dt>
+          <dd>The points a team has so far: 3 for a win, 1 for a draw.</dd>
+          <dt>Elo rating</dt>
+          <dd>A strength number for each team; a +100 gap is about a 63% chance of winning a single game.</dd>
+          <dt>The true best team</dt>
+          <dd>Whichever team actually has the highest ability once a tournament&rsquo;s form is added: the team a flawless format would always crown. The bars show how often each format manages it.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <div class="td-app">
+      <div class="panel controls">
+        <div class="ctl">
+          <label for="td-parity"><span>Competitive balance</span><span class="val" id="td-parityV">even</span></label>
+          <input type="range" id="td-parity" min="0" max="100" value="62">
+        </div>
+
+        <div class="ctl">
+          <label for="td-rounds"><span>Swiss rounds per group</span><span class="val" id="td-roundsV">6</span></label>
+          <input type="range" id="td-rounds" min="4" max="6" value="6">
+          <div class="cal"><span id="td-matchdays">8</span> match-days total</div>
+        </div>
+
+        <div class="ctl">
+          <label>When a team is out</label>
+          <label class="switch"><input type="checkbox" id="td-elim" checked><span class="track"></span><span>Send it home</span></label>
+        </div>
+
+        <div class="ctl">
+          <label>Semi-finals</label>
+          <div class="seg" id="td-semiSeg" role="group" aria-label="Semi-final tie rule">
+            <button data-v="tiebreak" aria-pressed="true">Record defends</button>
+            <button data-v="pens" aria-pressed="false">Penalties</button>
+          </div>
+        </div>
+
+        <div class="ctl">
+          <label>The final</label>
+          <div class="seg" id="td-finalSeg" role="group" aria-label="Final tie rule">
+            <button data-v="tiebreak" aria-pressed="false">Record defends</button>
+            <button data-v="pens" aria-pressed="true">Penalties</button>
+          </div>
+        </div>
+
+        <div class="ctl actions">
+          <button class="btn primary" id="td-drawBtn">Draw a tournament</button>
+          <button class="btn ghost" id="td-simBtn">Simulate 500 tournaments</button>
+        </div>
+      </div>
+
+      <section class="panel stage">
+        <div class="hd">The draw: four Swiss groups of twelve</div>
+        <div class="circles" id="td-circles"></div>
+        <div class="flow">Group winners advance</div>
+        <div class="bracket" id="td-bracket"></div>
+        <div class="verdict" id="td-verdict">
+          <span class="badge ok" id="td-vbadge">Ready</span>
+          <span id="td-vtext">Press Draw a tournament to play one tournament under these rules.</span>
+        </div>
+      </section>
+
+      <section class="panel results">
+        <div class="hd">How often is the true best team crowned?</div>
+        <div class="rrow">
+          <div class="rlabel">This design<small id="td-dsub">groups then semis</small></div>
+          <div class="bar design"><span id="td-barD"></span></div><div class="pct" id="td-pctD">&middot;</div>
+        </div>
+        <div class="rrow">
+          <div class="rlabel">World Cup 2026<small>groups of 4 plus knockout</small></div>
+          <div class="bar wc"><span id="td-barW"></span></div><div class="pct" id="td-pctW">&middot;</div>
+        </div>
+        <div class="rrow">
+          <div class="rlabel">Pure Swiss<small>8 rounds, no final</small></div>
+          <div class="bar swiss"><span id="td-barS"></span></div><div class="pct" id="td-pctS">&middot;</div>
+        </div>
+        <p class="rnote" id="td-rnote">Press Simulate 500 tournaments to fill these bars. Each is the share of
+        tournaments whose champion is the single strongest team on the day; higher means the format rewards
+        ability over luck.</p>
+      </section>
+    </div>
+
+    <h2>What the model is telling you</h2>
+    <p>
+      Across thousands of Monte-Carlo tournaments, every Swiss-style format beats the group-of-4-plus-knockout
+      World Cup by a wide margin. The lever is simply <em>not</em> eliminating teams on thin evidence: the
+      real World Cup sends the true best team home before the final about two-thirds of the time, on a single
+      knockout upset or a three-game group. You can still send teams home for drama, as long as you cut on an
+      accumulated record, protect the top two into the final (the &ldquo;most plays least&rdquo; bracket), and
+      let the semis be &ldquo;Record defends&rdquo; so a whole run of results is not coin-flipped away. Team names
+      are the real 2026 field, carried by approximate World-Football-Elo ratings; each tournament re-draws only
+      a dose of &ldquo;form,&rdquo; so favourites usually top their groups but upsets still happen.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    Built on the <a href="https://github.com/microprediction/thurstone">thurstone</a> package. The
+    match model is the same Thurstone transform used throughout this site.
+    <a href="./index.html">Back to demos</a>.
+  </footer>
+
+<script>
+(function(){
+  "use strict";
+  const THURST = Math.log(10)/400/1.702;
+  const SIGMA = 1/Math.SQRT2;
+  const BAND = 0.32;
+  const N = 48;
+  // The 48-team 2026 field with approximate World-Football-Elo ratings.
+  // (A few late play-off spots are best-effort; ratings are illustrative.)
+  const TEAMS = [
+    ["Argentina",2060],["Spain",2125],["France",2095],["England",2040],["Brazil",2010],
+    ["Portugal",1995],["Netherlands",1980],["Germany",1945],["Belgium",1940],["Croatia",1900],
+    ["Morocco",1890],["Colombia",1890],["Uruguay",1880],["Switzerland",1860],["Japan",1850],
+    ["Ecuador",1820],["Austria",1810],["Senegal",1810],["Norway",1805],["Turkey",1800],
+    ["Iran",1795],["Ivory Coast",1790],["Mexico",1790],["USA",1780],["Korea Rep.",1775],
+    ["Scotland",1770],["Sweden",1770],["Egypt",1770],["Algeria",1765],["Canada",1760],
+    ["Czechia",1755],["Paraguay",1740],["Australia",1720],["Tunisia",1710],["Ghana",1710],
+    ["South Africa",1710],["DR Congo",1705],["Bosnia",1700],["Panama",1695],["Uzbekistan",1690],
+    ["Qatar",1680],["Iraq",1650],["Saudi Arabia",1630],["Cape Verde",1605],["New Zealand",1600],
+    ["Jordan",1600],["Haiti",1585],["Curacao",1575]
+  ];
+  const NAMES = TEAMS.map(t=>t[0]);
+  const ELO   = TEAMS.map(t=>t[1]);
+  const MEAN_ELO = ELO.reduce((a,b)=>a+b,0)/ELO.length;
+  const BASE  = ELO.map(e=>(e-MEAN_ELO)*THURST);     // calibrated base ability
+  const ELO_LO = Math.min(...ELO), ELO_HI = Math.max(...ELO);
+  const GROUP_NAMES = ["A","B","C","D"];
+
+  let spare=null;
+  function gauss(){
+    if(spare!==null){const v=spare;spare=null;return v;}
+    let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+    const r=Math.sqrt(-2*Math.log(u)); spare=r*Math.sin(2*Math.PI*v); return r*Math.cos(2*Math.PI*v);
+  }
+  function playMatch(theta,a,b){
+    const m=(theta[a]-theta[b])+gauss()*SIGMA-gauss()*SIGMA;
+    if(Math.abs(m)<BAND) return {res:0,margin:m};
+    return {res:m>0?1:-1,margin:m};
+  }
+  function apply(a,b,mm,pts,gd){
+    if(mm.res===1) pts[a]+=3; else if(mm.res===-1) pts[b]+=3; else {pts[a]+=1;pts[b]+=1;}
+    gd[a]+=mm.margin; gd[b]-=mm.margin;
+  }
+  function koGame(theta,a,b,mode){ // a = higher seed
+    const m=playMatch(theta,a,b);
+    if(m.res===0){
+      if(mode==='tiebreak') return {w:a,l:b,tag:'adv'};
+      return Math.random()<0.5?{w:a,l:b,tag:'pens'}:{w:b,l:a,tag:'pens'};
+    }
+    return m.res>0?{w:a,l:b,tag:''}:{w:b,l:a,tag:''};
+  }
+  function greedy(list,opp){
+    const rem=list.slice(), pairs=[];
+    while(rem.length>1){
+      const a=rem.shift();
+      let idx=rem.findIndex(b=>!opp[a].includes(b));
+      if(idx<0) idx=0;
+      const b=rem.splice(idx,1)[0];
+      pairs.push([a,b]);
+    }
+    return pairs;
+  }
+  function serpentine(order,k){
+    const g=Array.from({length:k},()=>[]);
+    order.forEach((id,idx)=>{ const band=Math.floor(idx/k), pos=idx%k; g[band%2===0?pos:k-1-pos].push(id); });
+    return g;
+  }
+  // A tournament = the real 2026 ratings, compressed/expanded by the balance
+  // slider, plus a fresh draw of per-tournament "form". Seeding is by the known
+  // ratings (a realistic FIFA seeding); the true best is who's actually strongest
+  // once form is added, so favourites usually top the field but upsets happen.
+  function newWorld(parity){
+    const spread = 0.45 + (100-parity)/100 * 1.00;   // how much rating gaps matter
+    const form   = 0.34;                              // per-tournament form noise
+    const theta  = BASE.map(bt => bt*spread + gauss()*form);
+    const rating = BASE.map(bt => bt*spread + gauss()*0.10);  // pre-tournament seeding
+    const seed = Array.from({length:N},(_,i)=>i).sort((a,b)=>rating[b]-rating[a]);
+    const best = theta.map((t,i)=>[t,i]).sort((a,b)=>b[0]-a[0])[0][1];
+    return {theta,seed,best};
+  }
+  function groupSwiss(theta,members,rounds,elim,seedRank){
+    const pts={},gd={},opp={},elimRound={};
+    members.forEach(i=>{pts[i]=0;gd[i]=0;opp[i]=[];});
+    let alive=members.slice().sort((a,b)=>seedRank[a]-seedRank[b]);
+    for(let r=0;r<rounds;r++){
+      let ranked = r===0 ? alive.slice()
+        : alive.slice().sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a]||seedRank[a]-seedRank[b]);
+      let playing=ranked.slice();
+      if(playing.length%2===1) playing.pop();
+      let pairs;
+      if(r===0){ const h=playing.length/2; pairs=[]; for(let k=0;k<h;k++) pairs.push([playing[k],playing[h+k]]); }
+      else pairs=greedy(playing,opp);
+      for(const [a,b] of pairs){ const mm=playMatch(theta,a,b); apply(a,b,mm,pts,gd); opp[a].push(b); opp[b].push(a); }
+      if(elim && r<rounds-1){
+        const left=rounds-1-r, lead=Math.max(...alive.map(i=>pts[i]));
+        const survivors=alive.filter(i=>pts[i]+3*left>=lead);
+        alive.forEach(i=>{ if(!survivors.includes(i) && elimRound[i]===undefined) elimRound[i]=r+1; });
+        alive=survivors;
+      }
+    }
+    const standings=members.slice().sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a]||seedRank[a]-seedRank[b]);
+    return {standings,winner:standings[0],pts,gd,elimRound};
+  }
+  function fourGroupSemis(theta,seed,opts){
+    const seedRank={}; seed.forEach((id,r)=>seedRank[id]=r);
+    const groups=serpentine(seed,4);
+    const gr=groups.map(g=>groupSwiss(theta,g,opts.rounds,opts.elim,seedRank));
+    const winners=gr.map(r=>r.winner);
+    const gp={}; gr.forEach(r=>{gp[r.winner]=r.pts[r.winner];});
+    const s=winners.slice().sort((a,b)=>gp[b]-gp[a]||seedRank[a]-seedRank[b]);
+    const semis=[ Object.assign({teams:[s[0],s[3]]}, koGame(theta,s[0],s[3],opts.semi)),
+                  Object.assign({teams:[s[1],s[2]]}, koGame(theta,s[1],s[2],opts.semi)) ];
+    let w1=semis[0].w, w2=semis[1].w;
+    const hi = gp[w1]>=gp[w2] ? w1 : w2, lo = hi===w1 ? w2 : w1;
+    const fin=Object.assign({teams:[hi,lo]}, koGame(theta,hi,lo,opts.final));
+    return {groups:gr, winners, order:s, semis, final:fin, champ:fin.w, gp};
+  }
+  function worldCup(theta,seed){
+    const groups=serpentine(seed,12), pts={},gd={};
+    seed.forEach(i=>{pts[i]=0;gd[i]=0;});
+    const tables=groups.map(g=>{
+      for(const [x,y] of [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]]){ const mm=playMatch(theta,g[x],g[y]); apply(g[x],g[y],mm,pts,gd); }
+      return g.slice().sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a]);
+    });
+    const winners=tables.map(t=>t[0]).sort((a,b)=>pts[b]-pts[a]);
+    const runners=tables.map(t=>t[1]).sort((a,b)=>pts[b]-pts[a]);
+    const thirds=tables.map(t=>t[2]).sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a]).slice(0,8);
+    let field=winners.concat(runners,thirds);
+    while(field.length>1){
+      const nxt=[], m=field.length;
+      for(let k=0;k<m/2;k++){ nxt.push(koGame(theta,field[k],field[m-1-k],'pens').w); }
+      field=nxt;
+    }
+    return field[0];
+  }
+  function pureSwiss(theta,seed,rounds){
+    const pts={},gd={},opp={}; for(let i=0;i<N;i++){pts[i]=0;gd[i]=0;opp[i]=[];}
+    for(let r=0;r<rounds;r++){
+      let ranked = r===0 ? seed.slice()
+        : Array.from({length:N},(_,i)=>i).sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a]);
+      let pairs;
+      if(r===0){ const h=N/2; pairs=[]; for(let k=0;k<h;k++) pairs.push([ranked[k],ranked[h+k]]); }
+      else pairs=greedy(ranked,opp);
+      for(const [a,b] of pairs){ const mm=playMatch(theta,a,b); apply(a,b,mm,pts,gd); opp[a].push(b); opp[b].push(a); }
+    }
+    return Array.from({length:N},(_,i)=>i).sort((a,b)=>pts[b]-pts[a]||gd[b]-gd[a])[0];
+  }
+
+  const APP=document.querySelector('.td-app');
+  function css(v){ return getComputedStyle(APP).getPropertyValue(v).trim(); }
+  function hex2rgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+  function ability(id){                 // colour a team by its real rating (stable)
+    const x=Math.max(0,Math.min(1,(ELO[id]-ELO_LO)/(ELO_HI-ELO_LO)));
+    const a=hex2rgb(css('--td-swatch-lo')), b=hex2rgb(css('--td-swatch-hi'));
+    const c=a.map((v,k)=>Math.round(v+(b[k]-v)*x));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  let PAL={};
+  function refreshPal(){
+    ['turf','turf-line','gold','gold-soft','line','ink','panel-2','muted'].forEach(k=>{ PAL[k]=css('--td-'+k); });
+  }
+
+  let LAST_GROUPS=null;
+  function circleSVG(members,res,theta,best,gi,lo,hi){
+    const cx=90,cy=92,R=60; let dots='';
+    members.forEach((id,k)=>{
+      const ang=(k/12)*2*Math.PI - Math.PI/2;
+      const x=(cx+R*Math.cos(ang)).toFixed(1), y=(cy+R*Math.sin(ang)).toFixed(1);
+      const isWin=id===res.winner, isBest=id===best, out=res.elimRound[id]!==undefined;
+      const rr=isWin?10:7.5;
+      let ring='';
+      if(isBest) ring+=`<circle cx="${x}" cy="${y}" r="${rr+6}" fill="none" stroke="${PAL['ink']}" stroke-width="1.3" stroke-dasharray="2 3" opacity=".7"/>`;
+      if(isWin) ring+=`<circle cx="${x}" cy="${y}" r="${rr+3.5}" fill="none" stroke="${PAL['gold']}" stroke-width="2.4"/>`;
+      dots+=`${ring}<circle class="dot" cx="${x}" cy="${y}" r="${rr}" fill="${ability(id)}" opacity="${out?0.22:1}"><title>${NAMES[id]} · Elo ${ELO[id]}${isWin?' · group winner':''}${isBest?' · strongest team':''}</title></circle>`;
+    });
+    return `<svg viewBox="0 0 180 184" role="img" aria-label="Group ${GROUP_NAMES[gi]}">
+      <circle cx="90" cy="92" r="74" fill="${PAL['turf']}" stroke="${PAL['turf-line']}"/>
+      <circle cx="90" cy="92" r="60" fill="none" stroke="${PAL['turf-line']}" stroke-dasharray="1.5 5" opacity=".7"/>
+      <circle cx="90" cy="92" r="16" fill="none" stroke="${PAL['turf-line']}" opacity=".6"/>
+      <text class="glabel" x="90" y="96" text-anchor="middle">${GROUP_NAMES[gi]}</text>
+      ${dots}</svg>`;
+  }
+  function renderCircles(result,theta,best){
+    const lo=Math.min(...theta), hi=Math.max(...theta);
+    const wrap=document.getElementById('td-circles'); wrap.innerHTML='';
+    result.groups.forEach((res,gi)=>{
+      const fig=document.createElement('figure'); fig.className='circle';
+      fig.innerHTML=circleSVG(LAST_GROUPS[gi],res,theta,best,gi,lo,hi)
+        + `<figcaption><div class="gname">Group ${GROUP_NAMES[gi]}</div><div class="wname">${NAMES[res.winner]} &uarr;</div></figcaption>`;
+      wrap.appendChild(fig);
+    });
+  }
+  function box(x,y,id,win,tag,best){
+    const w=168,h=34;
+    const fill=win?PAL['gold-soft']:PAL['panel-2'], stroke=win?PAL['gold']:PAL['line'];
+    const star=id===best?`<text x="${x+w-30}" y="${y+22}" class="bx-tag" fill="${PAL['ink']}">&#9733;</text>`:'';
+    const tg=tag?`<text x="${x+w-12}" y="${y+22}" text-anchor="end" class="bx-tag">${tag}</text>`:'';
+    return `<g>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="${win?1.6:1}"/>
+      <circle cx="${x+15}" cy="${y+h/2}" r="5.5" fill="${ability(id)}"/>
+      <text x="${x+27}" y="${y+18}" class="bx-name">${NAMES[id]}</text>
+      <text x="${x+27}" y="${y+29}" class="bx-rating">Elo ${ELO[id]}</text>
+      ${star}${tg}</g>`;
+  }
+  function connect(x1,y1,x2,y2){
+    const mx=(x1+x2)/2;
+    return `<path d="M${x1} ${y1} H${mx} V${y2} H${x2}" fill="none" stroke="${PAL['line']}" stroke-width="1.4"/>`;
+  }
+  function renderBracket(result,best){
+    const s=result.order, se=result.semis, fin=result.final;
+    const W=168, xa=8, xb=214, xc=402;
+    const yA=18,yD=58, yB=150,yC=190, yS1=38, yS2=170, yF=104;
+    let svg=`<svg viewBox="0 0 580 244" role="img" aria-label="Knockout bracket">`;
+    svg+=connect(xa+W,yA+17,xb,yS1+17)+connect(xa+W,yD+17,xb,yS1+17);
+    svg+=connect(xa+W,yB+17,xb,yS2+17)+connect(xa+W,yC+17,xb,yS2+17);
+    svg+=connect(xb+W,yS1+17,xc,yF+17)+connect(xb+W,yS2+17,xc,yF+17);
+    svg+=box(xa,yA,s[0],se[0].w===s[0],'',best);
+    svg+=box(xa,yD,s[3],se[0].w===s[3],se[0].tag,best);
+    svg+=box(xa,yB,s[1],se[1].w===s[1],'',best);
+    svg+=box(xa,yC,s[2],se[1].w===s[2],se[1].tag,best);
+    svg+=box(xb,yS1,se[0].w,fin.w===se[0].w,'',best);
+    svg+=box(xb,yS2,se[1].w,fin.w===se[1].w,fin.tag,best);
+    svg+=`<g class="champpop"><rect x="${xc}" y="${yF}" width="${W}" height="34" rx="8" fill="${PAL['gold-soft']}" stroke="${PAL['gold']}" stroke-width="2"/>`;
+    svg+=`<circle cx="${xc+15}" cy="${yF+17}" r="5.5" fill="${ability(fin.w)}"/>`;
+    svg+=`<text x="${xc+27}" y="${yF+15}" class="bx-name">${NAMES[fin.w]}</text>`;
+    svg+=`<text x="${xc+27}" y="${yF+27}" class="bx-tag" fill="${PAL['gold']}">CHAMPION</text></g>`;
+    svg+=`<text x="${xa}" y="12" class="bx-tag">SEMI-FINALS</text><text x="${xc}" y="12" class="bx-tag">FINAL</text>`;
+    svg+=`</svg>`;
+    document.getElementById('td-bracket').innerHTML=svg;
+  }
+
+  const state={parity:62,rounds:6,elim:true,semi:'tiebreak',final:'pens'};
+  const $=id=>document.getElementById(id);
+  function parityWord(p){ return p>=78?'razor-thin':p>=55?'even':p>=32?'mixed':'lopsided'; }
+  function syncLabels(){
+    $('td-parityV').textContent=parityWord(state.parity);
+    $('td-roundsV').textContent=state.rounds;
+    $('td-matchdays').textContent=state.rounds+2;
+    $('td-dsub').textContent=`Swiss-${state.rounds} → semis`;
+  }
+  function drawOne(){
+    refreshPal();
+    const {theta,seed,best}=newWorld(state.parity);
+    LAST_GROUPS=serpentine(seed,4);
+    const result=fourGroupSemis(theta,seed,{rounds:state.rounds,elim:state.elim,semi:state.semi,final:state.final});
+    renderCircles(result,theta,best);
+    renderBracket(result,best);
+    const ok=result.champ===best;
+    $('td-vbadge').className='badge '+(ok?'ok':'no');
+    $('td-vbadge').textContent=ok?'Best crowned':'Upset';
+    $('td-vtext').innerHTML= ok
+      ? `<em>${NAMES[result.champ]}</em> lifted the trophy, and they really were the strongest team on the day.`
+      : `<em>${NAMES[result.champ]}</em> lifted the trophy, but <em>${NAMES[best]}</em> was the strongest team, an upset. Draw again, or simulate to see how often that happens.`;
+  }
+  function simulate(){
+    const btn=$('td-simBtn'); btn.disabled=true; const prev=btn.textContent; btn.textContent='Simulating…';
+    $('td-rnote').textContent='Running 500 tournaments per format…';
+    setTimeout(()=>{
+      const reps=500; let cD=0,cW=0,cS=0;
+      const opts={rounds:state.rounds,elim:state.elim,semi:state.semi,final:state.final};
+      for(let r=0;r<reps;r++){
+        const {theta,seed,best}=newWorld(state.parity);
+        if(fourGroupSemis(theta,seed,opts).champ===best) cD++;
+        if(worldCup(theta,seed)===best) cW++;
+        if(pureSwiss(theta,seed,8)===best) cS++;
+      }
+      const pD=cD/reps, pW=cW/reps, pS=cS/reps, mx=Math.max(pD,pW,pS,0.35);
+      $('td-barD').style.width=(pD/mx*100)+'%'; $('td-pctD').textContent=Math.round(pD*100)+'%';
+      $('td-barW').style.width=(pW/mx*100)+'%'; $('td-pctW').textContent=Math.round(pW*100)+'%';
+      $('td-barS').style.width=(pS/mx*100)+'%'; $('td-pctS').textContent=Math.round(pS*100)+'%';
+      const lift=pW>0?Math.round((pD-pW)/pW*100):0;
+      $('td-rnote').innerHTML=`Over 500 tournaments, this design crowned the true best team <em>${Math.round(pD*100)}%</em> of the time, `
+        + (lift>=0?`<em>+${lift}%</em> better than`:`${lift}% versus`)
+        + ` the real World Cup&rsquo;s ${Math.round(pW*100)}%, and level with pure Swiss&rsquo;s ${Math.round(pS*100)}%. `
+        + `The knockout costs a little accuracy for a real final, and &ldquo;Record defends&rdquo; semis buy most of it back.`;
+      btn.disabled=false; btn.textContent=prev;
+    },40);
+  }
+
+  $('td-parity').addEventListener('input',e=>{state.parity=+e.target.value;syncLabels();});
+  $('td-rounds').addEventListener('input',e=>{state.rounds=+e.target.value;syncLabels();});
+  $('td-elim').addEventListener('change',e=>{state.elim=e.target.checked;});
+  function seg(id,key){
+    $(id).addEventListener('click',e=>{
+      const b=e.target.closest('button'); if(!b)return;
+      [...$(id).children].forEach(c=>c.setAttribute('aria-pressed', c===b?'true':'false'));
+      state[key]=b.dataset.v; syncLabels();
+    });
+  }
+  seg('td-semiSeg','semi'); seg('td-finalSeg','final');
+  $('td-drawBtn').addEventListener('click',drawOne);
+  $('td-simBtn').addEventListener('click',simulate);
+  syncLabels(); drawOne();
+})();
+</script>
+</body>
+</html>
