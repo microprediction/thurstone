@@ -46,6 +46,8 @@
     .td-app .btn:disabled{opacity:.55;cursor:progress}
     .td-app .cal{font-size:12px;color:var(--td-muted);text-align:center;margin-top:2px}
     .td-app .cal b{color:var(--td-ink)}
+    .td-app .hint{font-size:11.5px;color:var(--td-muted);margin-top:6px;line-height:1.5}
+    .td-app .hint b{color:var(--td-ink);font-weight:700}
     .td-app .stage{padding:18px}
     .td-app .circles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     @media (max-width:560px){ .td-app .circles{grid-template-columns:repeat(2,1fr)} }
@@ -152,6 +154,24 @@
           three group games plus a knockout ladder. This tool bolts a short knockout (semis + final) onto a Swiss
           group phase to keep the drama of a real final while keeping the accuracy.
         </p>
+        <p><strong>The words on the dials:</strong></p>
+        <ol>
+          <li><strong>Seed</strong> &mdash; a team&rsquo;s pre-tournament rank by rating; used to build balanced
+              groups and to decide who &ldquo;defends&rdquo; a drawn knockout game.</li>
+          <li><strong>Record</strong> &mdash; the points a team has piled up in its group games so far
+              (3 for a win, 1 for a draw).</li>
+          <li><strong>Group winner</strong> &mdash; the team top of its 12-team group after the Swiss rounds;
+              the four winners go to the semi-finals.</li>
+          <li><strong>Semi-final / final</strong> &mdash; the knockout: four teams, seeded 1&nbsp;v&nbsp;4 and
+              2&nbsp;v&nbsp;3 (&ldquo;strongest plays weakest&rdquo;), winners meet in the final.</li>
+          <li><strong>Record defends vs Penalties</strong> &mdash; two ways to settle a <em>drawn</em> knockout
+              game: let the higher-seeded team through, or flip a coin (a stand-in for a penalty shoot-out).</li>
+          <li><strong>Elo rating</strong> &mdash; a strength number for each team; a +100 gap is about a 63%
+              chance of winning a single game.</li>
+          <li><strong>The true best team</strong> &mdash; whichever team actually has the highest ability once a
+              tournament&rsquo;s form is added; the team a flawless format would always crown. The bars below
+              show how often each format manages to.</li>
+        </ol>
       </div>
     </details>
 
@@ -163,17 +183,24 @@
           <div class="ctl">
             <label for="td-parity">Competitive balance <span class="val" id="td-parityV">even</span></label>
             <input type="range" id="td-parity" min="0" max="100" value="62">
+            <div class="hint">How evenly matched the 48 teams are. Slide right and the ratings squeeze
+              together, so weaker teams upset stronger ones more often.</div>
           </div>
 
           <div class="ctl">
             <label for="td-rounds">Swiss rounds per group <span class="val" id="td-roundsV">6</span></label>
             <input type="range" id="td-rounds" min="4" max="6" value="6">
             <div class="cal">Calendar: <b id="td-matchdays">8</b> match-days (rounds + semi + final)</div>
+            <div class="hint">How many group games each team plays before the knockout. Rounds + a semi-final
+              + a final is the total number of <b>match-days</b> &mdash; the same calendar the real World Cup fills.</div>
           </div>
 
           <div class="ctl">
             <label class="switch"><input type="checkbox" id="td-elim" checked><span class="track"></span>
               Send teams home when eliminated</label>
+            <div class="hint"><b>Arithmetic elimination:</b> the moment a team can no longer reach the top 4
+              of its group, it is out and stops playing. Because it only drops teams that already can&rsquo;t
+              reach the semis, it never changes who can win &mdash; it just thins the field for drama.</div>
           </div>
 
           <div class="ctl">
@@ -182,6 +209,9 @@
               <button data-v="tiebreak" aria-pressed="true">Record defends</button>
               <button data-v="pens" aria-pressed="false">Penalties</button>
             </div>
+            <div class="hint">How a <b>drawn</b> semi-final is settled. <b>Record defends</b>: the team that
+              finished higher in the group phase goes through, so a strong group run is rewarded.
+              <b>Penalties</b>: a draw is decided by a 50/50 shoot-out.</div>
           </div>
 
           <div class="ctl">
@@ -190,6 +220,8 @@
               <button data-v="tiebreak" aria-pressed="false">Record defends</button>
               <button data-v="pens" aria-pressed="true">Penalties</button>
             </div>
+            <div class="hint">Same choice for the title game. <b>Record defends</b> favours the higher-seeded
+              finalist if it&rsquo;s a draw; <b>Penalties</b> makes the final a pure winner-take-all shoot-out.</div>
           </div>
 
           <div class="btns">
