@@ -22,14 +22,12 @@ from thurstone import CubeToSimplexMapping, SigmoidParams
 # Define sigmoid parameters for each dimension
 sigmoid_params = [
     SigmoidParams(alpha=1.5, beta=4.0, gamma=0.3),  # Dimension 1
-    SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7)   # Dimension 2
+    SigmoidParams(alpha=1.2, beta=5.0, gamma=0.7),  # Dimension 2
 ]
 
 # Create mapping
 mapping = CubeToSimplexMapping(
-    sigmoid_params=sigmoid_params,
-    special_horse_ability=0.2,
-    noise_scale=1.0
+    sigmoid_params=sigmoid_params, special_horse_ability=0.2, noise_scale=1.0
 )
 
 # Map points
@@ -65,9 +63,9 @@ from thurstone import optimize_diffeomorphism
 
 result = optimize_diffeomorphism(
     k=2,  # Triangle
-    optimizer='random',  # or 'evolutionary'
+    optimizer="random",  # or 'evolutionary'
     max_evaluations=100,
-    quality_weights={'symmetry': 2.0, 'coverage': 1.5}
+    quality_weights={"symmetry": 2.0, "coverage": 1.5},
 )
 
 best_mapping = result.best_mapping
@@ -95,7 +93,7 @@ from thurstone import CubeToSimplexMapping, SigmoidParams
 # Create a 2D → triangle mapping
 params = [
     SigmoidParams(1.0, 4.0, 0.4),  # alpha, beta, gamma
-    SigmoidParams(1.2, 4.5, 0.6)
+    SigmoidParams(1.2, 4.5, 0.6),
 ]
 mapping = CubeToSimplexMapping(params, special_horse_ability=0.0)
 
@@ -144,11 +142,11 @@ The (k+1)-st horse's fixed ability:
 Customize optimization objectives:
 ```python
 weights = {
-    'symmetry': 2.0,        # Emphasize balanced probabilities
-    'volume_preservation': 1.0,  # Jacobian consistency
-    'smoothness': 1.0,      # Low gradient variation
-    'coverage': 1.5,        # Uniform simplex coverage
-    'invertibility': 1.0    # Numerical inversion quality
+    "symmetry": 2.0,  # Emphasize balanced probabilities
+    "volume_preservation": 1.0,  # Jacobian consistency
+    "smoothness": 1.0,  # Low gradient variation
+    "coverage": 1.5,  # Uniform simplex coverage
+    "invertibility": 1.0,  # Numerical inversion quality
 }
 ```
 
