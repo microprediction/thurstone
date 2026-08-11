@@ -196,7 +196,7 @@ Based on preliminary analysis, we expect:
 
 ### **Algorithm-Focused Study**
 ```python
-# Modify run_systematic_study.py  
+# Modify run_systematic_study.py
 # Add more algorithms in Phase 2
 # Increase replication count
 # Reduce parameter exploration
