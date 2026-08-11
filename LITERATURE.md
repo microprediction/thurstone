@@ -36,6 +36,32 @@
 - Elo (1978) and Glicko (1999) rating systems
   - Practical rating systems derived from paired-comparison ideas. While not lattice-based, they inform how to update abilities online from outcomes.
 
+## Inversion, Convex Duality, and Identifiability
+
+The discrete-choice econometrics literature contains, in pieces, a global inverse theory for the map from abilities (utilities) to winning (choice) probabilities. These references pin down the novelty boundary for any theoretical claims built on the ability transform: the qualitative diffeomorphism statement is essentially assembled from the entries below, whereas the explicit Laplacian structure of the Jacobian for independent translated noise (see `thurstone/laplacian.py`), quantitative conditioning via the spectral gap, boundary asymptotics, dead-heat/tie handling, and near-linear Newton–CG inversion are not treated there.
+
+- Econometric Models of Probabilistic Choice — Daniel McFadden (1981, in *Structural Analysis of Discrete Data*, Manski & McFadden eds., MIT Press)
+  - The social-surplus (expected maximum utility) function Ψ and the gradient representation ∇Ψ = p for additive random utility models. The symmetry and translation-invariance restrictions on ∂p_i/∂a_j are the Williams–Daly–Zachary conditions. This is the classical source for the "choice probabilities are a convex gradient map" fact.
+
+- Conditional Choice Probabilities and the Estimation of Dynamic Models — V. Joseph Hotz and Robert A. Miller (1993, Review of Economic Studies 60(3):497–529)
+  - The Hotz–Miller inversion: choice probabilities can be inverted back to utility differences. The starting point for the injectivity half of the global inverse theorem, and for the large CCP-estimation literature that consumes such inversions.
+
+- Connected Substitutes and Invertibility of Demand — Steven Berry, Amit Gandhi, Philip Haile (2013, Econometrica 81(5):2087–2111)
+  - General injectivity theorem: the demand/choice-probability map is invertible under a "connected substitutes" condition, covering ARUM as a special case. The definitive reference for uniqueness of the ability vector (up to translation) given interior probabilities.
+  - DOI: https://doi.org/10.3982/ECTA10135
+
+- On the Surjectivity of the Mapping between Utilities and Choice Probabilities — Andriy Norets and Satoru Takahashi (2013, Quantitative Economics 4(1):149–155)
+  - Shows that when the additive utility shocks have full-support density, the map from utilities to choice probabilities is onto the interior of the simplex. This is exactly the boundary/properness argument needed to upgrade local invertibility to a global diffeomorphism T: 1⊥ → int Δ^{n−1}.
+  - DOI: https://doi.org/10.3982/QE252
+
+- Duality in Dynamic Discrete-Choice Models — Khai Xiang Chiong, Alfred Galichon, Matthew Shum (2016, Quantitative Economics 7(1):83–115)
+  - Develops the convex-conjugate view: the inverse map is the gradient of the conjugate of the social surplus, T^{-1} = ∇Ω, computable via mass-transport/linear-programming methods. The natural reference for the "generalized entropy" interpretation of the ability transform.
+  - DOI: https://doi.org/10.3982/QE436
+
+- Discrete Choice and Rational Inattention: A General Equivalence Result — Mogens Fosgerau, Emerson Melo, André de Palma, Matthew Shum (2020, International Economic Review 61(4):1569–1589)
+  - Uses generalized entropy functions (conjugates of surplus functions) to establish an equivalence between ARUM and rational-inattention models. Source of the "generalized entropy" terminology; for Gumbel noise the entropy is Shannon's, for other noise (including Thurstone/probit) it is the corresponding non-logit mirror map.
+  - DOI: https://doi.org/10.1111/iere.12469
+
 ## Generative AI, Consistency, and Preference Optimization
 
 - Found in the Middle: Permutation Self‑Consistency Improves Listwise Ranking in Large Language Models — Raphael Tang et al. (2023)

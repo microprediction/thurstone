@@ -17,6 +17,12 @@ from .global_fit import GlobalAbilityCalibrator
 from .global_ls import GlobalLSCalibrator
 from .inference import AbilityCalibrator
 from .kalman_tracker import KalmanAbilityTracker
+from .laplacian import (
+    laplacian_dense,
+    laplacian_matvec,
+    laplacian_weights,
+    outright_win_probabilities,
+)
 from .lattice import UniformLattice
 from .multiray import ConditionSpec, MultiRayGlobalCalibrator
 from .optimization import OptimizationResult, ParameterBounds, optimize_diffeomorphism
@@ -34,6 +40,11 @@ __all__ = [
     "KalmanAbilityTracker",
     "ConditionSpec",
     "MultiRayGlobalCalibrator",
+    # Laplacian Jacobian structure
+    "laplacian_weights",
+    "laplacian_dense",
+    "laplacian_matvec",
+    "outright_win_probabilities",
     "NAN_DIVIDEND",
     "STD_L",
     "STD_UNIT",
