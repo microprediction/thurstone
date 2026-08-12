@@ -26,6 +26,8 @@ from .global_ls import GlobalLSCalibrator
 from .inference import AbilityCalibrator
 from .kalman_tracker import KalmanAbilityTracker
 from .laplacian import (
+    InversionResult,
+    invert_outright_probabilities,
     laplacian_dense,
     laplacian_matvec,
     laplacian_weights,
@@ -55,11 +57,13 @@ __all__ = [
     "gaussian_nodes",
     "hermite_nodes",
     "solve_abilities",
-    # Laplacian Jacobian structure
+    # Laplacian Jacobian structure and Newton-CG inversion
     "laplacian_weights",
     "laplacian_dense",
     "laplacian_matvec",
     "outright_win_probabilities",
+    "invert_outright_probabilities",
+    "InversionResult",
     "NAN_DIVIDEND",
     "STD_L",
     "STD_UNIT",

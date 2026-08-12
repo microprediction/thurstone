@@ -3,6 +3,7 @@ import pytest
 
 from thurstone.density import Density
 from thurstone.laplacian import (
+    invert_outright_probabilities,
     laplacian_dense,
     laplacian_matvec,
     laplacian_weights,
@@ -419,71 +420,91 @@ def test_fuzz_matvec_matches_dense(seed):
     assert np.all(p >= 0.0) and p.sum() <= 1.0 + 1e-12
 
 
-# ---- Newton-CG inversion: the matvec supports its intended use ----
+# ---- Newton-CG inversion API ----
 
 
-def _cg_solve(matvec, b, iters=200, tol=1e-14):
-    """Conjugate gradients for L x = b on the mean-zero subspace."""
-    x = np.zeros_like(b)
-    r = b.copy()
-    p = r.copy()
-    rs = float(r @ r)
-    for _ in range(iters):
-        Ap = matvec(p)
-        denom = float(p @ Ap)
-        if denom <= 0.0:
-            break
-        alpha = rs / denom
-        x += alpha * p
-        r -= alpha * Ap
-        rs_new = float(r @ r)
-        if np.sqrt(rs_new) < tol:
-            break
-        p = r + (rs_new / rs) * p
-        rs = rs_new
-    return x
+def _bases(scales, skews=None, lattice=LATTICE):
+    skews = skews or [0.0] * len(scales)
+    return [Density.skew_normal(lattice, loc=0.0, scale=s, a=k) for s, k in zip(scales, skews)]
 
 
-def test_newton_cg_inversion_converges():
-    """Joint Newton-CG inversion of prices back to abilities, matvec-only.
-
-    Damped Newton with the O(n M) Hessian-vector product recovers the true
-    ability vector (up to the translation gauge) from its own forward
-    probabilities, without ever forming the dense Jacobian.
-    """
+def test_inversion_roundtrip_heterogeneous():
+    """invert_outright_probabilities recovers abilities from its own forward map."""
     rng = np.random.default_rng(2)
-    n = 8
-    a_true = rng.normal(scale=0.7, size=n)
-    a_true -= a_true.mean()
     scales = [0.7, 1.0, 1.3, 1.0, 0.9, 1.1, 1.0, 0.8]
+    a_true = rng.normal(scale=0.7, size=8)
+    a_true -= a_true.mean()
+    bases = _bases(scales)
+    target = outright_win_probabilities(_smooth(list(a_true), scales=scales))
+    result = invert_outright_probabilities(bases, target, tol=1e-11)
+    assert result.converged
+    assert result.residual < 1e-11
+    assert np.allclose(result.abilities, a_true, atol=1e-7)
+    assert abs(result.abilities.mean()) < 1e-12  # gauge fixed at zero mean
+    assert np.allclose(result.achieved, target, atol=1e-10)
 
-    def build(a):
-        return _smooth(list(a), scales=scales)
 
-    target = outright_win_probabilities(build(a_true))
-    a = np.zeros(n)
-    res = np.inf
-    for _ in range(30):
-        field = build(a)
-        r = outright_win_probabilities(field) - target
-        res = np.abs(r).max()
-        if res < 1e-11:
-            break
-        delta = _cg_solve(lambda v: laplacian_matvec(field, v), r - r.mean())
-        # damped step: the analytic Laplacian is an O(unit) approximation of
-        # the discrete map's derivative, so guard against overshoot
-        step = 1.0
-        for _ in range(20):
-            trial = a + step * delta
-            r_new = outright_win_probabilities(build(trial)) - target
-            if np.abs(r_new).max() < res:
-                a = trial - np.mean(trial)
-                break
-            step *= 0.5
-        else:
-            break
-    assert res < 1e-11
-    assert np.allclose(a, a_true, atol=1e-7)
+def test_inversion_normalized_target_and_warm_start():
+    """A target renormalized to sum one is met up to a uniform offset.
+
+    The raw residual then equals the (constant) tie-mass discrepancy, which
+    the centered criterion projects out.  A warm start from a different
+    gauge must land on the same mean-zero answer.
+    """
+    scales = [0.8, 1.0, 1.2, 1.0]
+    a_true = np.array([0.4, -0.1, 0.3, -0.6])
+    a_true -= a_true.mean()
+    bases = _bases(scales)
+    p = outright_win_probabilities(_smooth(list(a_true), scales=scales))
+    target = p / p.sum()  # sums to one; not exactly attainable
+    result = invert_outright_probabilities(bases, target, tol=1e-10)
+    assert result.converged
+    raw = result.achieved - target
+    assert np.abs(raw - raw.mean()).max() < 1e-10  # only a uniform offset remains
+    # the offset shifts the solution away from a_true by O(offset), no more
+    assert np.allclose(result.abilities, a_true, atol=10.0 * np.abs(raw.mean()))
+    warm = invert_outright_probabilities(bases, target, tol=1e-10, initial=a_true + 5.0)
+    assert warm.converged
+    assert np.allclose(warm.abilities, result.abilities, atol=1e-7)
+
+
+def test_inversion_extreme_target():
+    """A heavily lopsided (but interior) target is still reachable."""
+    bases = _bases([1.0, 1.0, 1.0])
+    target = np.array([0.90, 0.07, 0.03])
+    result = invert_outright_probabilities(bases, target / target.sum() * 0.98)
+    assert result.converged
+    spread = result.abilities.max() - result.abilities.min()
+    assert spread > 1.0  # the favourite is far ahead in ability
+
+
+def test_inversion_atom_base_is_graceful():
+    """Atoms make the map piecewise smooth; the solver must not blow up."""
+    lattice = LATTICE
+    bases = [_atom(0.0, lattice), Density.skew_normal(lattice, loc=0.0, scale=1.0, a=0.0)]
+    result = invert_outright_probabilities(bases, [0.4, 0.55], max_iter=20)
+    assert np.all(np.isfinite(result.abilities))
+    assert np.all(np.isfinite(result.achieved))
+    if result.converged:
+        assert result.residual < 1e-10
+
+
+def test_inversion_validation():
+    bases = _bases([1.0, 1.0, 1.0])
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(bases, [0.5, 0.5])  # wrong length
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(bases, [0.5, 0.5, 0.0])  # boundary target
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(bases, [0.5, 0.5, -0.1])
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(bases, [0.5, 0.4, np.nan])
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(bases, [0.3, 0.3, 0.4], initial=[0.0, np.inf, 0.0])
+    with pytest.raises(ValueError):
+        invert_outright_probabilities(
+            [_zero_mass(), *_bases([1.0, 1.0])], [0.2, 0.4, 0.4]
+        )  # zero-mass runner is not identifiable
 
 
 # ---- validation ----
