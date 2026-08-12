@@ -11,6 +11,14 @@ from .conventions import (
 )
 
 # Diffeomorphism modules
+from .correlated import (
+    FactorRace,
+    factor_model,
+    gaussian_factor_race,
+    gaussian_nodes,
+    hermite_nodes,
+    solve_abilities,
+)
 from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
 from .density import Density
 from .global_fit import GlobalAbilityCalibrator
@@ -40,6 +48,13 @@ __all__ = [
     "KalmanAbilityTracker",
     "ConditionSpec",
     "MultiRayGlobalCalibrator",
+    # Correlated races (latent Gaussian factors; softmax races via gumbel_min)
+    "FactorRace",
+    "factor_model",
+    "gaussian_factor_race",
+    "gaussian_nodes",
+    "hermite_nodes",
+    "solve_abilities",
     # Laplacian Jacobian structure
     "laplacian_weights",
     "laplacian_dense",
