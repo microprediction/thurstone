@@ -53,8 +53,10 @@ scheme that keeps the fast product correct for atoms, truncated supports and
 other degenerate fields, and a renormalization identity showing that matching
 probability \emph{ratios} costs nothing: the rescaled residual has Jacobian
 exactly equal to the negative Laplacian.  Numerical experiments confirm
-machine-precision agreement with closed forms, superlinear Newton convergence,
-and three-orders-of-magnitude speedups over dense Jacobian assembly.
+machine-precision agreement with closed forms, Newton convergence whose
+linear rate is precisely the lattice Jacobian's discretization error (a
+steady one and a half digits per step at the default spacing), and
+three-orders-of-magnitude speedups over dense Jacobian assembly.
 \end{abstract}
 
 \section{Introduction}
@@ -186,7 +188,9 @@ write $L(W) = \diag(W\one) - W$ for the graph Laplacian.
 Under Assumption~\ref{ass:noise}, $T$ is continuously differentiable and
 \[
   D T(a) = \nabla^2 \Psi(a) = L\bigl(w(a)\bigr),
-  \qquad
+\]
+with weights
+\[
   w_{ij}(a) = \int_{\R} f(x-a_i)\, f(x-a_j) \prod_{k \ne i,j} F(x-a_k) \dd x .
 \]
 All off-diagonal weights are strictly positive, i.e.\ the interaction graph is
@@ -318,10 +322,15 @@ Appendix~\ref{app:lattice}.  The central computational claim is that the
 
 \begin{theorem}[Matrix-free Hessian-vector product]
 \label{thm:hvp}
-Define the hazards $h_i(x) = f_i(x)/S_i(x)$ where $S_i(x) > 0$, the
-leave-one-out masses $q_i(x) = f_i(x)\prod_{k \ne i} S_k(x)$, and the shared
-aggregates $H = \sum_j h_j$ and $G_v = \sum_j h_j v_j$.  Wherever all
-survivals are positive,
+Define, wherever $S_i(x) > 0$, the hazards, leave-one-out masses, and
+shared aggregates
+\[
+  h_i = \frac{f_i}{S_i}, \qquad
+  q_i = f_i \prod_{k \ne i} S_k, \qquad
+  H = \sum_j h_j, \qquad
+  G_v = \sum_j h_j v_j .
+\]
+Wherever all survivals are positive,
 \[
   \bigl(L(w)\,v\bigr)_i \;=\; \sum_{j \ne i} w_{ij}\,(v_i - v_j)
   \;=\; \frac{1}{u}\sum_{x} q_i(x)\,\bigl( v_i H(x) - G_v(x) \bigr),
@@ -407,23 +416,32 @@ gap halves when $u$ halves---first-order convergence, confirming the
 analytic Laplacian as the continuum limit of the discrete map's derivative.
 
 \paragraph{Joint Newton--CG inversion.}
-A twelve-contestant field with scales drawn from $\{0.7, 1.0, 1.4\}$ and
-abilities $\sim \mathcal N(0, 0.8^2)$ has tie mass $0.0315$ and
-$\lambda_2 = 0.0092$ (inverse sensitivity $1/\lambda_2 \approx 109$).
+A field of twelve contestants with scales drawn from $\{0.7, 1.0, 1.4\}$ and
+abilities drawn from $\mathcal N(0, 0.8^2)$ has tie mass $0.0315$ and
+$\lambda_2 = 0.0092$, an inverse sensitivity of $1/\lambda_2 \approx 109$.
 Inverting the \emph{normalized} prices recovers all abilities to
-$4.4\times10^{-9}$ in eight Newton iterations, with residual history
-\[
-  9.3\!\times\!10^{-2},\;
-  5.0\!\times\!10^{-2},\;
-  3.1\!\times\!10^{-3},\;
-  5.6\!\times\!10^{-4},\;
-  2.5\!\times\!10^{-5},\;
-  9.9\!\times\!10^{-7},\;
-  3.3\!\times\!10^{-8},\;
-  1.1\!\times\!10^{-9},\;
-  3.9\!\times\!10^{-11},
-\]
-superlinear as expected from an exact Jacobian, and the recovered scale
+$4.4\times10^{-9}$ in eight Newton steps.  The residual history (the
+initial residual, then after each accepted step) is
+\begin{gather*}
+  9.3\!\times\!10^{-2},\quad
+  5.0\!\times\!10^{-2},\quad
+  3.1\!\times\!10^{-3},\quad
+  5.6\!\times\!10^{-4},\quad
+  2.5\!\times\!10^{-5},\\
+  9.9\!\times\!10^{-7},\quad
+  3.3\!\times\!10^{-8},\quad
+  1.1\!\times\!10^{-9},\quad
+  3.9\!\times\!10^{-11}.
+\end{gather*}
+The tail contracts by a nearly constant factor $\approx 0.034$ per step:
+convergence is \emph{linear}, not quadratic, and the rate is itself a
+consistency check---Newton iteration with a Jacobian carrying relative
+error $\epsilon$ contracts asymptotically at rate $\epsilon$, and
+$0.034$ matches the $\sim\!3\%$ finite-difference discrepancy of the
+analytic Laplacian against the lattice map's derivative measured above.
+Refining the lattice therefore steepens the convergence rate along with
+the quadrature; at the default spacing each step gains a steady
+$1.5$ digits and eight steps reach $10^{-11}$.  The recovered scale
 equals the attainable total $0.968471$ to eight digits.  Under the additive
 criterion the same solver ``converges'' on a
 $(1-2\varepsilon,\,\varepsilon,\,\varepsilon)$ target with
@@ -479,43 +497,6 @@ abilities $a_{ri} = v_r^\top z_i$ projected along contest-specific
 directions---separates cleanly into the inversion studied here followed by a
 linear or bilinear factorization problem, whose identifiability theory
 (contest hypergraph connectivity, gauge groups) we develop elsewhere.
-
-\begin{remark}[Maximally symmetric cube-to-simplex diffeomorphisms]
-Composing $T$ with coordinatewise monotone maps produces diffeomorphisms
-from the cube $[0,1]^k$ onto the simplex $\Delta^k$ (add one reference
-contestant; map each cube coordinate to an ability through a sigmoid), a
-construction used in the \texttt{thurstone} package for sampling and
-reparametrization.  It is natural to ask for the \emph{most symmetric} such
-map.  A canonical answer exists within this paper's theme: take the Brenier
-optimal-transport map from the uniform measure on the cube to the uniform
-measure on the simplex.  It is the gradient of a convex potential---another
-mirror map---pushes volume to volume exactly, and, because the quadratic-cost
-transport map between two measures invariant under a common group action is
-unique, it is automatically equivariant under the shared symmetry:
-permutations of the $k$ cube axes act on the simplex by permuting the $k$
-non-reference vertices.  The Thurstone family with identical sigmoid
-parameters achieves the equivariance but not exact volume preservation;
-quantifying its transport cost against the Brenier optimum, and whether a
-noise law exists for which the Thurstone construction \emph{is} optimal,
-seems a worthwhile question.  The construction has more freedom than the
-equal-parameter family suggests, because mapping $k$ coordinates onto a
-$k$-simplex requires \emph{adding} one reference contestant, and nothing
-forces the enlarged field to be homogeneous or independent: the reference
-contestant's noise scale is a free scalar, and the $k$ coordinate
-contestants may be given an exchangeable correlation (say through a common
-latent factor) without breaking equivariance, since any symmetric treatment
-of the $k$ axes preserves it.  These knobs---reference variance,
-exchangeable correlation strength---parametrize a family of equivariant
-diffeomorphisms within which one can optimize toward volume uniformity,
-plausibly getting much nearer the Brenier map than the independent
-homogeneous case allows.  Correlation does not even leave this paper's
-framework: for a general additive random-utility field the
-Williams--Daly--Zachary conditions still make $DT$ a symmetric
-substitutes matrix with zero row sums---a graph Laplacian---so
-Proposition~\ref{prop:structure} survives verbatim; what is lost is only
-the product form of the weights and with it the $O(nM)$ trick, which is
-specific to independence.
-\end{remark}
 
 Two further directions are natural.  First, the boundary asymptotics of
 $\lambda_2$ deserve sharp constants: the overlap integrals decay at explicit
@@ -792,11 +773,11 @@ if all of these stall does the solver stop, returning the best iterate,
 \texttt{converged = false}, and a message naming the failure.
 
 \paragraph{Stopping and diagnostics.}
-Success is $\|r\|_\infty < \tau$.  The message distinguishes: converged;
-Newton direction vanished (interaction graph disconnected---zero-mass,
-dominated, or off-lattice contestant); line search stalled despite
-regularization; iteration cap reached; and, orthogonally, whether the
-solution is pinned at the lattice box.  The residual history (initial plus
+Success is $\|r\|_\infty < \tau$.  The message distinguishes: converged; a
+vanished Newton direction (the interaction graph has disconnected: a
+zero-mass, dominated, or off-lattice contestant); a line search that
+stalled despite regularization; and the iteration cap.  Orthogonally it
+reports whether the solution is pinned at the lattice box.  The residual history (initial plus
 after each accepted step) is returned for convergence inspection; the
 history in \S\ref{sec:experiments} is typical.
 
@@ -813,14 +794,21 @@ assembling a single dense Jacobian for $n \gtrsim 100$.
 \label{app:degenerate}
 
 \paragraph{Sign dictionary.}
-The main text uses maximum-wins with
-$p_i = \int f_i \prod_{k \ne i} F_k$ and $DT = +L(w)$,
-$w_{ij} = \int f_i f_j \prod_{k\ne i,j} F_k$.  The implementation uses
-minimum-wins (race times) with survivals in place of CDFs and
-$Dp = -L(w)$, $w_{ij} = \frac1u\sum f_i f_j \prod_{k \ne i,j} S_k$.  The
-two are conjugate under $x \mapsto -x$, $a \mapsto -a$, which swaps $F$ and
-$S$ and reverses the orientation of ``better''; $W$ maps to $W$ and only
-the sign of the Jacobian flips.
+The main text uses maximum-wins,
+\[
+  p_i = \int f_i \prod_{k \ne i} F_k, \qquad
+  DT = +L(w), \qquad
+  w_{ij} = \int f_i f_j \prod_{k\ne i,j} F_k ;
+\]
+the implementation uses minimum-wins (race times), with survivals in place
+of CDFs,
+\[
+  Dp = -L(w), \qquad
+  w_{ij} = \frac1u \sum_x f_i f_j \prod_{k \ne i,j} S_k .
+\]
+The two are conjugate under $x \mapsto -x$, $a \mapsto -a$, which swaps
+$F$ and $S$ and reverses the orientation of ``better''; $W$ maps to $W$
+and only the sign of the Jacobian flips.
 
 \paragraph{Zero-mass contestants.}
 A pmf of total mass zero is the package's sentinel for a contestant shifted

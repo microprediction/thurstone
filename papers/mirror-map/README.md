@@ -29,9 +29,5 @@ detail in three appendices. Experiments use the `thurstone` package.
 
 ## Notes for revision
 
-- The maximally-symmetric cube→simplex remark (Discussion) sketches the
-  Brenier/equivariance argument and the reference-contestant knobs
-  (variance, exchangeable correlation); could grow into its own section or
-  paper if the transport-cost comparison is computed.
 - Boundary asymptotics of λ₂ are stated qualitatively; sharp constants are
   listed as future work.
