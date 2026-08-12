@@ -1,0 +1,864 @@
+\documentclass[11pt]{article}
+
+\input{../shared/preamble.tex}
+
+% --- Theorem environments (paper-local) ---
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% --- Paper-local macros ---
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\simplex}{\Delta^{n-1}}
+\newcommand{\intsimplex}{\operatorname{int}\Delta^{n-1}}
+\newcommand{\perpone}{\one^{\perp}}
+\newcommand{\dd}{\,\mathrm{d}}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\rank}{rank}
+
+\title{The Thurstone Mirror Map:\\ Fast Inversion, Generalized Entropy\\ and Multiway Choice Geometry}
+\author{Peter Cotton}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The map from latent abilities to winning probabilities in a multi-entrant
+Thurstone contest is a convex gradient map whose Jacobian, for independent
+translated noise, is a weighted complete-graph Laplacian.  We exploit this
+organizing fact in three directions.  First, we assemble a global inverse
+theorem: under full-support noise the map is a diffeomorphism from the
+translation-quotient of ability space onto the open probability simplex, with
+injectivity and surjectivity due in essence to prior work in discrete-choice
+econometrics; our contribution is the quantitative side---the explicit
+Laplacian weights, inverse conditioning governed by the spectral gap, a
+matrix-tree formula for the Jacobian determinant, and an exact description of
+degeneracy at the simplex boundary.  Second, the convex conjugate of the
+expected-winner surplus is a generalized entropy whose gradient is the inverse
+map, placing the ``ability transform'' in the family of mirror maps: softmax
+and Shannon entropy are the special case of Gumbel noise.  Third, and mainly,
+we show the Laplacian need never be formed: a Hessian-vector product costs
+$O(nM)$ on an $M$-point lattice via shared hazard aggregates, enabling exact
+joint Newton--conjugate-gradient inversion of an entire field at near-linear
+cost.  We give the algorithm in complete detail, including an exact repair
+scheme that keeps the fast product correct for atoms, truncated supports and
+other degenerate fields, and a renormalization identity showing that matching
+probability \emph{ratios} costs nothing: the rescaled residual has Jacobian
+exactly equal to the negative Laplacian.  Numerical experiments confirm
+machine-precision agreement with closed forms, superlinear Newton convergence,
+and three-orders-of-magnitude speedups over dense Jacobian assembly.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Fix $n$ contestants with latent abilities $a = (a_1,\dots,a_n) \in \R^n$ and
+independent performances
+\begin{equation}
+  X_i = a_i + \varepsilon_i,
+  \qquad \varepsilon_i \sim F \text{ i.i.d.},
+  \label{eq:model}
+\end{equation}
+where the largest performance wins.\footnote{Racing applications use the
+mirror convention in which the \emph{smallest} performance (a time) wins; the
+two are exchanged by $a \mapsto -a$ and all results below carry over with one
+sign flip, made explicit in Appendix~\ref{app:degenerate}.}  The winning
+probabilities
+\begin{equation}
+  p_i(a) = \Pr\Bigl(X_i = \max_j X_j\Bigr)
+  \label{eq:pmap}
+\end{equation}
+define a map that is invariant under common translation, so the natural
+domain is the quotient $\R^n / \langle \one \rangle$, which we identify with
+the mean-zero subspace $\perpone$:
+\[
+  T : \perpone \longrightarrow \intsimplex, \qquad a \mapsto p(a).
+\]
+This is the multiway generalization of \textcite{thurstone1927}; the lattice
+algorithms of \textcite{cotton2021} compute $T$ and invert it numerically at
+$O(n)$ cost per field.  The present paper is about the mathematical structure
+of $T$ and how that structure yields a near-linear \emph{joint} inversion
+algorithm with provable behaviour in every degenerate configuration.
+
+Our starting point is classical.  The expected winning performance, or social
+surplus,
+\begin{equation}
+  \Psi(a) = \mathbb{E}\Bigl[\max_i\, (a_i + \varepsilon_i)\Bigr]
+  \label{eq:surplus}
+\end{equation}
+is convex, and under mild continuity conditions $\nabla \Psi = p$: choice
+probabilities are the gradient of the surplus.  This is the
+Williams--Daly--Zachary theorem of additive random-utility theory
+\parencite{williams1977,daly1978,mcfadden1981}.  What the general theory does
+not provide is the \emph{form} of the second derivative.  For independent
+translated noise it is strikingly simple (Theorem~\ref{thm:laplacian}): with
+common density $f$ and CDF $F$,
+\[
+  D T(a) = \nabla^2 \Psi(a) = L(w(a)),
+\]
+a weighted complete-graph Laplacian with explicit positive weights
+$w_{ij}(a) = \int f(x-a_i) f(x-a_j) \prod_{k \ne i,j} F(x-a_k) \dd x$.
+Almost everything else in the paper flows from this fact:
+
+\begin{itemize}
+  \item \textbf{Geometry} (\S\ref{sec:laplacian}--\S\ref{sec:diffeo}): rank
+    $n-1$ with kernel $\langle\one\rangle$, strict monotonicity on
+    $\perpone$, a matrix-tree formula for the Jacobian determinant, inverse
+    sensitivity controlled by $1/\lambda_2(L)$, and---combined with
+    injectivity and surjectivity results from the econometrics
+    literature---a global diffeomorphism theorem
+    (Theorem~\ref{thm:diffeo}).
+  \item \textbf{Duality} (\S\ref{sec:entropy}): the convex conjugate
+    $\Omega = \Psi^*$ restricted to the simplex is a generalized entropy
+    with $T^{-1} = \nabla \Omega$; the ability transform is a non-logit
+    mirror map, softmax/Shannon being the Gumbel special case.
+  \item \textbf{Computation} (\S\ref{sec:algorithm}, Appendices
+    \ref{app:lattice}--\ref{app:newton}): on an $M$-point lattice a
+    Hessian-vector product costs $O(nM)$ through shared hazard aggregates
+    (Theorem~\ref{thm:hvp}), so an exact joint Newton step---all
+    contestants moving together, every cross-effect included---costs a few
+    matrix-free conjugate-gradient iterations rather than an
+    $O(n^2 M)$ Jacobian assembly.  A renormalization identity
+    (Lemma~\ref{lem:renorm}) shows that matching a target's probability
+    \emph{ratios}, the natural criterion for market data whose quoted
+    prices sum to one, changes the Jacobian not at all: $\one^\top L = 0$.
+\end{itemize}
+
+\paragraph{What is not new.}
+We are careful about attribution.  The gradient representation
+$\nabla\Psi = p$ is classical \parencite{mcfadden1981}.  Injectivity of
+choice-probability maps is the Hotz--Miller inversion
+\parencite{hotzmiller1993}, in full generality the connected-substitutes
+theorem of \textcite{berrygandhihaile2013}.  Surjectivity onto the open
+simplex under full-support noise is due to
+\textcite{noretstakahashi2013}.  The convex-conjugate view of the inversion,
+including its computational use, appears in
+\textcite{chiong2016}, and ``generalized entropy'' in the sense used here is
+developed by \textcite{fosgerau2020}.  The qualitative diffeomorphism
+statement of Theorem~\ref{thm:diffeo} is therefore an assembly of known
+pieces, recorded here because we need its quantitative refinements.  The
+explicit Laplacian weight formula, the conditioning and boundary analysis,
+the $O(nM)$ Hessian-vector product with its exact repair scheme, and the
+ratio-matching Newton--CG solver are, to our knowledge, new.
+
+\section{The Thurstone map and its gradient structure}
+\label{sec:setup}
+
+\begin{assumption}
+\label{ass:noise}
+The noise CDF $F$ is absolutely continuous with density $f$ that is bounded,
+continuous, and strictly positive on $\R$ (full support), and
+$\mathbb{E}|\varepsilon| < \infty$.
+\end{assumption}
+
+Full support guarantees $p(a) \in \intsimplex$ for every finite $a$ and rules
+out ties, so \eqref{eq:pmap} is unambiguous.  Conditioning on $X_i = x$
+gives the standard representation
+\begin{equation}
+  p_i(a) = \int_{\R} f(x - a_i) \prod_{k \ne i} F(x - a_k) \dd x .
+  \label{eq:pint}
+\end{equation}
+Translation invariance $p(a + b\one) = p(a)$ is immediate.  The surplus
+\eqref{eq:surplus} is finite by integrability, convex as an expectation of a
+maximum of affine functions, and satisfies $\Psi(a+b\one) = \Psi(a) + b$; the
+Williams--Daly--Zachary theorem gives
+\begin{equation}
+  \nabla \Psi(a) = p(a).
+  \label{eq:wdz}
+\end{equation}
+
+\section{The Laplacian Jacobian}
+\label{sec:laplacian}
+
+For a symmetric nonnegative weight matrix $W = (w_{ij})$ with zero diagonal,
+write $L(W) = \diag(W\one) - W$ for the graph Laplacian.
+
+\begin{theorem}[Laplacian Jacobian]
+\label{thm:laplacian}
+Under Assumption~\ref{ass:noise}, $T$ is continuously differentiable and
+\[
+  D T(a) = \nabla^2 \Psi(a) = L\bigl(w(a)\bigr),
+  \qquad
+  w_{ij}(a) = \int_{\R} f(x-a_i)\, f(x-a_j) \prod_{k \ne i,j} F(x-a_k) \dd x .
+\]
+All off-diagonal weights are strictly positive, i.e.\ the interaction graph is
+complete.
+\end{theorem}
+
+\begin{proof}
+Fix $i \ne j$ and differentiate \eqref{eq:pint} in $a_j$.  The integrand is
+dominated by $f(x-a_i)$ uniformly for $a_j$ in a neighbourhood, and
+$\partial_{a_j} F(x-a_j) = -f(x-a_j)$, so differentiation under the integral
+sign (justified by dominated convergence and continuity of $f$) gives
+$\partial p_i / \partial a_j = -w_{ij}(a) < 0$, with $w_{ij}$ as displayed and
+strictly positive because $f > 0$ everywhere and $F > 0$ on a half-line.
+Symmetry $w_{ij} = w_{ji}$ is manifest.  Differentiating the identity
+$p_i(a + b\one) = p_i(a)$ in $b$ yields
+$\sum_j \partial p_i/\partial a_j = 0$, hence
+$\partial p_i / \partial a_i = \sum_{j\ne i} w_{ij}$.  Assembling,
+$DT = \diag(w\one) - w = L(w)$.  Continuity of $a \mapsto w(a)$ follows from
+dominated convergence again, giving $C^1$.  Finally
+$DT = D(\nabla\Psi) = \nabla^2\Psi$ by \eqref{eq:wdz}.
+\end{proof}
+
+The immediate consequences justify calling this an organizing fact.
+
+\begin{proposition}[Structure]
+\label{prop:structure}
+For every $a$: (i) $L(w(a))$ is symmetric positive semidefinite with
+$\ker L = \langle \one \rangle$ and $\rank L = n-1$; (ii) $T$ restricted to
+$\perpone$ is strictly monotone:
+$(a-b)^\top (T(a) - T(b)) > 0$ for $a \ne b \in \perpone$; (iii) the
+determinant of $DT$ restricted to $\perpone$ equals $n$ times the weighted
+spanning-tree polynomial of $w(a)$ (matrix-tree theorem); (iv) for
+$p^* = T(a^*)$ and a perturbed target $p$ near $p^*$, both in
+$\intsimplex$,
+\[
+  \| T^{-1}(p) - T^{-1}(p^*) \|_2 \;\le\; \frac{\|p - p^*\|_2}{\lambda_2(L(w(a^*)))}
+  + o(\|p - p^*\|_2),
+\]
+where $\lambda_2$ is the smallest nonzero (Fiedler) eigenvalue.
+\end{proposition}
+
+\begin{proof}
+(i) Positive semidefiniteness and the kernel are standard for Laplacians of
+connected graphs with positive weights, and the graph here is complete.
+(ii) By (i), $\Psi$ restricted to $\perpone$ has positive-definite Hessian,
+hence is strictly convex, and gradients of strictly convex functions are
+strictly monotone.  (iii) is the weighted matrix-tree theorem applied to any
+cofactor of $L$.  (iv) is the inverse-function-theorem bound
+$\|DT^{-1}\|_{2 \to 2} = 1/\lambda_2$ on $\perpone$.
+\end{proof}
+
+Part (iv) is the quantitative content of the folklore statement that
+inverting prices is ill-conditioned near the boundary of the simplex: as any
+$p_i \to 0$ or $1$, contestant $i$'s density separates from the field, all
+$w_{ij}$ involving $i$ decay (at the rate of the overlap integral, e.g.\
+Gaussian-tail in the Gaussian case), and $\lambda_2 \to 0$.  Section
+\ref{sec:experiments} reports $1/\lambda_2$ for a realistic field.
+
+\section{The global diffeomorphism}
+\label{sec:diffeo}
+
+\begin{theorem}[Global diffeomorphism; assembled]
+\label{thm:diffeo}
+Under Assumption~\ref{ass:noise},
+$T : \perpone \to \intsimplex$ is a $C^1$ diffeomorphism.
+\end{theorem}
+
+\begin{proof}
+Local diffeomorphism: $DT$ restricted to $\perpone$ is positive definite by
+Theorem~\ref{thm:laplacian} and Proposition~\ref{prop:structure}(i), so the
+inverse function theorem applies at every point.  Injectivity: strict
+monotonicity, Proposition~\ref{prop:structure}(ii); this is a special case of
+the inversions of \textcite{hotzmiller1993} and
+\textcite{berrygandhihaile2013}.  Surjectivity onto $\intsimplex$ is
+Theorem~1 of \textcite{noretstakahashi2013}, whose hypothesis---additive
+shocks with a density---is implied by Assumption~\ref{ass:noise}.  A smooth
+bijection with everywhere-invertible differential has smooth inverse.
+\end{proof}
+
+We emphasize again that the three ingredients are individually known; the
+value here is the package together with the quantitative structure of
+\S\ref{sec:laplacian}, which the econometric treatments do not use.
+
+\section{Generalized entropy and the mirror map}
+\label{sec:entropy}
+
+Define the convex conjugate of the surplus restricted to the gauge slice,
+\[
+  \Omega(p) = \sup_{a \in \perpone} \bigl\{ p^\top a - \Psi(a) \bigr\},
+  \qquad p \in \intsimplex .
+\]
+By Theorem~\ref{thm:diffeo} the supremum is attained at $a = T^{-1}(p)$, and
+standard conjugate duality \parencite{rockafellar1970} gives
+\begin{equation}
+  T^{-1}(p) = \nabla \Omega(p) \big|_{\perpone},
+  \qquad
+  \nabla^2 \Omega(p) = \bigl( L(w(T^{-1}(p))) \bigr)^{+},
+  \label{eq:mirror}
+\end{equation}
+the pseudoinverse taken on $\perpone$.  For Gumbel noise, $\Psi(a) = \log
+\sum_i e^{a_i}$ (up to the Euler constant), $T$ is softmax, and $\Omega(p) =
+\sum_i p_i \log p_i$ is negative Shannon entropy: \eqref{eq:mirror} is the
+textbook mirror pair.  For Gaussian or arbitrary Thurstone noise, $\Omega$ is
+the corresponding \emph{generalized entropy} in the sense of
+\textcite{fosgerau2020}, and $T^{-1}$---the ability transform of
+\textcite{cotton2021}---is the associated mirror map, computable but not in
+closed form.  The dual Hessian in \eqref{eq:mirror} is the pseudoinverse of a
+graph Laplacian, i.e.\ a weighted effective-resistance kernel, which is what
+makes the conditioning story of Proposition~\ref{prop:structure}(iv) natural:
+inverse sensitivity between contestants $i$ and $j$ is their effective
+resistance in the interaction graph.  The computational consequence is the
+subject of the next section: evaluating the non-logit mirror map at near-linear
+cost.  Connections to mirror descent, proper scoring rules and probability
+aggregation follow exactly as in the logit case and are not pursued here;
+see also \textcite{chiong2016} for the mass-transport formulation.
+
+\section{Near-linear inversion}
+\label{sec:algorithm}
+
+We now work on the computational side, where distributions live on a uniform
+lattice with $M$ points, spacing $u$, per-contestant probability masses
+$f_i(x)$ and survivals $S_i(x)$; heterogeneous shapes and scales are allowed
+(the theory above extends mutatis mutandis; independence is what matters).
+Full definitions, conventions and edge cases are in
+Appendix~\ref{app:lattice}.  Forward pricing---all $n$ win probabilities---
+costs $O(nM)$ by the prefix--suffix (``removable field'') construction of
+Appendix~\ref{app:lattice}.  The central computational claim is that the
+\emph{differential} of the forward map is available at the same cost.
+
+\begin{theorem}[Matrix-free Hessian-vector product]
+\label{thm:hvp}
+Define the hazards $h_i(x) = f_i(x)/S_i(x)$ where $S_i(x) > 0$, the
+leave-one-out masses $q_i(x) = f_i(x)\prod_{k \ne i} S_k(x)$, and the shared
+aggregates $H = \sum_j h_j$ and $G_v = \sum_j h_j v_j$.  Wherever all
+survivals are positive,
+\[
+  \bigl(L(w)\,v\bigr)_i \;=\; \sum_{j \ne i} w_{ij}\,(v_i - v_j)
+  \;=\; \frac{1}{u}\sum_{x} q_i(x)\,\bigl( v_i H(x) - G_v(x) \bigr),
+\]
+because the $j = i$ term of the expansion vanishes identically.  All
+aggregates are shared across $i$, so the product costs $O(nM)$, versus
+$O(n^2 M)$ to form the dense weights.  Points where some $S_j(x) = 0$ while
+$f_j(x) > 0$ (atoms, truncated supports) admit an exact division-free repair
+at $O(n)$ per such point (Appendix~\ref{app:hvp}), preserving both the total
+complexity and exactness for every representable field.
+\end{theorem}
+
+The proof, the precise masking threshold, the floating-point error analysis
+(hazards are capped so that the subtractive cancellation in $v_iH - G_v$ is
+bounded), and pseudocode are in Appendix~\ref{app:hvp}.  With the product in
+hand, a Newton step for the inverse problem solves $L\,\delta = r$ by
+conjugate gradients restricted to $\perpone$---the natural Krylov space,
+since $L$ maps into it---at a handful of $O(nM)$ products.
+
+One further identity removes the last practical obstruction.  Market targets
+$\pi$ are quoted normalized, $\sum_i \pi_i = 1$, whereas the lattice's no-tie
+forward map sums to one minus a tie mass.  The correct criterion is to match
+\emph{ratios}: solve $p(a) = s\,\pi$ with $s = \sum_i p_i(a) / \sum_i \pi_i$
+determined by the iterate itself.
+
+\begin{lemma}[Renormalization is free]
+\label{lem:renorm}
+Let $r(a) = p(a) - s(a)\,\pi$ with $s(a) = \one^\top p(a) / \one^\top \pi$.
+Then $\one^\top r(a) = 0$ identically, and
+$Dr(a) = \bigl(I - \tfrac{\pi \one^\top}{\one^\top \pi}\bigr) Dp(a) = Dp(a)$:
+the renormalization term vanishes because $\one^\top L = 0$.  Newton steps
+computed with the unmodified Laplacian are therefore exact for the rescaled
+residual.
+\end{lemma}
+
+\begin{proof}
+$\one^\top r = \one^\top p - s\,\one^\top\pi = 0$ by the definition of $s$.
+Differentiating, $Dr = Dp - \frac{\pi}{\one^\top\pi}\,\one^\top Dp$, and
+$\one^\top Dp = \pm\one^\top L = 0$ since $L$ is symmetric with
+$L\one = 0$.
+\end{proof}
+
+The criterion matters beyond bookkeeping.  An additive matching criterion
+(fit $p(a) - \pi$ up to a common constant, the orthogonal projection of the
+same infeasibility) silently destroys small probabilities: a uniform offset
+of order the tie mass divided by $n$ can absorb a $10^{-6}$ longshot
+entirely, and we exhibit exactly this failure in
+\S\ref{sec:experiments}.  Ratio matching preserves longshots by
+construction.  The complete solver---damped Newton with CG inner loops, a
+squared-residual line search, a ridge-regularized fallback direction, ability
+clipping to the lattice-representable box with diagnostics, and honest
+convergence reporting---is specified line by line in
+Appendix~\ref{app:newton}; degenerate fields (zero-mass sentinels,
+deterministically dominated contestants, atomic ties) and their exact
+semantics are catalogued in Appendix~\ref{app:degenerate}.
+
+\section{Numerical results}
+\label{sec:experiments}
+
+All experiments use the open-source \texttt{thurstone} package,\footnote{%
+\url{https://github.com/microprediction/thurstone}; the algorithms of this
+paper are \texttt{laplacian\_weights}, \texttt{laplacian\_matvec},
+\texttt{LaplacianOperator} and \texttt{invert\_outright\_probabilities},
+with the test battery in \texttt{tests/test\_laplacian.py} and a runnable
+walk-through in \texttt{examples/laplacian\_newton\_demo.py}.}
+lattice $M = 801$, spacing $u = 0.05$ unless stated.
+
+\paragraph{Closed-form anchor.}
+For two unit-Gaussian contestants at ability gap $\delta$, the weight has the
+closed form $w_{12} = e^{-\delta^2/4} / (2\sqrt{\pi})$.  At $\delta = 0.3$
+the lattice value agrees to $1.1\times10^{-16}$ at spacing $0.1$,
+$1.1\times10^{-16}$ at $0.05$, and $4.4\times10^{-16}$ at $0.025$:
+trapezoidal quadrature of smooth rapidly-decaying integrands is spectrally
+accurate, so the coarsest practical grid already attains machine precision.
+The forward probability converges to $\Phi(\delta/\sqrt2)$ at first order in
+$u$ (the excluded lattice tie mass).
+
+\paragraph{Finite-difference convergence.}
+Across a battery of smooth fields (heterogeneous scales and skews, extreme
+separations, near-ties), central differences of the forward map agree with
+the analytic $L(w)$ to relative accuracy $\sim\!3\%$ at $u = 0.05$, and the
+gap halves when $u$ halves---first-order convergence, confirming the
+analytic Laplacian as the continuum limit of the discrete map's derivative.
+
+\paragraph{Joint Newton--CG inversion.}
+A twelve-contestant field with scales drawn from $\{0.7, 1.0, 1.4\}$ and
+abilities $\sim \mathcal N(0, 0.8^2)$ has tie mass $0.0315$ and
+$\lambda_2 = 0.0092$ (inverse sensitivity $1/\lambda_2 \approx 109$).
+Inverting the \emph{normalized} prices recovers all abilities to
+$4.4\times10^{-9}$ in eight Newton iterations, with residual history
+\[
+  9.3\!\times\!10^{-2},\;
+  5.0\!\times\!10^{-2},\;
+  3.1\!\times\!10^{-3},\;
+  5.6\!\times\!10^{-4},\;
+  2.5\!\times\!10^{-5},\;
+  9.9\!\times\!10^{-7},\;
+  3.3\!\times\!10^{-8},\;
+  1.1\!\times\!10^{-9},\;
+  3.9\!\times\!10^{-11},
+\]
+superlinear as expected from an exact Jacobian, and the recovered scale
+equals the attainable total $0.968471$ to eight digits.  Under the additive
+criterion the same solver ``converges'' on a
+$(1-2\varepsilon,\,\varepsilon,\,\varepsilon)$ target with
+$\varepsilon = 10^{-12}$ while the longshot's achieved probability is
+$3\times10^{-3}$---nine orders of magnitude wrong---which is the failure
+mode Lemma~\ref{lem:renorm} eliminates.
+
+\paragraph{Cost.}
+Table~\ref{tab:timing} reports wall-clock times.  The dense Jacobian build
+scales as $O(n^2 M)$ and the matrix-free product as $O(nM)$; at $n = 200$
+the product is $440\times$ cheaper than one dense assembly, and a full
+Newton solve (tens of products) costs less than a single dense Jacobian.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{rrrr}
+\toprule
+$n$ & operator build (ms) & matvec (ms) & dense build (ms) \\
+\midrule
+ 10 &  3.9 & 0.029 &   0.5 \\
+ 25 &  1.1 & 0.056 &   2.4 \\
+ 50 &  4.2 & 0.106 &  10.3 \\
+100 &  9.0 & 0.223 &  47.8 \\
+200 & 32.8 & 0.493 & 218.5 \\
+\bottomrule
+\end{tabular}
+\caption{Applying versus forming the Jacobian ($M = 801$, single core).
+The operator build precomputes all $v$-independent structure once per
+Newton step; each CG iteration then costs one matvec.}
+\label{tab:timing}
+\end{table}
+
+\paragraph{Robustness.}
+The implementation is exact---agreeing with the division-free dense
+reference to $10^{-8}$ relative---for every field the lattice can represent,
+including atoms, atomic ties, supports truncated at the lattice edge,
+zero-mass sentinels and adversarial near-zero survivals; a 25-seed fuzz over
+random mixtures of all ingredients passes at that tolerance.  Two degenerate
+mechanisms deserve note (details in Appendix~\ref{app:degenerate}): a
+deterministically dominated contestant has all incident weights zero and is
+an isolated vertex ($\lambda_2 = 0$), and two identical atoms carry the
+divergent discrete tie weight $w = 1/u$, the lattice signature of the
+continuum map's non-differentiability at an atomic tie.
+
+\section{Discussion}
+\label{sec:discussion}
+
+The Laplacian Jacobian reframes several practical questions.  Calibration
+across many overlapping contests, currently done with per-contestant cached
+response curves (diagonal Jacobian approximations), can instead take exact
+joint Newton steps at near-linear cost; the multidimensional extension---
+abilities $a_{ri} = v_r^\top z_i$ projected along contest-specific
+directions---separates cleanly into the inversion studied here followed by a
+linear or bilinear factorization problem, whose identifiability theory
+(contest hypergraph connectivity, gauge groups) we develop elsewhere.
+
+\begin{remark}[Maximally symmetric cube-to-simplex diffeomorphisms]
+Composing $T$ with coordinatewise monotone maps produces diffeomorphisms
+from the cube $[0,1]^k$ onto the simplex $\Delta^k$ (add one reference
+contestant; map each cube coordinate to an ability through a sigmoid), a
+construction used in the \texttt{thurstone} package for sampling and
+reparametrization.  It is natural to ask for the \emph{most symmetric} such
+map.  A canonical answer exists within this paper's theme: take the Brenier
+optimal-transport map from the uniform measure on the cube to the uniform
+measure on the simplex.  It is the gradient of a convex potential---another
+mirror map---pushes volume to volume exactly, and, because the quadratic-cost
+transport map between two measures invariant under a common group action is
+unique, it is automatically equivariant under the shared symmetry:
+permutations of the $k$ cube axes act on the simplex by permuting the $k$
+non-reference vertices.  The Thurstone family with identical sigmoid
+parameters achieves the equivariance but not exact volume preservation;
+quantifying its transport cost against the Brenier optimum, and whether a
+noise law exists for which the Thurstone construction \emph{is} optimal,
+seems a worthwhile question.  The construction has more freedom than the
+equal-parameter family suggests, because mapping $k$ coordinates onto a
+$k$-simplex requires \emph{adding} one reference contestant, and nothing
+forces the enlarged field to be homogeneous or independent: the reference
+contestant's noise scale is a free scalar, and the $k$ coordinate
+contestants may be given an exchangeable correlation (say through a common
+latent factor) without breaking equivariance, since any symmetric treatment
+of the $k$ axes preserves it.  These knobs---reference variance,
+exchangeable correlation strength---parametrize a family of equivariant
+diffeomorphisms within which one can optimize toward volume uniformity,
+plausibly getting much nearer the Brenier map than the independent
+homogeneous case allows.  Correlation does not even leave this paper's
+framework: for a general additive random-utility field the
+Williams--Daly--Zachary conditions still make $DT$ a symmetric
+substitutes matrix with zero row sums---a graph Laplacian---so
+Proposition~\ref{prop:structure} survives verbatim; what is lost is only
+the product form of the weights and with it the $O(nM)$ trick, which is
+specific to independence.
+\end{remark}
+
+Two further directions are natural.  First, the boundary asymptotics of
+$\lambda_2$ deserve sharp constants: the overlap integrals decay at explicit
+noise-dependent rates, which would turn
+Proposition~\ref{prop:structure}(iv) into a complete uniform conditioning
+theory on shrinking neighbourhoods of the boundary.  Second, heteroskedastic
+identification---when overlapping contests pin down both location and
+scale---inherits the same Laplacian structure blockwise and is the subject
+of ongoing work.
+
+\printbibliography
+
+\appendix
+
+\section{Lattice representation and forward pricing}
+\label{app:lattice}
+
+\paragraph{Representation.}
+A field of $n$ contestants lives on a uniform lattice of $M = 2\ell+1$
+points $x_m = m u$, $m = -\ell,\dots,\ell$, spacing $u$.  Contestant $i$ is a
+probability mass function $f_i \in \R_{\ge0}^{M}$ with
+$\sum_x f_i(x) \in \{0, 1\}$; total mass zero is an explicit sentinel for a
+contestant shifted off the lattice.  Masses relate to densities by
+$f_i(x) \approx u\,\phi_i(x)$; consequently every quadrature below carries
+one factor $1/u$ when it approximates a derivative with respect to physical
+ability.  The CDF is the running sum $F_i(x) = \sum_{y \le x} f_i(y)$,
+clamped monotone into $[0,1]$, and the survival is
+$S_i(x) = 1 - F_i(x) = \Pr(X_i > x)$.  Ability shifts act by fractional
+shifting: a shift of $\alpha$ lattice steps blends the CDFs of the two
+neighbouring integer shifts with weights $(1-\{\alpha\}, \{\alpha\})$, and
+integer shifts beyond the lattice saturate at $\pm(\ell-2)$ steps.  Two
+consequences matter later: the forward map is \emph{piecewise linear} in
+each ability between lattice multiples (so central finite differences
+straddling one step recover the derivative of the underlying smooth map to
+$O(u)$), and abilities beyond the saturation box are invisible to the map
+(Appendix~\ref{app:newton} clips iterates accordingly).
+
+In this and the next two appendices we use the racing (minimum-wins)
+convention of the implementation; Appendix~\ref{app:degenerate} gives the
+dictionary to the maximum convention of the main text.
+
+\paragraph{Leave-one-out products.}
+The workhorse primitive: given the stacked survival array
+$S \in [0,1]^{n \times M}$, compute
+$\Lambda_i(x) = \prod_{k \ne i} S_k(x)$ for all $i, x$.  Divide-by-$S_i$ is
+forbidden ($S_i$ may be exactly zero); instead form columnwise prefix
+products $P_0 = \one$, $P_i = P_{i-1} \odot S_i$ and suffix products
+$Q_{n+1} = \one$, $Q_i = Q_{i+1} \odot S_i$, and set
+$\Lambda_i = P_{i-1} \odot Q_{i+1}$.  Cost $O(nM)$, exact for arbitrary
+zeros.
+
+\paragraph{Forward pricing.}
+The no-tie win probability of contestant $i$ (strictly earliest finish) is
+\begin{equation}
+  p_i = \sum_x f_i(x)\,\Lambda_i(x)
+  = \sum_x q_i(x),
+  \qquad q_i := f_i \odot \Lambda_i,
+  \label{eq:lattice-forward}
+\end{equation}
+computed for all $i$ simultaneously in $O(nM)$.  On a lattice ties have
+positive probability, so $\sum_i p_i = 1 - (\text{tie mass})$; the tie mass
+is $O(u)$ for smooth fields and this deficit is exactly what the
+renormalization of Lemma~\ref{lem:renorm} absorbs.  (The package's
+market-facing pricer additionally splits tie mass by dead-heat multiplicity
+as in \textcite{cotton2021}; the Jacobian theory of this paper applies to
+the smooth no-tie map, whose continuum limit has no ties.)
+
+\section{The Hessian-vector product in gory detail}
+\label{app:hvp}
+
+Throughout, $v \in \R^n$ is the vector to be multiplied,
+$W$ has entries (minimum convention)
+\begin{equation}
+  w_{ij} = \frac{1}{u}\sum_x f_i(x)\, f_j(x) \prod_{k \ne i,j} S_k(x),
+  \label{eq:lattice-w}
+\end{equation}
+and the goal is $Lv$ with $L = \diag(W\one) - W$, i.e.
+$(Lv)_i = \sum_{j\ne i} w_{ij}(v_i - v_j)$.
+
+\subsection{The identity and its cancellation}
+
+Define hazards $h_j(x) = f_j(x)/S_j(x)$ wherever $S_j(x) > 0$.  The key
+observation is that the pair mass in \eqref{eq:lattice-w} factors through
+the leave-one-out mass of either index:
+\[
+  f_i f_j \prod_{k\ne i,j} S_k
+  = \Bigl( f_i \prod_{k \ne i} S_k \Bigr) \frac{f_j}{S_j}
+  = q_i\, h_j
+  \qquad (S_j > 0).
+\]
+Summing over $j \ne i$ with the weights $(v_i - v_j)$,
+\[
+  u\,(Lv)_i
+  = \sum_x \sum_{j \ne i} q_i h_j (v_i - v_j)
+  = \sum_x q_i \Bigl( v_i \sum_{j\ne i} h_j - \sum_{j \ne i} h_j v_j \Bigr)
+  = \sum_x q_i \bigl( v_i H - G_v \bigr),
+\]
+where in the last step the sums were completed to run over \emph{all} $j$:
+the added $j = i$ term is $q_i h_i (v_i - v_i) = 0$.  This cancellation is
+what buys the speedup: $H = \sum_j h_j$ and $G_v = \sum_j h_j v_j$ are
+independent of $i$, computed once in $O(nM)$, after which each row is an
+inner product of $q_i$ with a shared column vector.  Total: $O(nM)$.  This
+is Theorem~\ref{thm:hvp}; it is the differential-level analogue of the
+removable-field trick that makes \eqref{eq:lattice-forward} linear in $n$.
+
+Two distinct numerical failures lurk in the division $f_j/S_j$, and they
+require different treatment.
+
+\subsection{Failure 1: zero survival with positive mass}
+
+At the top of contestant $j$'s support the clamped CDF reaches $1$ while
+$f_j$ is still positive: atoms, distributions truncated at the lattice edge,
+and the final support point of any pmf all produce lattice points with
+$S_j(x) = 0$, $f_j(x) > 0$.  There $h_j$ does not exist, yet the true pair
+mass $f_i f_j \prod_{k \ne i,j} S_k$ is generally \emph{nonzero}: dropping
+it (as a naive mask does) makes the fast product disagree with the dense
+reference precisely on the degenerate fields one most needs to trust.
+
+\subsection{Failure 2: tiny survival and catastrophic cancellation}
+
+Where $S_j$ is positive but tiny, $h_j = f_j/S_j$ can be enormous.  It then
+dominates both $H$ and $G_v$, and the subtraction $v_i H - G_v$---whose
+mathematically exact $j$-term is $h_j(v_i - v_j)$, of moderate size---is
+computed as a difference of huge floats, losing all the small terms.  With
+hazards bounded by $h_{\max}$, the absolute error of a column is bounded by
+$C\,n\,h_{\max}\,\epsilon_{\mathrm{mach}}\,\|v\|_\infty$ for a small
+constant $C$; controlling $h_{\max}$ controls the error.
+
+\subsection{The resolution: masked hazards plus exact repairs}
+
+Fix two thresholds, a survival tolerance $\sigma$ (implementation:
+$\sigma = 10^{-6}$) and a mass tolerance $\mu$ ($\mu = 10^{-15}$).
+
+\begin{enumerate}
+  \item \textbf{Masked base pass.}  Set $h_j(x) = f_j(x)/S_j(x)$ where
+    $S_j(x) \ge \sigma$ and $h_j(x) = 0$ otherwise.  Compute
+    $q = f \odot \Lambda$ (prefix--suffix, division-free), $H$, $G_v$, and
+    the base row sums $\sum_x q_i (v_i H - G_v)$.  Every hazard is now
+    bounded by $h_{\max} \le 1/\sigma = 10^{6}$, so by the bound above the
+    cancellation error is
+    $\lesssim n\,\epsilon_{\mathrm{mach}}/\sigma \approx 10^{-10}\,
+    \|v\|_\infty$ per column---negligible against the $10^{-8}$ relative
+    test tolerance.  Crucially $G_v$ is accumulated in the same reduction
+    order as $H$, so for $v = \one$ the integrand is a bitwise-exact zero:
+    the translation gauge $L\one = 0$ holds to the last ulp, not merely to
+    rounding.
+  \item \textbf{Exact repair pass.}  Masking $h_j$ at a point $x$ deleted
+    the pair term $f_i f_j \prod_{k\ne i,j} S_k$ from \emph{every} row
+    $i \ne j$ at that point (and only those terms: row $j$'s own
+    $(j,i)$-terms flow through $h_i$, which is healthy there).  For each
+    masked pair $(j, x)$ with $f_j(x) > \mu$, rebuild the deleted terms
+    exactly and division-free: remove row $j$ from the survival column
+    $S(\cdot, x)$, compute leave-one-out products of the reduced
+    $(n-1)$-vector by prefix--suffix ($O(n)$), multiply by
+    $f_i(x)f_j(x)$, and add $(\text{pair mass})\cdot(v_i - v_j)$ into each
+    row $i \ne j$.  Batching by $j$---one prefix--suffix call over all of
+    contestant $j$'s masked columns at once---replaces thousands of tiny
+    array operations by at most $n$ vectorized ones (measured
+    $10$--$13\times$ faster than the per-point loop).  No double counting
+    occurs: the $(i,j)$ term of row $i$ lives only in $h_j$, so it is
+    restored exactly once, by the repair of $(j, x)$; when $i$ and $j$ are
+    \emph{both} masked at $x$ (two atoms at one point), row $i$'s term is
+    restored by $j$'s repair and row $j$'s by $i$'s.
+  \item \textbf{Dropped dust.}  Masked pairs with $f_j(x) \le \mu$ are
+    dropped.  Each dropped term is bounded by
+    $f_j \cdot 1 \cdot \|v\|_\infty / u \le \mu \|v\|_\infty / u$, and there
+    are at most $nM$ of them, so the total omission is
+    $\le n M \mu \|v\|_\infty / u \approx 10^{-11}\|v\|_\infty$ at the
+    default lattice---again negligible, and \emph{provably} so.
+\end{enumerate}
+
+For smooth fields the masked set is a short band at the top of each
+support (where $S < \sigma$ but $f > \mu$; for a unit Gaussian at spacing
+$0.05$, roughly seventy points per contestant), so the repair pass is a
+lower-order cost and the total remains $O(nM + n\cdot\#\text{masked})$.
+Because the repair is \emph{exact}, the thresholds trade only speed against
+speed: $\sigma$ may be set generously (taming cancellation) without any
+accuracy cost, which is why the implementation can afford
+$\sigma = 10^{-6}$.
+
+\subsection{Pseudocode}
+
+\begin{center}
+\begin{minipage}{0.92\linewidth}
+\small\ttfamily
+\textbf{function} matvec($f$, $S$, $v$):\\
+\hspace*{1.5em} $\Lambda \gets$ prefix-suffix leave-one-out products of $S$ \hfill // $O(nM)$\\
+\hspace*{1.5em} $q \gets f \odot \Lambda$\\
+\hspace*{1.5em} mask $\gets [S < \sigma]$;\quad $h \gets$ where(mask, $0$, $f / S$)\\
+\hspace*{1.5em} $H \gets \sum_j h_j$;\quad $G \gets \sum_j h_j v_j$ \hfill // same reduction order\\
+\hspace*{1.5em} out$_i \gets \sum_x q_i (v_i H - G)$ \hfill // $O(nM)$\\
+\hspace*{1.5em} \textbf{for} each contestant $j$ with masked massy points: \hfill // repairs\\
+\hspace*{2.8em} $C \gets$ \{columns $x$: mask$_{j,x}$ and $f_j(x) > \mu$\}\\
+\hspace*{2.8em} $\Lambda' \gets$ prefix-suffix products of $S$ with row $j$ deleted, columns $C$ \hfill // $O(n|C|)$\\
+\hspace*{2.8em} $m_i \gets \sum_{x \in C} f_i(x) f_j(x) \Lambda'_i(x)$\\
+\hspace*{2.8em} out$_i \gets$ out$_i + m_i (v_i - v_j)$ \quad for all $i \ne j$\\
+\hspace*{1.5em} \textbf{return} out$/u$
+\end{minipage}
+\end{center}
+
+An operator form precomputes everything $v$-independent ($\Lambda$, $q$,
+$h$, $H$, mask, and all repair masses $m$) once per field; each subsequent
+product is then three elementwise passes and the rank-one repair updates,
+measured $18\times$ faster than the from-scratch call---the relevant number
+inside conjugate gradients, which applies the same field to many vectors.
+
+\subsection{Verification ladder}
+
+The implementation is validated at four independent levels, in increasing
+strength: (i) the dense reference \eqref{eq:lattice-w} is computed by a
+second, division-free algorithm (per-row leave-one-out over the reduced
+field, $O(n^2M)$) and the fast product must match it to $10^{-8}$ relative
+on a battery of 24 named fields plus 25 random mixtures of atoms,
+near-atoms, truncations, zero-mass sentinels and adversarial two-point
+distributions; (ii) $L\one = 0$ must hold bitwise; (iii) central finite
+differences of the forward map \eqref{eq:lattice-forward} must converge to
+$-L$ at rate $O(u)$ on every smooth field; (iv) the two-Gaussian closed
+form must be reproduced at machine precision.  All four hold in the shipped
+test battery.
+
+\section{The Newton--CG solver in gory detail}
+\label{app:newton}
+
+\textbf{Inputs.}  Unshifted per-contestant base pmfs (heterogeneous shapes
+and scales allowed), a strictly positive finite target $\pi \in \R^n_{>0}$,
+an optional warm start, tolerance $\tau$ (default $10^{-10}$), iteration
+caps.  \textbf{Output.}  Mean-zero abilities $a$, achieved probabilities,
+the scale $s$, residual, iteration count, a converged flag, a residual
+history, and a stop message.
+
+\paragraph{Residual.}
+By Lemma~\ref{lem:renorm} the solver drives
+$r(a) = p(a) - s(a)\pi$, $s(a) = \one^\top p(a)/\one^\top\pi$, to zero.
+$r$ sums to zero by construction, so no explicit centering or projection is
+ever needed, and its Jacobian is exactly $-L$ (minimum convention: $+L$
+after the sign dictionary of Appendix~\ref{app:degenerate}); the Newton
+equation is $L\delta = r$, $a \gets a + \delta$.
+
+\paragraph{Gauge and the lattice box.}
+Abilities are re-centered to mean zero after every accepted step (the gauge
+of Theorem~\ref{thm:diffeo}), then clipped componentwise to the
+representable box $[-(\ell-2)u, (\ell-2)u]$: beyond it the fractional shift
+saturates, the coordinate's column of the Jacobian is identically zero, and
+an unclipped iterate would wander meaninglessly.  A converged-or-stalled
+solution with some $|a_i|$ \emph{at} the box triggers an explicit
+diagnostic---the target requires more ability spread than $\ell u$
+affords; enlarge the lattice---rather than a silent stall.  (When the clip
+binds, exact zero mean is sacrificed to feasibility; the message says so.)
+
+\paragraph{Inner solve.}
+Conjugate gradients on $L\delta = r$, starting from $\delta = 0$.  Every
+Krylov vector lies in $\perpone$ automatically ($r$ does, and $L$ maps into
+$\perpone$), so the singular direction $\one$ never contaminates the solve.
+Each iteration costs one operator product from
+Appendix~\ref{app:hvp}; the field structure is precomputed once per Newton
+step.  Nonpositive curvature $p^\top L p \le 0$---possible only when the
+interaction graph has disconnected (Appendix~\ref{app:degenerate})---
+terminates CG with the best iterate.
+
+\paragraph{Globalization.}
+The merit function is the squared residual $\|r\|_2^2$ (not the max norm
+used for the convergence test): for direction $\delta$ solving
+$(L + \lambda I)\delta = r$, $\lambda \ge 0$, the directional derivative of
+$\tfrac12\|r\|_2^2$ is $-r^\top L(L+\lambda I)^{-1} r \le 0$, so these are
+guaranteed descent directions for the \emph{exact} Jacobian and remain
+descent in practice for the $O(u)$-accurate lattice one.  Backtracking
+halves the step at most 25 times.  If the pure Newton direction
+($\lambda = 0$) fails its line search---which happens when the piecewise
+linearity of the lattice map bites, e.g.\ near atoms---the solver retries
+with $\lambda \in \{10^{-3}, 10^{-1}, 10\} \times \kappa$, where
+$\kappa = r^\top L r / r^\top r$ is the curvature along the residual: a
+Levenberg-style continuum from Newton toward scaled gradient descent.  Only
+if all of these stall does the solver stop, returning the best iterate,
+\texttt{converged = false}, and a message naming the failure.
+
+\paragraph{Stopping and diagnostics.}
+Success is $\|r\|_\infty < \tau$.  The message distinguishes: converged;
+Newton direction vanished (interaction graph disconnected---zero-mass,
+dominated, or off-lattice contestant); line search stalled despite
+regularization; iteration cap reached; and, orthogonally, whether the
+solution is pinned at the lattice box.  The residual history (initial plus
+after each accepted step) is returned for convergence inspection; the
+history in \S\ref{sec:experiments} is typical.
+
+\paragraph{Complexity.}
+Per Newton step: one $O(nM)$ operator build, $k_{\mathrm{cg}}$ products at
+$O(nM)$ each (tens suffice; the spectrum of $L$ is clustered for
+well-mixed fields), and one forward evaluation per line-search probe.  With
+$k_N$ Newton steps the total is
+$O\bigl(k_N (k_{\mathrm{cg}} + \text{probes})\, nM\bigr)$, near-linear in
+the field size and, per Table~\ref{tab:timing}, cheaper end-to-end than
+assembling a single dense Jacobian for $n \gtrsim 100$.
+
+\section{Degenerate fields, exact semantics, and the sign dictionary}
+\label{app:degenerate}
+
+\paragraph{Sign dictionary.}
+The main text uses maximum-wins with
+$p_i = \int f_i \prod_{k \ne i} F_k$ and $DT = +L(w)$,
+$w_{ij} = \int f_i f_j \prod_{k\ne i,j} F_k$.  The implementation uses
+minimum-wins (race times) with survivals in place of CDFs and
+$Dp = -L(w)$, $w_{ij} = \frac1u\sum f_i f_j \prod_{k \ne i,j} S_k$.  The
+two are conjugate under $x \mapsto -x$, $a \mapsto -a$, which swaps $F$ and
+$S$ and reverses the orientation of ``better''; $W$ maps to $W$ and only
+the sign of the Jacobian flips.
+
+\paragraph{Zero-mass contestants.}
+A pmf of total mass zero is the package's sentinel for a contestant shifted
+entirely off the lattice.  It has $S \equiv 1$, $f \equiv 0$: it never
+finishes, wins with probability zero, leaves every other pair weight
+untouched, and contributes a zero row and column to $W$.  $L$ gains a
+second null vector; $\lambda_2 = 0$.
+
+\paragraph{Deterministic domination.}
+An atom that some other contestant always beats has its win probability
+frozen at a boundary face.  \emph{Every} weight incident to it vanishes:
+each pair mass at its atom's location carries the dominating contestant's
+survival factor, which is zero there.  The dominated contestant is an
+isolated vertex---the graph disconnects exactly as for zero mass, by a
+different mechanism.  Both cases make the affected coordinate
+unidentifiable from winning probabilities; the solver of
+Appendix~\ref{app:newton} detects the vanished Newton direction and says
+so, and callers should drop such contestants.
+
+\paragraph{Atomic ties.}
+Two identical atoms always tie.  On the lattice their mutual weight is
+$w = 1/u$ (the empty product over third parties is $1$), diverging as
+$u \to 0$: the discrete signature of the continuum map's genuine
+non-differentiability at an atomic tie, where an infinitesimal shift flips
+the outright winner discontinuously.  A third coincident atom sends every
+pair mass to zero (some third-party survival vanishes at the atom), so the
+trio's weight matrix is identically zero.  These are not pathologies of the
+algorithm but exact features of the map, and the fast product reproduces
+the dense reference in both cases through the repair pass of
+Appendix~\ref{app:hvp}.
+
+\paragraph{Adversarial near-zero survivals.}
+A two-point pmf with mass $1 - \epsilon$ then $\epsilon$ has survival
+$\epsilon$ over the gap.  For $\epsilon < \sigma$ the huge hazard is masked
+and repaired exactly; for $\epsilon$ just above $\sigma$ the hazard
+$\approx 1/\epsilon$ is retained and the cancellation bound of
+Appendix~\ref{app:hvp} caps the damage at
+$\sim n\epsilon_{\mathrm{mach}}/\sigma$.  Both regimes are exercised in the
+test battery at $\epsilon = 10^{-7}$ and $10^{-5}$.
+
+\end{document}
