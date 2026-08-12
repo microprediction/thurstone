@@ -78,6 +78,7 @@ not identifiable from winner probabilities).
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Sequence
 
 import numpy as np
@@ -212,3 +213,142 @@ def laplacian_matvec(densities: Sequence[Density], u: np.ndarray) -> np.ndarray:
         keep[j] = True
 
     return out / densities[0].lattice.unit
+
+
+def _cg_mean_zero(matvec, b: np.ndarray, iters: int, tol: float = 1e-14) -> np.ndarray:
+    """Conjugate gradients for L x = b, b mean-zero, L PSD with null vector 1.
+
+    Every Krylov vector stays in the mean-zero subspace because L maps into
+    it, so the translation gauge never contaminates the solve.  A
+    non-positive curvature p'Lp (a disconnected graph direction) terminates
+    the iteration with the best iterate so far.
+    """
+    x = np.zeros_like(b)
+    r = b.copy()
+    p = r.copy()
+    rs = float(r @ r)
+    for _ in range(iters):
+        Ap = matvec(p)
+        denom = float(p @ Ap)
+        if denom <= 0.0:
+            break
+        alpha = rs / denom
+        x += alpha * p
+        r -= alpha * Ap
+        rs_new = float(r @ r)
+        if np.sqrt(rs_new) < tol:
+            break
+        p = r + (rs_new / rs) * p
+        rs = rs_new
+    return x
+
+
+@dataclass
+class InversionResult:
+    """Outcome of invert_outright_probabilities.
+
+    abilities are mean-centered (the translation gauge is fixed at zero
+    mean).  residual is the max-norm of the *centered* mismatch between
+    achieved and target probabilities: the forward map's Jacobian has
+    range 1-perp, so a uniform offset (e.g. the lattice tie mass missing
+    from a target that sums to one) is not removable and is deliberately
+    projected out of the convergence criterion.
+    """
+
+    abilities: np.ndarray
+    achieved: np.ndarray
+    residual: float
+    iterations: int
+    converged: bool
+
+
+def invert_outright_probabilities(
+    bases: Sequence[Density],
+    target: Sequence[float],
+    *,
+    initial: Sequence[float] | None = None,
+    tol: float = 1e-10,
+    max_iter: int = 50,
+    cg_iters: int = 200,
+) -> InversionResult:
+    """Joint Newton-CG inversion: win probabilities -> abilities, O(n M) per step.
+
+    Finds mean-zero abilities a such that shifting each base density by a_i
+    reproduces the target outright win probabilities, up to the uniform
+    offset discussed in InversionResult.  Each Newton step solves
+    L(w) delta = residual with conjugate gradients using laplacian_matvec,
+    so the dense Jacobian is never formed; a backtracking line search on
+    the centered residual guards against overshoot (the analytic Laplacian
+    is an O(unit) approximation of the discrete map's derivative).
+
+    bases are the *unshifted* per-runner performance densities; they may be
+    heterogeneous.  Requirements and failure modes:
+
+    - Every base must carry mass, and the target must be strictly positive
+      and finite: a zero-mass runner or a boundary target is not attainable
+      at finite abilities (raises ValueError).
+    - Degenerate fields whose graph disconnects mid-iteration (a runner
+      driven off the lattice or deterministically dominated, lambda_2 = 0)
+      stall the line search; the result is then returned with
+      converged = False and the best iterate found.
+    - Atoms make the forward map only piecewise smooth; the solver may
+      still converge but no guarantee is made.
+    """
+    _validate_field(bases)
+    n = len(bases)
+    for d in bases:
+        if float(np.sum(d.p)) == 0.0:
+            raise ValueError("Zero-mass base density: abilities are not identifiable.")
+    target = np.asarray(target, dtype=float)
+    if target.shape != (n,):
+        raise ValueError("target must have one entry per runner.")
+    if not np.all(np.isfinite(target)) or np.any(target <= 0.0):
+        raise ValueError("target probabilities must be finite and strictly positive.")
+
+    unit = bases[0].lattice.unit
+    if initial is None:
+        a = np.zeros(n)
+    else:
+        a = np.asarray(initial, dtype=float).copy()
+        if a.shape != (n,) or not np.all(np.isfinite(a)):
+            raise ValueError("initial must be a finite vector with one entry per runner.")
+    a -= a.mean()
+
+    def build(ab: np.ndarray) -> list[Density]:
+        return [d.shift_fractional(ai / unit) for d, ai in zip(bases, ab)]
+
+    def centered_residual(ab: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        achieved = outright_win_probabilities(build(ab))
+        r = achieved - target
+        return achieved, r - r.mean()
+
+    achieved, r = centered_residual(a)
+    res = float(np.abs(r).max())
+    iterations = 0
+    for iterations in range(1, max_iter + 1):
+        if res < tol:
+            break
+        field = build(a)
+        delta = _cg_mean_zero(lambda v: laplacian_matvec(field, v), r, cg_iters)
+        if not np.all(np.isfinite(delta)) or not np.any(delta):
+            break
+        step = 1.0
+        for _ in range(25):
+            trial = a + step * delta
+            trial -= trial.mean()
+            achieved_t, r_t = centered_residual(trial)
+            res_t = float(np.abs(r_t).max())
+            if res_t < res:
+                a, achieved, r, res = trial, achieved_t, r_t, res_t
+                break
+            step *= 0.5
+        else:
+            break  # line search exhausted: Newton direction no longer improves
+
+    return InversionResult(
+        abilities=a,
+        achieved=achieved,
+        residual=res,
+        iterations=iterations,
+        converged=res < tol,
+    )
