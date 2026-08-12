@@ -37,12 +37,43 @@ across i, so a Hessian-vector product costs O(n M) for n runners on an
 M-point lattice, versus O(n^2 M) to form the dense weights.  This enables
 Newton-CG joint calibration without ever materialising the dense Jacobian.
 
-Numerical note: h_j is computed only where S_j >= SURVIVAL_TOL.  Near the
-top of runner j's support the clamped lattice CDF can reach 1 while f_j is
-still positive, making the raw ratio blow up; the true integrand there is
-f_i f_j prod_{k != i,j} S_k, which is negligible whenever the masked region
-carries only extreme-tail mass.  The dense routine avoids division entirely
-and serves as the reference in tests.
+Numerical strategy.  The hazard form fails where S_j(x) = 0 with
+f_j(x) > 0 (atoms, edge pile-up, the top point of any truncated support)
+and is ill-conditioned where S_j(x) is merely tiny: hazards up to f/S
+enter the shared sums H and G_u, and the subtraction u_i H - G_u then
+cancels catastrophically.  laplacian_matvec therefore splits the work:
+
+- Hazards are used only where S_j >= SURVIVAL_TOL, bounding every hazard
+  by 1/SURVIVAL_TOL and hence the cancellation error of a column by
+  roughly n * machine_eps / SURVIVAL_TOL, i.e. ~1e-9 relative at the
+  default tolerance.
+- Every masked (j, x) with f_j(x) > MASS_TOL is then repaired *exactly*:
+  the pair terms f_i f_j prod_{k != i,j} S_k it should have contributed
+  to each row i are added via division-free prefix/suffix leave-one-out
+  products, O(n) per masked point.  For smooth densities only a short
+  band at the top of each runner's support is masked, so the total cost
+  stays O(n M + n * #masked).
+- Masked points with f_j <= MASS_TOL are dropped; the omitted mass is
+  bounded by n * M * MASS_TOL * max|u_i - u_j| / unit, which is ~1e-11
+  at the defaults.
+
+The dense routine avoids division entirely and is exact by construction;
+it is the reference against which the matvec is tested, including for
+atoms, ties of atoms, zero-mass (off-lattice) runners, and adversarial
+near-zero survival masses.
+
+Degenerate fields disconnect the graph in two ways, both handled exactly:
+
+- Zero-mass runners (sum p = 0, the package's off-lattice sentinel) have
+  S = 1 and f = 0 everywhere: they leave the other weights untouched but
+  contribute a zero row and column.
+- Deterministically dominated runners (an atom that some other runner
+  always beats) have their win probability frozen at a boundary face, so
+  every weight involving them vanishes and they become isolated vertices.
+
+Either way L acquires additional null vectors and lambda_2 = 0; callers
+doing Newton steps should drop such runners first (their coordinates are
+not identifiable from winner probabilities).
 """
 
 from __future__ import annotations
@@ -53,13 +84,31 @@ import numpy as np
 
 from .density import Density
 
-SURVIVAL_TOL = 1e-12
+# Below this survival the hazard f/S is not used; the point is repaired
+# exactly instead. Keeping the threshold fairly large bounds hazards (and
+# therefore floating-point cancellation) without any loss of accuracy,
+# because the repair path is exact.
+SURVIVAL_TOL = 1e-6
+
+# Masked points with pmf mass at or below this are dropped outright; the
+# resulting error is provably negligible (see module docstring).
+MASS_TOL = 1e-15
+
+
+def _validate_field(densities: Sequence[Density]) -> None:
+    if len(densities) < 2:
+        raise ValueError("Need at least two runners.")
+    lattice = densities[0].lattice
+    for d in densities[1:]:
+        if d.lattice.L != lattice.L or d.lattice.unit != lattice.unit:
+            raise ValueError("All densities must share the same lattice.")
+    for d in densities:
+        if not np.all(np.isfinite(d.p)) or np.any(d.p < 0.0):
+            raise ValueError("Density pmf must be finite and non-negative.")
 
 
 def _pmf_and_survival(densities: Sequence[Density]) -> tuple[np.ndarray, np.ndarray]:
     """Stack pmfs and survival functions, shapes (n, M)."""
-    if len(densities) < 2:
-        raise ValueError("Need at least two runners.")
     F = np.stack([d.p for d in densities])
     S = np.stack([1.0 - d.cdf() for d in densities])
     return F, np.clip(S, 0.0, 1.0)
@@ -85,6 +134,7 @@ def outright_win_probabilities(densities: Sequence[Density]) -> np.ndarray:
     one by the total tie probability; this is the smooth forward map whose
     Jacobian is -L(w), not the dead-heat-adjusted state price of Race.
     """
+    _validate_field(densities)
     F, S = _pmf_and_survival(densities)
     return np.sum(F * _leave_one_out_products(S), axis=1)
 
@@ -93,12 +143,14 @@ def laplacian_weights(densities: Sequence[Density]) -> np.ndarray:
     """Dense symmetric weight matrix w_ij = sum_x f_i f_j prod_{k != i,j} S_k.
 
     Division-free reference implementation: for each i, leave-one-out
-    products are rebuilt over the remaining runners. O(n^2 M).
+    products are rebuilt over the remaining runners. O(n^2 M). Exact for
+    atoms, zero-mass runners, and any other degenerate pmf.
 
     Lattice pmfs are masses (density times unit), so one factor of the
     lattice unit is divided out to make w_ij a derivative with respect to
     physical ability: dp_i/da_j = +w_ij for i != j.
     """
+    _validate_field(densities)
     F, S = _pmf_and_survival(densities)
     n = F.shape[0]
     W = np.zeros((n, n))
@@ -117,16 +169,46 @@ def laplacian_dense(densities: Sequence[Density]) -> np.ndarray:
 
 
 def laplacian_matvec(densities: Sequence[Density], u: np.ndarray) -> np.ndarray:
-    """Apply L(w) to u in O(n M) without forming the weights.
+    """Apply L(w) to u in O(n M + n * #masked) without forming the weights.
 
-    Uses (L u)_i = sum_x q_i (u_i H - G_u); see module docstring.
+    Uses (L u)_i = sum_x q_i (u_i H - G_u) wherever survivals are healthy,
+    plus exact division-free repairs where they are not; see the module
+    docstring for the error analysis.  Agrees with laplacian_dense to
+    floating-point accuracy for every field the package can represent,
+    including atoms, edge pile-up, and zero-mass runners.
+
+    The constant vector is annihilated exactly: G_u is accumulated in the
+    same reduction order as H, so u = 1 yields identical floats and the
+    integrand is exactly zero, as are the repair terms u_i - u_j.
     """
+    _validate_field(densities)
     F, S = _pmf_and_survival(densities)
+    n = F.shape[0]
     u = np.asarray(u, dtype=float)
-    if u.shape != (F.shape[0],):
+    if u.shape != (n,):
         raise ValueError("u must have one entry per runner.")
-    Q = F * _leave_one_out_products(S)  # q_i(x)
-    h = np.where(S >= SURVIVAL_TOL, F / np.maximum(S, SURVIVAL_TOL), 0.0)
+    if not np.all(np.isfinite(u)):
+        raise ValueError("u must be finite.")
+
+    Q = F * _leave_one_out_products(S)  # q_i(x), division-free
+    masked = S < SURVIVAL_TOL
+    h = np.where(masked, 0.0, F) / np.where(masked, 1.0, S)
     H = h.sum(axis=0)
-    G = u @ h
-    return np.sum(Q * (np.outer(u, H) - G[None, :]), axis=1) / densities[0].lattice.unit
+    G = (h * u[:, None]).sum(axis=0)
+    out = np.sum(Q * (np.outer(u, H) - G[None, :]), axis=1)
+
+    # Exact repair: a masked hazard h_j at column x removed the pair term
+    # f_i f_j prod_{k != i,j} S_k from every row i != j.  Rebuild those
+    # terms without division via leave-one-out products over k != j,
+    # batched per runner across all of its masked columns.
+    bad_j, bad_x = np.nonzero(masked & (F > MASS_TOL))
+    keep = np.ones(n, dtype=bool)
+    for j in np.unique(bad_j):
+        cols = bad_x[bad_j == j]
+        keep[j] = False
+        loo2 = _leave_one_out_products(S[keep][:, cols])  # (n-1, |cols|)
+        pair_mass = (F[keep][:, cols] * F[j, cols][None, :] * loo2).sum(axis=1)
+        out[keep] += pair_mass * (u[keep] - u[j])
+        keep[j] = True
+
+    return out / densities[0].lattice.unit

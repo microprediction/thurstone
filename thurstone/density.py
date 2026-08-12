@@ -184,3 +184,16 @@ class Density:
             return 2.0 / scale * normpdf(t) * normcdf(a * t)
 
         return cls.from_callable(lattice, f, center=True).shift_fractional(loc / lattice.unit)
+
+    @classmethod
+    def gumbel_min(cls, lattice: UniformLattice, loc=0.0, scale=1.0):
+        """Minimum-Gumbel density. Independent min-wins races with this base
+        reproduce the Luce/softmax law exactly: P(i wins) = softmax(-mu_i / scale).
+        With factor correlation (see thurstone.correlated) this becomes a
+        correlated softmax race with an exact Luce limit."""
+
+        def f(x):
+            z = (x - loc) / scale
+            return float(np.exp(z - np.exp(z)) / scale)
+
+        return cls.from_callable(lattice, f, center=True).shift_fractional(loc / lattice.unit)
