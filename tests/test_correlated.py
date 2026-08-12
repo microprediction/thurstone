@@ -178,3 +178,133 @@ def test_state_prices_keep_subsets_sum_to_one(keep):
     p = fr.state_prices(keep=keep)
     assert len(p) == len(keep)
     assert abs(p.sum() - 1.0) < 1e-12
+
+
+# ---------------------------------------------------------------------------
+# Edge cases, error handling, and structural properties
+# ---------------------------------------------------------------------------
+
+
+def test_shared_base_equals_list_of_identical_bases():
+    mu = RNG.normal(0.0, 0.5, 4)
+    V = 0.4 * RNG.standard_normal((4, 2))
+    base = Density.skew_normal(LAT, 0.0, 0.8, 0.0)
+    p_shared = FactorRace(base, mu, V).state_prices()
+    p_list = FactorRace([base] * 4, mu, V).state_prices()
+    assert np.abs(p_shared - p_list).max() < 1e-14
+
+
+def test_ability_translation_invariance():
+    """Adding a constant to every ability must not change prices."""
+    mu = RNG.normal(0.0, 0.5, 5)
+    V = 0.4 * RNG.standard_normal((5, 2))
+    base = Density.skew_normal(LAT, 0.0, 0.8, 0.0)
+    p1 = FactorRace(base, mu, V).state_prices()
+    p2 = FactorRace(base, mu + 0.7, V).state_prices()
+    assert np.abs(p1 - p2).max() < 1e-6
+
+
+def test_stronger_ability_wins_more():
+    """Min wins: lowering an ability must raise that competitor's price."""
+    mu = np.zeros(4)
+    base = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    V = 0.3 * np.ones((4, 1))
+    p0 = FactorRace(base, mu, V).state_prices()
+    mu2 = mu.copy()
+    mu2[1] -= 0.5
+    p2 = FactorRace(base, mu2, V).state_prices()
+    assert p2[1] > p0[1] + 0.02
+
+
+def test_prices_always_sum_to_one_and_are_positive():
+    for trial in range(5):
+        n = int(RNG.integers(2, 9))
+        k = int(RNG.integers(1, 4))
+        mu = RNG.normal(0.0, 0.7, n)
+        V = 0.5 * RNG.standard_normal((n, k))
+        base = Density.skew_normal(LAT, 0.0, 0.9, 0.0)
+        p = FactorRace(base, mu, V).state_prices()
+        assert abs(p.sum() - 1.0) < 1e-12
+        assert np.all(p > 0)
+
+
+def test_mismatched_loadings_rows_raises():
+    base = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    with pytest.raises(ValueError, match="one row per competitor"):
+        FactorRace(base, np.zeros(3), np.zeros((4, 1)))
+
+
+def test_mismatched_base_count_raises():
+    base = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    with pytest.raises(ValueError, match="one base density per competitor"):
+        FactorRace([base, base], np.zeros(3), np.zeros((3, 1)))
+
+
+def test_mismatched_lattices_raises():
+    b1 = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    b2 = Density.skew_normal(UniformLattice(L=200, unit=0.05), 0.0, 1.0, 0.0)
+    with pytest.raises(ValueError, match="same lattice"):
+        FactorRace([b1, b2], np.zeros(2), np.zeros((2, 1)))
+
+
+def test_solve_abilities_rejects_nonpositive_targets():
+    base = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    with pytest.raises(ValueError, match="positive"):
+        solve_abilities(base, np.zeros((3, 1)), [0.5, 0.5, 0.0])
+
+
+def test_factor_model_matches_diagonal_exactly():
+    C = circle_kernel(9, 0.9)
+    V, D = factor_model(C, 3)
+    C_hat = V @ V.T + np.diag(D)
+    assert np.abs(np.diag(C_hat) - np.diag(C)).max() < 1e-9
+    assert np.all(D > 0)
+
+
+def test_factor_model_equicorrelated_is_exact_at_k1():
+    n, rho = 7, 0.35
+    C = rho * np.ones((n, n)) + (1 - rho) * np.eye(n)
+    V, D = factor_model(C, 1)
+    assert np.abs(V @ V.T + np.diag(D) - C).max() < 1e-8
+
+
+def test_gaussian_nodes_deterministic_given_seed():
+    F1, W1 = __import__("thurstone").gaussian_nodes(5, n=512, seed=3)
+    F2, W2 = __import__("thurstone").gaussian_nodes(5, n=512, seed=3)
+    assert np.array_equal(F1, F2) and np.array_equal(W1, W2)
+    assert abs(W1.sum() - 1.0) < 1e-12
+
+
+def test_gumbel_min_density_is_normalized_and_left_skewed():
+    d = Density.gumbel_min(LAT, loc=0.0, scale=0.6)
+    assert abs(d.p.sum() - 1.0) < 1e-9
+    g = d.lattice.grid
+    mean = float(d.p @ g)
+    third = float(d.p @ (g - mean) ** 3)
+    assert third < 0  # min-Gumbel has a long left tail
+
+
+def test_correlated_softmax_iia_violation_has_right_sign():
+    """Scratch one of two calibrated environment-sharers: the partner should gain
+    MORE than the Luce renormalization predicts."""
+    base = Density.gumbel_min(LAT, loc=0.0, scale=0.7)
+    V = np.array([[0.8], [0.8], [0.0], [0.0]])
+    mu = solve_abilities([base] * 4, V, np.full(4, 0.25), n_iter=300)
+    fr = FactorRace([base] * 4, mu, V)
+    p = fr.state_prices()
+    q = fr.state_prices(keep=[1, 2, 3])  # scratch 0
+    luce = p[1:] / p[1:].sum()  # IIA renormalization
+    assert q[0] > luce[0] + 1e-3  # partner (1) gains extra
+
+
+def test_deletion_ensemble_rows_exclude_the_scratched():
+    mu = RNG.normal(0.0, 0.4, 5)
+    fr = gaussian_factor_race(LAT, circle_kernel(5, 1.0), 2, mu)
+    q = fr.deletion_ensemble()
+    assert np.abs(np.diag(q)).max() == 0.0
+
+
+def test_single_factor_race_two_competitors_symmetry():
+    base = Density.skew_normal(LAT, 0.0, 1.0, 0.0)
+    p = FactorRace(base, np.zeros(2), np.array([[0.5], [0.5]])).state_prices()
+    assert np.abs(p - 0.5).max() < 1e-9
