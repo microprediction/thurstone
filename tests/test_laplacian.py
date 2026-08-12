@@ -3,6 +3,7 @@ import pytest
 
 from thurstone.density import Density
 from thurstone.laplacian import (
+    LaplacianOperator,
     invert_outright_probabilities,
     laplacian_dense,
     laplacian_matvec,
@@ -445,27 +446,45 @@ def test_inversion_roundtrip_heterogeneous():
 
 
 def test_inversion_normalized_target_and_warm_start():
-    """A target renormalized to sum one is met up to a uniform offset.
+    """A target renormalized to sum one is inverted exactly: only ratios matter.
 
-    The raw residual then equals the (constant) tie-mass discrepancy, which
-    the centered criterion projects out.  A warm start from a different
-    gauge must land on the same mean-zero answer.
+    The multiplicative gauge absorbs the tie-mass deficit, so normalizing
+    the target does not perturb the recovered abilities at all, and the
+    reported scale recovers the attainable total.  A warm start from a
+    different gauge must land on the same mean-zero answer.
     """
     scales = [0.8, 1.0, 1.2, 1.0]
     a_true = np.array([0.4, -0.1, 0.3, -0.6])
     a_true -= a_true.mean()
     bases = _bases(scales)
     p = outright_win_probabilities(_smooth(list(a_true), scales=scales))
-    target = p / p.sum()  # sums to one; not exactly attainable
-    result = invert_outright_probabilities(bases, target, tol=1e-10)
+    target = p / p.sum()  # sums to one, like market prices
+    result = invert_outright_probabilities(bases, target, tol=1e-11)
     assert result.converged
-    raw = result.achieved - target
-    assert np.abs(raw - raw.mean()).max() < 1e-10  # only a uniform offset remains
-    # the offset shifts the solution away from a_true by O(offset), no more
-    assert np.allclose(result.abilities, a_true, atol=10.0 * np.abs(raw.mean()))
-    warm = invert_outright_probabilities(bases, target, tol=1e-10, initial=a_true + 5.0)
+    assert np.allclose(result.abilities, a_true, atol=1e-7)
+    assert result.scale == pytest.approx(p.sum(), abs=1e-8)  # the tie-mass deficit
+    assert np.allclose(result.achieved, result.scale * target, atol=1e-10)
+    warm = invert_outright_probabilities(bases, target, tol=1e-11, initial=a_true + 5.0)
     assert warm.converged
     assert np.allclose(warm.abilities, result.abilities, atol=1e-7)
+
+
+def test_inversion_longshot_ratios_respected():
+    """Tiny probabilities are matched in ratio, not swallowed by an offset.
+
+    This is the case that broke the earlier centered-residual criterion: a
+    uniform additive offset can absorb a longshot's entire probability.
+    The multiplicative gauge must reproduce it to high relative accuracy.
+    """
+    bases = _bases([1.0, 1.0, 1.0])
+    target = np.array([1.0, 1e-6, 3e-6])
+    target /= target.sum()
+    result = invert_outright_probabilities(bases, target, tol=1e-12, max_iter=80)
+    assert result.converged
+    ratio = result.achieved / (result.scale * target)
+    assert np.allclose(ratio, 1.0, rtol=1e-3)  # longshots correct in ratio
+    spread = result.abilities.max() - result.abilities.min()
+    assert spread > 5.0  # a 1e-6 longshot really is far behind
 
 
 def test_inversion_extreme_target():
@@ -487,6 +506,57 @@ def test_inversion_atom_base_is_graceful():
     assert np.all(np.isfinite(result.achieved))
     if result.converged:
         assert result.residual < 1e-10
+
+
+@pytest.mark.parametrize("name", ["baseline", "atom_vs_smooth", "edge_pileup", "large_random"])
+def test_operator_reuse_matches_fresh_calls(name):
+    """One precomputed operator applied to many vectors equals fresh matvecs."""
+    field = FIELD_BUILDERS[name]()
+    op = LaplacianOperator(field)
+    rng = np.random.default_rng(3)
+    for _ in range(4):
+        u = rng.normal(size=len(field))
+        assert np.array_equal(op.matvec(u), laplacian_matvec(field, u))
+    assert np.all(op(np.ones(len(field))) == 0.0)
+
+
+def test_inversion_reports_convergence_diagnostics():
+    bases = _bases([1.0, 1.0, 1.0])
+    target = np.array([0.5, 0.3, 0.2])
+    result = invert_outright_probabilities(bases, target * 0.97)
+    assert result.converged
+    assert result.message == "converged"
+    hist = result.residual_history
+    assert hist is not None and hist[-1] == result.residual
+    assert hist[-1] < hist[0]  # made progress from the initial residual
+
+
+def test_inversion_falls_off_lattice_gracefully():
+    """A target needing more ability spread than the lattice affords.
+
+    A 1e-12 longshot needs a favourite-longshot gap of ~10 ability units;
+    a lattice spanning +/- 6 cannot represent it.  The solver must pin the
+    abilities at the representable clamp, refuse to claim convergence, and
+    say the lattice is the reason -- not stall silently or run away.
+    """
+    small = UniformLattice(L=120, unit=0.05)  # range +/- 6 with sigma = 1 bases
+    bases = _bases([1.0, 1.0, 1.0], lattice=small)
+    target = np.array([1.0, 1e-12, 1e-12])
+    result = invert_outright_probabilities(bases, target / target.sum(), max_iter=60)
+    assert np.all(np.isfinite(result.abilities))
+    box = (small.L - 2) * small.unit
+    assert np.abs(result.abilities).max() <= box * (1.0 + 1e-12)  # never leaves the box
+    assert not result.converged
+    assert "lattice" in result.message
+
+
+def test_inversion_disconnected_graph_message():
+    """Non-overlapping atoms: zero Laplacian, no Newton direction."""
+    bases = [_atom(-0.5), _atom(0.5)]
+    result = invert_outright_probabilities(bases, [0.6, 0.4], max_iter=5)
+    assert not result.converged
+    assert "disconnected" in result.message
+    assert np.all(np.isfinite(result.abilities))
 
 
 def test_inversion_validation():

@@ -67,6 +67,7 @@ For many races:
 
 - **Gauss–Newton (curve‑based)**: rebuild curves around current (θ,b), run inner least‑squares/cross‑entropy steps with step‑size decay and update caps, then rebuild again.  
 - **Relative‑then‑LS (fast baseline)**: invert each race, center (remove race shift), **slope‑weighted** LS stitch across overlaps.  
+- **Joint Newton–CG (exact, single race)**: the Jacobian of the ability→probability map is minus a weighted graph Laplacian, applicable to a vector in O(N) grid operations without being formed; `invert_outright_probabilities` uses this for exact joint inversion with all cross‑effects, matching price *ratios* (one multiplicative renormalization absorbs the lattice tie mass).  
 
 Both routes yield a **single coherent ability vector θ**, with optional per‑race intercepts b (capturing translation invariance). The former is fully consistent with the forward physics; the latter is a pragmatic, very fast stitch.
 
@@ -93,7 +94,7 @@ In LLM alignment, popular objectives (DPO, pairwise) are the **Bradley–Terry o
 
 ## 7) What you can do with this repository today
 - **Forward pricing**: from assumed abilities (and scales), produce permutation‑invariant state prices with dead‑heat support.  
-- **Inverse calibration**: from prices, recover implied abilities via monotone interpolation (1D/2D).  
+- **Inverse calibration**: from prices, recover implied abilities via monotone interpolation (1D/2D), or exactly and jointly via Laplacian Newton–CG (`invert_outright_probabilities`).  
 - **Global fitting**: combine many races with cached curves; choose curve‑based GN or fast relative‑LS stitching.  
 - **Diagnostics**: check tie mass, permutation invariance, sensitivity to field changes, slope‑based stability.  
 

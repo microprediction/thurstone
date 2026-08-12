@@ -27,6 +27,7 @@ from .inference import AbilityCalibrator
 from .kalman_tracker import KalmanAbilityTracker
 from .laplacian import (
     InversionResult,
+    LaplacianOperator,
     invert_outright_probabilities,
     laplacian_dense,
     laplacian_matvec,
@@ -61,6 +62,7 @@ __all__ = [
     "laplacian_weights",
     "laplacian_dense",
     "laplacian_matvec",
+    "LaplacianOperator",
     "outright_win_probabilities",
     "invert_outright_probabilities",
     "InversionResult",
