@@ -23,7 +23,7 @@ papers/
 
 | Slug | Title | Status |
 |------|-------|--------|
-| _(none yet)_ | | |
+| `mirror-map` | The Thurstone Mirror Map: Fast Inversion, Generalized Entropy and Multiway Choice Geometry | draft |
 
 ## Starting a new paper
 
