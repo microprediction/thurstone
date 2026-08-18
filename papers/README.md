@@ -23,7 +23,7 @@ papers/
 
 | Slug | Title | Status |
 |------|-------|--------|
-| _(none yet)_ | | |
+| `thompson-propensities` | All-Action Propensities for Correlated Gaussian Thompson Sampling | Working manuscript — empirical results pending |
 
 ## Starting a new paper
 

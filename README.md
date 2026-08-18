@@ -1,3 +1,13 @@
+> **Note (August 2026): the research line has moved home.** New development
+> of the factor-correlated race machinery — forward shares, scalable probit
+> calibration, Jacobian-vector products, the methods arena, and the
+> benchmark database — now lives in the
+> [`winning`](https://github.com/microprediction/winning) package, where
+> this line of work began (SIAM J. Financial Mathematics, 2021).
+> `thurstone` remains maintained as a compatibility layer, and its
+> documentation below stays current for the existing API; new work should
+> import from `winning`.
+
 # thurstone
 
 Convert winning probabilities to relative abilities using the fast ability transform. 
