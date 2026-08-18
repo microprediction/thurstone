@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "thurstone"
-version = "0.1.0"
+version = "0.2.0"
 description = "OO toolkit for lattice-based performance models and the horse-race inverse problem"
 authors = [{name="Peter Cotton", email="peter.cotton@microprediction.com"}]
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["numpy>=1.23"]
+dependencies = ["numpy>=1.23", "winning>=1.1"]
 
 [project.optional-dependencies]
 test = [

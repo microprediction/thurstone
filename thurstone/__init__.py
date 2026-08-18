@@ -1,86 +1,23 @@
-from .conventions import (
-    ALT_A,
-    ALT_L,
-    ALT_SCALE,
-    ALT_UNIT,
-    NAN_DIVIDEND,
-    STD_A,
-    STD_L,
-    STD_SCALE,
-    STD_UNIT,
-)
+"""thurstone: compatibility shim.
 
-# Diffeomorphism modules
-from .correlated import (
-    FactorRace,
-    factor_model,
-    gaussian_factor_race,
-    gaussian_nodes,
-    hermite_nodes,
-    solve_abilities,
-)
-from .cube_to_simplex import CubeToSimplexMapping, SigmoidParams
-from .density import Density
-from .global_fit import GlobalAbilityCalibrator
-from .global_ls import GlobalLSCalibrator
-from .inference import AbilityCalibrator
-from .kalman_tracker import KalmanAbilityTracker
-from .laplacian import (
-    InversionResult,
-    LaplacianOperator,
-    invert_outright_probabilities,
-    laplacian_dense,
-    laplacian_matvec,
-    laplacian_weights,
-    outright_win_probabilities,
-)
-from .lattice import UniformLattice
-from .multiray import ConditionSpec, MultiRayGlobalCalibrator
-from .optimization import OptimizationResult, ParameterBounds, optimize_diffeomorphism
-from .pricing import Race, StatePricer
-from .quality_assessment import QualityMetrics, comprehensive_quality_assessment
+The package's implementation has been vendored into the `winning`
+package (github.com/microprediction/winning) as `winning.thurstone`,
+where development continues. Every public name and every submodule
+import (`from thurstone.density import Density`, `import
+thurstone.lattice`, ...) resolves to the vendored code, so existing
+consumers work unchanged. New code should import `winning.thurstone`
+directly.
+"""
 
-__all__ = [
-    "UniformLattice",
-    "Density",
-    "Race",
-    "StatePricer",
-    "AbilityCalibrator",
-    "GlobalAbilityCalibrator",
-    "GlobalLSCalibrator",
-    "KalmanAbilityTracker",
-    "ConditionSpec",
-    "MultiRayGlobalCalibrator",
-    # Correlated races (latent Gaussian factors; softmax races via gumbel_min)
-    "FactorRace",
-    "factor_model",
-    "gaussian_factor_race",
-    "gaussian_nodes",
-    "hermite_nodes",
-    "solve_abilities",
-    # Laplacian Jacobian structure and Newton-CG inversion
-    "laplacian_weights",
-    "laplacian_dense",
-    "laplacian_matvec",
-    "LaplacianOperator",
-    "outright_win_probabilities",
-    "invert_outright_probabilities",
-    "InversionResult",
-    "NAN_DIVIDEND",
-    "STD_L",
-    "STD_UNIT",
-    "STD_SCALE",
-    "STD_A",
-    "ALT_L",
-    "ALT_UNIT",
-    "ALT_SCALE",
-    "ALT_A",
-    # Diffeomorphism functionality
-    "CubeToSimplexMapping",
-    "SigmoidParams",
-    "QualityMetrics",
-    "comprehensive_quality_assessment",
-    "optimize_diffeomorphism",
-    "ParameterBounds",
-    "OptimizationResult",
-]
+import importlib
+import pkgutil
+import sys
+
+import winning.thurstone as _core
+from winning.thurstone import *  # noqa: F401,F403
+
+for _m in pkgutil.iter_modules(_core.__path__):
+    sys.modules[f"thurstone.{_m.name}"] = importlib.import_module(
+        f"winning.thurstone.{_m.name}")
+
+__version__ = "0.2.0"
